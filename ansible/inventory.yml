@@ -1,0 +1,14 @@
+all:
+  hosts:
+    freeshell:
+      ansible_host: freeshell.org
+      ansible_user: your-username  # Replace with your freeshell username
+      ansible_ssh_private_key_file: ~/.ssh/id_rsa  # Or your SSH key path
+  vars:
+    app_name: book-tracker
+    # Resolve symlink and use correct paths
+    html_dir: "{{ ansible_user_dir }}/html"
+    frontend_dir: "{{ html_dir }}/book-tracker"
+    cgi_dir: "{{ html_dir }}/cgi-bin/book-tracker"
+    data_dir: "{{ ansible_user_dir }}/book-tracker-data"
+    backend_port: 8080

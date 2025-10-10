@@ -1,0 +1,77 @@
+#!/bin/bash
+# Book Tracker Management Script (CGI Mode)
+
+DATA_DIR="{{ data_dir }}"
+HTML_DIR=$(readlink -f "{{ html_dir }}")
+CGI_DIR="$HTML_DIR/cgi-bin/book-tracker"
+
+case "$1" in
+    test-cgi)
+        echo "🧪 Testing CGI executable..."
+        cd "$CGI_DIR"
+        source .env
+        echo -e "GET /health HTTP/1.1\n\n" | REQUEST_METHOD=GET PATH_INFO="/health" ./api
+        ;;
+    logs)
+        echo "📋 Checking Apache error logs..."
+        tail -f /usr/local/apache/logs/error_log 2>/dev/null || \
+        tail -f /var/log/apache2/error.log 2>/dev/null || \
+        tail -f /var/log/httpd/error_log 2>/dev/null || \
+        echo "❌ Cannot find Apache error log"
+        ;;
+    backup-db)
+        timestamp=$(date +%Y%m%d_%H%M%S)
+        cp "$DATA_DIR/booktracker.db" "$DATA_DIR/backup_$timestamp.db"
+        echo "📁 Database backed up to backup_$timestamp.db"
+        ls -la "$DATA_DIR/backup_*.db" | tail -5
+        ;;
+    health)
+        echo "🏥 Testing health endpoint via HTTP..."
+        curl -f "https://{{ ansible_user }}.freeshell.org/cgi-bin/book-tracker/health" && echo "✅ CGI healthy" || echo "❌ CGI unhealthy"
+        ;;
+    permissions)
+        echo "🔒 Checking CGI permissions..."
+        ls -la "$CGI_DIR/api"
+        echo "📁 Directory permissions:"
+        ls -la "$CGI_DIR"
+        ;;
+    paths)
+        echo "📁 Directory Structure:"
+        echo "  Frontend: $HTML_DIR/book-tracker/"
+        echo "  CGI:      $CGI_DIR/"
+        echo "  Data:     $DATA_DIR/"
+        echo ""
+        echo "🌐 URL Structure:"
+        echo "  Frontend: https://{{ ansible_user }}.freeshell.org/book-tracker/"
+        echo "  API:      https://{{ ansible_user }}.freeshell.org/cgi-bin/book-tracker/api/"
+        ;;
+    debug)
+        echo "🐛 CGI Debug Information:"
+        echo "Environment file:"
+        cat "$CGI_DIR/.env"
+        echo ""
+        echo "Executable info:"
+        file "$CGI_DIR/api"
+        echo ""
+        echo "Test execution:"
+        cd "$CGI_DIR"
+        export REQUEST_METHOD=GET
+        export PATH_INFO="/health"
+        source .env
+        ./api
+        ;;
+    *)
+        echo "Book Tracker Management (CGI Mode)"
+        echo "Usage: $0 {test-cgi|logs|backup-db|health|permissions|paths|debug}"
+        echo ""
+        echo "Commands:"
+        echo "  test-cgi    - Test CGI executable locally"
+        echo "  logs        - Show Apache error logs"
+        echo "  backup-db   - Create database backup"
+        echo "  health      - Check health endpoint via HTTP"
+        echo "  permissions - Check file permissions"
+        echo "  paths       - Show directory structure"
+        echo "  debug       - Show debug information"
+        exit 1
+        ;;
+esac

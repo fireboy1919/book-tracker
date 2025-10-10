@@ -1,0 +1,5 @@
+#!/bin/bash
+# CGI Environment for Book Tracker
+export JWT_SECRET="{{ jwt_secret }}"
+export DATABASE_URL="file:{{ data_dir }}/booktracker.db"
+export ENVIRONMENT=production

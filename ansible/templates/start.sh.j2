@@ -1,0 +1,20 @@
+#!/bin/bash
+set -e
+
+# Resolve html directory at runtime
+HTML_DIR=$(readlink -f "{{ html_dir }}")
+CGI_DIR="$HTML_DIR/cgi-bin/book-tracker"
+
+# Load environment variables
+if [ -f "$CGI_DIR/.env" ]; then
+    source "$CGI_DIR/.env"
+fi
+
+# Create data directory if it doesn't exist
+mkdir -p "{{ data_dir }}"
+
+# Change to backend directory
+cd "$CGI_DIR"
+
+# Start the application
+exec ./book-tracker

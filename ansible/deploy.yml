@@ -1,0 +1,88 @@
+---
+- name: Deploy Book Tracker to Freeshell.org (CGI Mode)
+  hosts: freeshell
+  gather_facts: no
+  vars:
+    jwt_secret: "{{ lookup('env', 'JWT_SECRET') | default(lookup('password', '/dev/null chars=ascii_letters,digits length=64'), true) }}"
+    
+  tasks:
+    - name: Build frontend locally
+      local_action:
+        module: shell
+        cmd: cd frontend && npm ci && npm run build
+      delegate_to: localhost
+      run_once: true
+
+    - name: Build backend native image locally
+      local_action:
+        module: shell
+        cmd: cd backend && ./gradlew clean nativeCompile
+      delegate_to: localhost
+      run_once: true
+
+    - name: Resolve html symlink
+      shell: readlink -f "{{ html_dir }}"
+      register: resolved_html_dir
+      changed_when: false
+
+    - name: Create remote directories
+      file:
+        path: "{{ item }}"
+        state: directory
+        mode: '0755'
+      loop:
+        - "{{ resolved_html_dir.stdout }}/book-tracker"
+        - "{{ resolved_html_dir.stdout }}/cgi-bin/book-tracker"
+        - "{{ data_dir }}"
+        - "{{ data_dir }}/logs"
+
+    - name: Upload backend CGI executable
+      copy:
+        src: backend/build/native/nativeCompile/book-tracker
+        dest: "{{ resolved_html_dir.stdout }}/cgi-bin/book-tracker/api"
+        mode: '0755'
+
+    - name: Upload backend resources
+      synchronize:
+        src: backend/src/main/resources/
+        dest: "{{ resolved_html_dir.stdout }}/cgi-bin/book-tracker/resources/"
+        delete: yes
+
+    - name: Create production frontend environment
+      copy:
+        content: |
+          VITE_API_URL=https://{{ ansible_user }}.freeshell.org/cgi-bin/book-tracker
+        dest: "{{ resolved_html_dir.stdout }}/book-tracker/.env.production"
+
+    - name: Upload frontend files
+      synchronize:
+        src: frontend/dist/
+        dest: "{{ resolved_html_dir.stdout }}/book-tracker/"
+        delete: yes
+
+    - name: Create .htaccess for React Router
+      copy:
+        content: |
+          Options -MultiViews
+          RewriteEngine On
+          RewriteCond %{REQUEST_FILENAME} !-f
+          RewriteRule ^ index.html [QSA,L]
+        dest: "{{ resolved_html_dir.stdout }}/book-tracker/.htaccess"
+
+    - name: Create CGI environment file
+      template:
+        src: templates/cgi-env.j2
+        dest: "{{ resolved_html_dir.stdout }}/cgi-bin/book-tracker/.env"
+        mode: '0600'
+
+    - name: Create .htaccess for CGI
+      template:
+        src: templates/cgi-htaccess.j2
+        dest: "{{ resolved_html_dir.stdout }}/cgi-bin/book-tracker/.htaccess"
+        mode: '0644'
+
+    - name: Create management script
+      template:
+        src: templates/cgi-manage.sh.j2
+        dest: "{{ data_dir }}/manage.sh"
+        mode: '0755'

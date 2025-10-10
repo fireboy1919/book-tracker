@@ -1,0 +1,213 @@
+[tools]
+java = "graalvm-community-21.0.2"
+node = "22"
+gradle = "8.5"
+
+[env]
+# Backend environment variables
+JWT_SECRET = "dev-secret-key-change-in-production"
+DATABASE_URL = "file:./backend/booktracker.db"
+PORT = "8080"
+
+# Frontend environment variables  
+VITE_API_URL = "http://localhost:8080/api"
+
+[tasks.install]
+description = "Install all dependencies"
+run = [
+    "echo '📦 Installing frontend dependencies...'",
+    "cd frontend && npm install",
+    "echo '📦 Installing backend dependencies...'", 
+    "cd backend && ./gradlew build --exclude-task test"
+]
+
+[tasks.dev]
+description = "Start both frontend and backend in development mode"
+depends = ["install"]
+run = [
+    "echo '🚀 Starting development servers...'",
+    "mise run backend:dev & mise run frontend:dev & wait"
+]
+
+[tasks."backend:dev"]
+description = "Start backend in development mode"
+depends = ["backend:build"]
+run = [
+    "echo '🔧 Starting Kotlin backend...'",
+    "cd backend && ./gradlew run"
+]
+
+[tasks."backend:build"]
+description = "Build backend application"
+run = [
+    "echo '🔨 Building backend...'",
+    "cd backend && ./gradlew build --exclude-task test"
+]
+
+[tasks."backend:test"]
+description = "Run backend tests"
+run = [
+    "echo '🧪 Running backend tests...'",
+    "cd backend && ./gradlew test"
+]
+
+[tasks."backend:native"]
+description = "Build native image with GraalVM"
+run = [
+    "echo '⚡ Building GraalVM native image...'",
+    "cd backend && ./gradlew nativeCompile"
+]
+
+[tasks."backend:native-run"]
+description = "Run the native compiled binary"
+depends = ["backend:native"]
+run = [
+    "echo '🏃 Running native binary...'",
+    "cd backend && ./build/native/nativeCompile/book-tracker"
+]
+
+[tasks."frontend:dev"]
+description = "Start frontend in development mode"
+run = [
+    "echo '⚛️  Starting React frontend...'",
+    "cd frontend && npm run dev"
+]
+
+[tasks."frontend:build"]
+description = "Build frontend for production"
+run = [
+    "echo '📦 Building frontend...'",
+    "cd frontend && npm run build"
+]
+
+[tasks."frontend:preview"]
+description = "Preview production build"
+depends = ["frontend:build"]
+run = [
+    "echo '👀 Previewing production build...'",
+    "cd frontend && npm run preview"
+]
+
+[tasks.test]
+description = "Run all tests"
+run = [
+    "echo '🧪 Running all tests...'",
+    "mise run backend:test",
+    "mise run frontend:test",
+    "echo '✅ All tests completed'"
+]
+
+[tasks."frontend:test"]
+description = "Run frontend unit tests"
+run = [
+    "echo '⚛️  Running React tests...'",
+    "cd frontend && npm test -- --run"
+]
+
+[tasks."frontend:test:watch"]
+description = "Run frontend tests in watch mode"
+run = [
+    "echo '👀 Running React tests in watch mode...'",
+    "cd frontend && npm test"
+]
+
+[tasks."test:e2e"]
+description = "Run end-to-end tests"
+depends = ["install"]
+run = [
+    "echo '🌐 Running E2E tests...'",
+    "cd frontend && npx playwright install",
+    "cd frontend && npm run test:e2e"
+]
+
+[tasks."test:e2e:ui"]
+description = "Run E2E tests with UI"
+depends = ["install"]
+run = [
+    "echo '🎭 Running E2E tests with UI...'",
+    "cd frontend && npx playwright install",
+    "cd frontend && npm run test:e2e:ui"
+]
+
+[tasks."test:all"]
+description = "Run all tests including E2E"
+run = [
+    "echo '🚀 Running complete test suite...'",
+    "mise run backend:test",
+    "mise run frontend:test",
+    "mise run test:e2e",
+    "echo '🎉 All tests completed successfully!'"
+]
+
+[tasks.build]
+description = "Build both frontend and backend"
+run = [
+    "echo '🔨 Building entire application...'",
+    "mise run backend:build",
+    "mise run frontend:build",
+    "echo '✅ Build completed'"
+]
+
+[tasks.clean]
+description = "Clean all build artifacts"
+run = [
+    "echo '🧹 Cleaning build artifacts...'",
+    "rm -rf frontend/node_modules frontend/dist",
+    "cd backend && ./gradlew clean",
+    "rm -f backend/booktracker.db*",
+    "echo '✅ Cleanup completed'"
+]
+
+[tasks.setup]
+description = "Initial project setup"
+run = [
+    "echo '🎯 Setting up Book Tracker development environment...'",
+    "echo '📋 Checking dependencies...'",
+    "java --version",
+    "node --version", 
+    "gradle --version",
+    "echo '📦 Installing dependencies...'",
+    "mise run install",
+    "echo '🗄️  Setting up database...'",
+    "cd backend && cp .env.example .env",
+    "echo '✅ Setup completed! Run: mise run dev'",
+    "echo '🌐 Frontend: http://localhost:5173'",
+    "echo '🔗 Backend:  http://localhost:8080'",
+    "echo '📊 Health:   http://localhost:8080/health'"
+]
+
+[tasks.docker]
+description = "Build and run Docker container"
+run = [
+    "echo '🐳 Building Docker image...'",
+    "cd backend && docker build -t book-tracker .",
+    "echo '🚀 Running Docker container...'",
+    "docker run -p 8080:8080 -e JWT_SECRET=docker-secret book-tracker"
+]
+
+[tasks.check]
+description = "Health check all services"
+run = [
+    "echo '🏥 Checking service health...'",
+    "echo 'Backend health:'",
+    "curl -f http://localhost:8080/health || echo 'Backend not responding'",
+    "echo '\\nFrontend:'", 
+    "curl -f http://localhost:5173 || echo 'Frontend not responding'"
+]
+
+[tasks.reset-db]
+description = "Reset database (delete and recreate)"
+run = [
+    "echo '🗑️  Resetting database...'",
+    "rm -f backend/booktracker.db*",
+    "echo '✅ Database reset. Will be recreated on next start.'"
+]
+
+[tasks.prod]
+description = "Build and run production version"
+run = [
+    "echo '🏭 Building for production...'",
+    "mise run build",
+    "echo '🚀 Starting production servers...'",
+    "mise run backend:native-run & mise run frontend:preview & wait"
+]

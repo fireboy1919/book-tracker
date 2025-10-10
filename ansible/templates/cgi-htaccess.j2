@@ -1,0 +1,9 @@
+# Enable CGI execution
+Options +ExecCGI
+AddHandler cgi-script .cgi
+
+# Route all API requests to our CGI script
+RewriteEngine On
+
+# Handle API routes - route to our CGI executable
+RewriteRule ^(.*)$ api [L,E=PATH_INFO:/$1]

@@ -1,0 +1,66 @@
+#!/bin/bash
+# Book Tracker Management Script
+
+SERVICE_NAME="book-tracker"
+DATA_DIR="{{ data_dir }}"
+HTML_DIR=$(readlink -f "{{ html_dir }}")
+
+case "$1" in
+    start)
+        systemctl --user start $SERVICE_NAME
+        echo "✅ Book Tracker started"
+        ;;
+    stop)
+        systemctl --user stop $SERVICE_NAME
+        echo "🛑 Book Tracker stopped"
+        ;;
+    restart)
+        systemctl --user restart $SERVICE_NAME
+        echo "🔄 Book Tracker restarted"
+        ;;
+    status)
+        systemctl --user status $SERVICE_NAME
+        ;;
+    logs)
+        journalctl --user -u $SERVICE_NAME -f
+        ;;
+    logs-app)
+        tail -f "$DATA_DIR/logs/book-tracker.log"
+        ;;
+    logs-error)
+        tail -f "$DATA_DIR/logs/book-tracker-error.log"
+        ;;
+    backup-db)
+        timestamp=$(date +%Y%m%d_%H%M%S)
+        cp "$DATA_DIR/booktracker.db" "$DATA_DIR/backup_$timestamp.db"
+        echo "📁 Database backed up to backup_$timestamp.db"
+        ls -la "$DATA_DIR/backup_*.db" | tail -5
+        ;;
+    health)
+        curl -f "http://localhost:{{ backend_port }}/health" && echo "✅ Backend healthy" || echo "❌ Backend unhealthy"
+        ;;
+    paths)
+        echo "📁 Directory Structure:"
+        echo "  Frontend: $HTML_DIR/book-tracker/"
+        echo "  Backend:  $HTML_DIR/cgi-bin/book-tracker/"
+        echo "  Data:     $DATA_DIR/"
+        echo "  Logs:     $DATA_DIR/logs/"
+        ;;
+    *)
+        echo "Book Tracker Management"
+        echo "Usage: $0 {start|stop|restart|status|logs|logs-app|logs-error|backup-db|health|paths}"
+        echo ""
+        echo "Commands:"
+        echo "  start      - Start the service"
+        echo "  stop       - Stop the service"
+        echo "  restart    - Restart the service"
+        echo "  status     - Show service status"
+        echo "  logs       - Show systemd logs (live)"
+        echo "  logs-app   - Show application logs (live)"
+        echo "  logs-error - Show error logs (live)"
+        echo "  backup-db  - Create database backup"
+        echo "  health     - Check backend health"
+        echo "  paths      - Show directory structure"
+        exit 1
+        ;;
+esac

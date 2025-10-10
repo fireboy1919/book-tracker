@@ -1,0 +1,36 @@
+services:
+  # Backend API service - Single native executable with persistent database
+  - type: web
+    name: book-tracker-api
+    env: docker
+    region: oregon
+    plan: starter  # Starter plan required for disk storage
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    envVars:
+      - key: JWT_SECRET
+        generateValue: true
+      - key: DATABASE_URL
+        value: file:/opt/render/project/src/data/booktracker.db
+      - key: PORT
+        value: 10000
+    healthCheckPath: /health
+    # Persistent disk for SQLite database
+    disk:
+      name: database
+      mountPath: /opt/render/project/src/data
+      sizeGB: 1
+
+  # Frontend static site
+  - type: static
+    name: book-tracker-frontend
+    env: static
+    region: oregon
+    buildCommand: |
+      cd frontend && 
+      npm ci && 
+      npm run build
+    publishPath: ./frontend/dist
+    envVars:
+      - key: VITE_API_URL
+        value: https://book-tracker-api.onrender.com/api

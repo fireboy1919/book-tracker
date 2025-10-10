@@ -1,0 +1,20 @@
+[Unit]
+Description=Book Tracker Application
+After=network.target
+
+[Service]
+Type=exec
+User={{ ansible_user }}
+WorkingDirectory={{ data_dir }}
+ExecStart={{ data_dir }}/start.sh
+ExecReload=/bin/kill -HUP $MAINPID
+Restart=always
+RestartSec=5
+StandardOutput=append:{{ data_dir }}/logs/book-tracker.log
+StandardError=append:{{ data_dir }}/logs/book-tracker-error.log
+
+# Environment
+Environment=NODE_ENV=production
+
+[Install]
+WantedBy=default.target
