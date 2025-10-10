@@ -7,7 +7,7 @@ RUN gu install native-image
 # Optimize Docker layer caching
 WORKDIR /app
 COPY gradle/ gradle/
-COPY gradlew build.gradle.kts gradle.properties settings.gradle.kts ./
+COPY gradlew gradlew.bat build.gradle.kts gradle.properties settings.gradle.kts ./
 RUN ./gradlew dependencies --no-daemon
 
 # Copy source code
