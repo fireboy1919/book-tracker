@@ -1,8 +1,8 @@
-# Multi-stage build for GraalVM native image
-FROM ghcr.io/graalvm/graalvm-ce:21 AS builder
+# Multi-stage build for GraalVM native image  
+FROM container-registry.oracle.com/graalvm/native-image:21 AS builder
 
-# Install native-image
-RUN gu install native-image
+# Install required system tools that may be missing
+RUN microdnf install -y findutils which
 
 # Optimize Docker layer caching
 WORKDIR /app
@@ -14,7 +14,7 @@ RUN ./gradlew dependencies --no-daemon
 COPY src/ src/
 
 # Build the application with memory limits for Render.com
-ENV GRADLE_OPTS="-Xmx1536m -XX:+UseSerialGC -Dorg.gradle.daemon=false"
+ENV GRADLE_OPTS="-Xmx400m -XX:+UseSerialGC -Dorg.gradle.daemon=false"
 RUN ./gradlew clean build --no-daemon
 
 # Build native image with memory constraints

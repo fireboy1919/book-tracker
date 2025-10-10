@@ -27,7 +27,7 @@ dependencies {
     implementation("com.zaxxer:HikariCP:5.1.0")
     
     // Turso libSQL driver for remote SQLite
-    implementation("org.libsql:libsql-jdbc:0.3.1")
+    implementation("com.dbeaver.jdbc:com.dbeaver.jdbc.driver.libsql:1.0.2")
     
     // Database migrations
     implementation("org.flywaydb:flyway-core:10.4.1")
@@ -74,10 +74,12 @@ graalvmNative {
             debug.set(false)
             verbose.set(false) // Reduce log output to save memory
             
-            // Memory optimization for build
-            buildArgs.add("-J-Xmx1g") // Limit build JVM heap to 1GB
-            buildArgs.add("-J-XX:+UseSerialGC") // Use serial GC for lower memory overhead
-            buildArgs.add("-J-XX:MaxDirectMemorySize=256m") // Limit direct memory
+            // Memory optimization for Render.com (512MB limit)
+            buildArgs.add("-J-Xmx400m") // Very low heap for Render.com
+            buildArgs.add("-J-XX:MaxDirectMemorySize=64m") // Minimal direct memory
+            
+            // Unlock experimental options first
+            buildArgs.add("-H:+UnlockExperimentalVMOptions")
             
             // Disable expensive optimizations for faster, lower-memory build
             buildArgs.add("-O0") // Disable optimizations
