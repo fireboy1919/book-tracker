@@ -4,14 +4,21 @@ FROM ghcr.io/graalvm/graalvm-ce:21 AS builder
 # Install native-image
 RUN gu install native-image
 
+# Optimize Docker layer caching
 WORKDIR /app
-COPY . .
+COPY gradle/ gradle/
+COPY gradlew build.gradle.kts gradle.properties settings.gradle.kts ./
+RUN ./gradlew dependencies --no-daemon
 
-# Build the application
-RUN ./gradlew clean build
+# Copy source code
+COPY src/ src/
 
-# Build native image
-RUN ./gradlew nativeCompile
+# Build the application with memory limits for Render.com
+ENV GRADLE_OPTS="-Xmx1536m -XX:+UseSerialGC -Dorg.gradle.daemon=false"
+RUN ./gradlew clean build --no-daemon
+
+# Build native image with memory constraints
+RUN ./gradlew nativeCompile --no-daemon
 
 # Runtime stage - use distroless for minimal attack surface
 FROM gcr.io/distroless/base-debian12:nonroot

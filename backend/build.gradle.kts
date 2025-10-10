@@ -72,7 +72,17 @@ graalvmNative {
             imageName.set("book-tracker")
             mainClass.set("com.booktracker.MainKt")
             debug.set(false)
-            verbose.set(true)
+            verbose.set(false) // Reduce log output to save memory
+            
+            // Memory optimization for build
+            buildArgs.add("-J-Xmx1g") // Limit build JVM heap to 1GB
+            buildArgs.add("-J-XX:+UseSerialGC") // Use serial GC for lower memory overhead
+            buildArgs.add("-J-XX:MaxDirectMemorySize=256m") // Limit direct memory
+            
+            // Disable expensive optimizations for faster, lower-memory build
+            buildArgs.add("-O0") // Disable optimizations
+            buildArgs.add("--no-fallback") // Fail fast if native image can't be built
+            buildArgs.add("-H:-UseServiceLoaderFeature") // Disable service loader scanning
             
             buildArgs.add("--initialize-at-build-time=kotlin")
             buildArgs.add("--initialize-at-build-time=kotlinx.serialization")
