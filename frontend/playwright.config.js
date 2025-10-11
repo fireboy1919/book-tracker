@@ -29,17 +29,18 @@ export default defineConfig({
     },
   ],
 
-  webServer: [
-    {
-      command: 'cd .. && mise run frontend:dev',
-      url: 'http://localhost:5173',
-      reuseExistingServer: !process.env.CI,
-    },
-    {
-      command: 'cd .. && mise run backend:dev',
-      url: 'http://localhost:8080/health',
-      reuseExistingServer: !process.env.CI,
-      timeout: 120 * 1000,
-    },
-  ],
+  // Using existing servers instead of starting new ones
+  // webServer: [
+  //   {
+  //     command: 'cd .. && mise run frontend:dev',
+  //     url: 'http://localhost:5174',
+  //     reuseExistingServer: !process.env.CI,
+  //   },
+  //   {
+  //     command: 'cd .. && mise run backend-go:dev',
+  //     url: 'http://localhost:8080/health',
+  //     reuseExistingServer: !process.env.CI,
+  //     timeout: 120 * 1000,
+  //   },
+  // ],
 })

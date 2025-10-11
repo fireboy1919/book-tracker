@@ -24,7 +24,17 @@ export default function AdminPanel() {
 
   const toggleAdmin = async (userId, currentIsAdmin) => {
     try {
+      // Find the user to get their current data
+      const user = users.find(u => u.id === userId)
+      if (!user) {
+        setError('User not found')
+        return
+      }
+
       await api.put(`/users/${userId}`, {
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
         isAdmin: !currentIsAdmin
       })
       fetchUsers()

@@ -13,9 +13,10 @@ export default function ChildCard({ child, onAddBook, onInviteUser }) {
   const fetchBooks = async () => {
     try {
       const response = await api.get(`/books/child/${child.id}`)
-      setBooks(response.data)
+      setBooks(response.data || [])
     } catch (error) {
       console.error('Failed to fetch books:', error)
+      setBooks([])
     } finally {
       setLoading(false)
     }
@@ -34,7 +35,7 @@ export default function ChildCard({ child, onAddBook, onInviteUser }) {
                 {child.name}
               </dt>
               <dd className="text-lg font-medium text-gray-900">
-                Age {child.age}
+                {child.grade}
               </dd>
             </dl>
           </div>
@@ -43,9 +44,9 @@ export default function ChildCard({ child, onAddBook, onInviteUser }) {
       <div className="bg-gray-50 px-5 py-3">
         <div className="text-sm">
           <div className="font-medium text-gray-900 mb-2">
-            {loading ? 'Loading...' : `${books.length} books read`}
+            {loading ? 'Loading...' : `${books?.length || 0} books read`}
           </div>
-          {!loading && books.length > 0 && (
+          {!loading && books?.length > 0 && (
             <div className="text-gray-600">
               Recent: {books[books.length - 1]?.title}
             </div>

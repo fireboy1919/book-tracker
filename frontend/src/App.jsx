@@ -2,18 +2,39 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import Login from './pages/Login'
 import Register from './pages/Register'
+import VerifyEmail from './pages/VerifyEmail'
+import EmailVerificationRequired from './pages/EmailVerificationRequired'
 import Dashboard from './pages/Dashboard'
 import AdminPanel from './pages/AdminPanel'
 import Layout from './components/Layout'
 import BackendStatus from './components/BackendStatus'
 
 function ProtectedRoute({ children }) {
-  const { user } = useAuth()
-  return user ? children : <Navigate to="/login" />
+  const { user, loading } = useAuth()
+  
+  if (loading) {
+    return <div>Loading...</div>
+  }
+  
+  if (!user) {
+    return <Navigate to="/login" />
+  }
+  
+  // Check if user's email is verified
+  if (!user.emailVerified) {
+    return <EmailVerificationRequired />
+  }
+  
+  return children
 }
 
 function AdminRoute({ children }) {
-  const { user } = useAuth()
+  const { user, loading } = useAuth()
+  
+  if (loading) {
+    return <div>Loading...</div>
+  }
+  
   return user?.isAdmin ? children : <Navigate to="/dashboard" />
 }
 
@@ -25,6 +46,7 @@ function App() {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/verify-email" element={<VerifyEmail />} />
           <Route path="/" element={<Navigate to="/dashboard" />} />
           <Route
             path="/dashboard"

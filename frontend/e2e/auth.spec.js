@@ -81,8 +81,16 @@ test.describe('Authentication Flow', () => {
     await page.fill('input[name="password"]', 'password123')
     await page.click('button[type="submit"]')
     
-    // Should be on dashboard
+    // Wait for redirect to dashboard
     await expect(page).toHaveURL('/dashboard')
+    
+    // Wait for network requests to complete
+    await page.waitForLoadState('networkidle')
+    
+    // Wait for dashboard to load
+    await expect(page.locator('text=My Children')).toBeVisible({ timeout: 10000 })
+    
+    // Should be on dashboard
     
     // Click logout button
     await page.click('[title="Logout"]')

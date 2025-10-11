@@ -15,6 +15,7 @@ export default function Dashboard() {
   const [showInviteUser, setShowInviteUser] = useState(false)
   const [showReport, setShowReport] = useState(false)
   const [selectedChild, setSelectedChild] = useState(null)
+  const [refreshTrigger, setRefreshTrigger] = useState(0)
 
   useEffect(() => {
     fetchChildren()
@@ -23,9 +24,10 @@ export default function Dashboard() {
   const fetchChildren = async () => {
     try {
       const response = await api.get('/children')
-      setChildren(response.data)
+      setChildren(response.data || [])
     } catch (error) {
       console.error('Failed to fetch children:', error)
+      setChildren([])
     } finally {
       setLoading(false)
     }
@@ -38,6 +40,7 @@ export default function Dashboard() {
 
   const handleBookAdded = () => {
     fetchChildren()
+    setRefreshTrigger(prev => prev + 1) // Force ChildCard components to refresh
     setShowAddBook(false)
   }
 
@@ -87,7 +90,7 @@ export default function Dashboard() {
         </div>
 
         <div className="mt-8">
-          {children.length === 0 ? (
+          {!children || children.length === 0 ? (
             <div className="text-center py-12">
               <div className="text-gray-400 text-lg">No children added yet</div>
               <button
@@ -102,7 +105,7 @@ export default function Dashboard() {
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {children.map((child) => (
                 <ChildCard
-                  key={child.id}
+                  key={`${child.id}-${refreshTrigger}`}
                   child={child}
                   onAddBook={() => handleAddBook(child)}
                   onInviteUser={() => handleInviteUser(child)}

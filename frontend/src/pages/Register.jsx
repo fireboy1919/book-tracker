@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
-import { BookOpenIcon } from '@heroicons/react/24/outline'
+import api from '../services/api'
+import { BookOpenIcon, CheckCircleIcon, EnvelopeIcon } from '@heroicons/react/24/outline'
 
 export default function Register() {
   const [formData, setFormData] = useState({
@@ -9,11 +10,14 @@ export default function Register() {
     lastName: '',
     email: '',
     password: '',
-    confirmPassword: '',
-    isAdmin: false
+    confirmPassword: ''
   })
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [showSuccessMessage, setShowSuccessMessage] = useState(false)
+  const [registeredUser, setRegisteredUser] = useState(null)
+  const [resendLoading, setResendLoading] = useState(false)
+  const [resendMessage, setResendMessage] = useState('')
   const { register } = useAuth()
   const navigate = useNavigate()
 
@@ -40,17 +44,92 @@ export default function Register() {
       firstName: formData.firstName,
       lastName: formData.lastName,
       email: formData.email,
-      password: formData.password,
-      isAdmin: formData.isAdmin
+      password: formData.password
     })
     
     if (result.success) {
-      navigate('/login')
+      setRegisteredUser(result.user)
+      setShowSuccessMessage(true)
     } else {
       setError(result.error)
     }
     
     setLoading(false)
+  }
+
+  const handleResendVerification = async () => {
+    setResendLoading(true)
+    setResendMessage('')
+
+    try {
+      const response = await api.post('/auth/resend-verification', {
+        email: registeredUser?.email
+      })
+      setResendMessage('Verification email sent successfully!')
+    } catch (error) {
+      setResendMessage(error.response?.data?.message || 'Failed to send verification email')
+    }
+
+    setResendLoading(false)
+  }
+
+  if (showSuccessMessage) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-md w-full space-y-8">
+          <div className="bg-white py-8 px-6 shadow rounded-lg">
+            <div className="text-center">
+              <CheckCircleIcon className="h-12 w-12 text-green-500 mx-auto" />
+              <h3 className="mt-4 text-lg font-medium text-gray-900">Registration Successful!</h3>
+              <p className="mt-2 text-sm text-gray-600">
+                Welcome, {registeredUser?.firstName}! We've sent a verification email to{' '}
+                <span className="font-medium">{registeredUser?.email}</span>
+              </p>
+              <div className="mt-4 p-4 bg-blue-50 rounded-md">
+                <div className="flex">
+                  <div className="flex-shrink-0">
+                    <EnvelopeIcon className="h-5 w-5 text-blue-400" />
+                  </div>
+                  <div className="ml-3">
+                    <h3 className="text-sm font-medium text-blue-800">
+                      Please check your email
+                    </h3>
+                    <div className="mt-2 text-sm text-blue-700">
+                      <p>
+                        Click the verification link in your email to complete your registration.
+                        The link will expire in 24 hours.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              {resendMessage && (
+                <div className="mt-4 p-2 bg-green-50 border border-green-200 rounded-md">
+                  <p className="text-sm text-green-700">{resendMessage}</p>
+                </div>
+              )}
+
+              <div className="mt-6 flex flex-col space-y-3">
+                <button
+                  onClick={handleResendVerification}
+                  disabled={resendLoading}
+                  className="w-full flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+                >
+                  {resendLoading ? 'Sending...' : 'Resend Verification Email'}
+                </button>
+                <Link
+                  to="/login"
+                  className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                >
+                  Go to Login
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -145,21 +224,6 @@ export default function Register() {
                 value={formData.confirmPassword}
                 onChange={handleChange}
               />
-            </div>
-            <div>
-              <div className="flex items-center">
-                <input
-                  id="isAdmin"
-                  name="isAdmin"
-                  type="checkbox"
-                  className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
-                  checked={formData.isAdmin}
-                  onChange={handleChange}
-                />
-                <label htmlFor="isAdmin" className="ml-2 block text-sm text-gray-900">
-                  Register as admin user
-                </label>
-              </div>
             </div>
           </div>
 

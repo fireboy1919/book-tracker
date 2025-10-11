@@ -47,7 +47,7 @@ export function AuthProvider({ children }) {
       console.log('Attempting registration with:', userData)
       const response = await api.post('/auth/register', userData)
       console.log('Registration successful:', response.data)
-      return { success: true }
+      return { success: true, user: response.data }
     } catch (error) {
       console.error('Registration failed:', error)
       console.error('Error response:', error.response?.data)

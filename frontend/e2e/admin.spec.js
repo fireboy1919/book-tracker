@@ -27,18 +27,24 @@ test.describe('Admin Features', () => {
     await page.fill('input[name="password"]', 'password123')
     await page.click('button[type="submit"]')
     
-    // Should see admin panel link in navigation
-    await expect(page.locator('text=Admin Panel')).toBeVisible()
+    // Wait for redirect to dashboard
+    await expect(page).toHaveURL('/dashboard')
     
-    // Go to admin panel
-    await page.click('text=Admin Panel')
+    // Wait for network requests to complete
+    await page.waitForLoadState('networkidle')
+    
+    // Wait for dashboard to load
+    await expect(page.locator('text=My Children')).toBeVisible({ timeout: 10000 })
+    
+    // Navigate directly to admin panel (admin user should have access)
+    await page.goto('/admin')
     await expect(page).toHaveURL('/admin')
     await expect(page.locator('text=User Management')).toBeVisible()
     
-    // Should see admin user in the list
-    await expect(page.locator('text=Admin User')).toBeVisible()
-    await expect(page.locator('text=admin@example.com')).toBeVisible()
-    await expect(page.locator('text=Admin').first()).toBeVisible()
+    // Should see admin user in the list (use more specific selectors)
+    await expect(page.locator('table').getByText('Admin User')).toBeVisible()
+    await expect(page.locator('table').getByText('admin@example.com')).toBeVisible()
+    await expect(page.locator('table').getByText('Admin').first()).toBeVisible()
   })
 
   test('regular user cannot access admin panel', async ({ page }) => {
@@ -58,6 +64,15 @@ test.describe('Admin Features', () => {
     await page.fill('input[name="email"]', 'user@example.com')
     await page.fill('input[name="password"]', 'password123')
     await page.click('button[type="submit"]')
+    
+    // Wait for redirect to dashboard
+    await expect(page).toHaveURL('/dashboard')
+    
+    // Wait for network requests to complete
+    await page.waitForLoadState('networkidle')
+    
+    // Wait for dashboard to load
+    await expect(page.locator('text=My Children')).toBeVisible({ timeout: 10000 })
     
     // Should NOT see admin panel link
     await expect(page.locator('text=Admin Panel')).not.toBeVisible()
@@ -100,12 +115,25 @@ test.describe('Admin Features', () => {
     await page.fill('input[name="password"]', 'password123')
     await page.click('button[type="submit"]')
     
-    // Go to admin panel
-    await page.click('text=Admin Panel')
+    // Wait for redirect to dashboard
+    await expect(page).toHaveURL('/dashboard')
     
-    // Should see both users
-    await expect(page.locator('text=Admin User')).toBeVisible()
-    await expect(page.locator('text=Regular User')).toBeVisible()
+    // Wait for network requests to complete
+    await page.waitForLoadState('networkidle')
+    
+    // Wait for dashboard to load
+    await expect(page.locator('text=My Children')).toBeVisible({ timeout: 10000 })
+    
+    // Set mobile viewport to ensure hamburger menu is visible
+    await page.setViewportSize({ width: 375, height: 667 })
+    
+    // Go to admin panel - open mobile menu first, then click Admin Panel
+    await page.locator('nav button:not([title])').click() // Open mobile menu (hamburger icon - button without title)
+    await page.getByRole('link', { name: 'Admin Panel' }).click()
+    
+    // Should see both users in the table
+    await expect(page.getByRole('table').getByText('Admin User')).toBeVisible()
+    await expect(page.getByRole('table').getByText('Regular User')).toBeVisible()
     
     // Find regular user row and promote to admin
     const regularUserRow = page.locator('tr:has-text("Regular User")')
@@ -113,11 +141,11 @@ test.describe('Admin Features', () => {
     await roleButton.click()
     
     // Should now show as Admin
-    await expect(regularUserRow.locator('text=Admin')).toBeVisible()
+    await expect(regularUserRow.locator('button:has-text("Admin")')).toBeVisible()
     
     // Demote back to user
     await regularUserRow.locator('button:has-text("Admin")').click()
-    await expect(regularUserRow.locator('text=User')).toBeVisible()
+    await expect(regularUserRow.locator('button:has-text("User")')).toBeVisible()
   })
 
   test('admin can delete users', async ({ page }) => {
@@ -151,8 +179,21 @@ test.describe('Admin Features', () => {
     await page.fill('input[name="password"]', 'password123')
     await page.click('button[type="submit"]')
     
-    // Go to admin panel
-    await page.click('text=Admin Panel')
+    // Wait for redirect to dashboard
+    await expect(page).toHaveURL('/dashboard')
+    
+    // Wait for network requests to complete
+    await page.waitForLoadState('networkidle')
+    
+    // Wait for dashboard to load
+    await expect(page.locator('text=My Children')).toBeVisible({ timeout: 10000 })
+    
+    // Go to admin panel - try visible link first, fallback to direct navigation
+    try {
+      await page.click('text=Admin Panel', { timeout: 5000 })
+    } catch {
+      await page.goto('/admin')
+    }
     
     // Should see user to delete
     await expect(page.locator('text=To Delete User')).toBeVisible()

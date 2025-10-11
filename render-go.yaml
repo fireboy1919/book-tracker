@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: book-tracker-go
+    env: go
+    buildCommand: go build -tags production -o main .
+    startCommand: ./main
+    plan: free
+    rootDir: backend-go
+    envVars:
+      - key: JWT_SECRET
+        generateValue: true
+      - key: PORT
+        value: 10000
+      - key: DATABASE_URL
+        value: /tmp/booktracker.db
+    healthCheckPath: /health

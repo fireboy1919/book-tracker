@@ -5,8 +5,21 @@ import api from '../services/api'
 export default function AddChildModal({ onClose, onChildAdded }) {
   const [formData, setFormData] = useState({
     name: '',
-    age: ''
+    grade: ''
   })
+
+  const gradeOptions = [
+    'Preschool',
+    'Kindergarten',
+    '1st Grade',
+    '2nd Grade', 
+    '3rd Grade',
+    '4th Grade',
+    '5th Grade',
+    '6th Grade',
+    '7th Grade',
+    '8th Grade'
+  ]
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -25,7 +38,7 @@ export default function AddChildModal({ onClose, onChildAdded }) {
     try {
       await api.post('/children', {
         name: formData.name,
-        age: parseInt(formData.age)
+        grade: formData.grade
       })
       onChildAdded()
     } catch (error) {
@@ -65,18 +78,22 @@ export default function AddChildModal({ onClose, onChildAdded }) {
 
           <div>
             <label className="block text-sm font-medium text-gray-700">
-              Age
+              Grade
             </label>
-            <input
-              type="number"
-              name="age"
+            <select
+              name="grade"
               required
-              min="0"
-              max="18"
               className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-              value={formData.age}
+              value={formData.grade}
               onChange={handleChange}
-            />
+            >
+              <option value="">Select grade...</option>
+              {gradeOptions.map((grade) => (
+                <option key={grade} value={grade}>
+                  {grade}
+                </option>
+              ))}
+            </select>
           </div>
 
           {error && (

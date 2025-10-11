@@ -25,12 +25,12 @@ export default function ReportModal({ onClose }) {
   const downloadReport = () => {
     if (!report) return
 
-    let csvContent = "Child Name,Age,Book Title,Author,Date Read\n"
+    let csvContent = "Child Name,Grade,Book Title,Author,Date Read\n"
     
     report.children.forEach(childReport => {
       childReport.books.forEach(book => {
         const dateRead = new Date(book.dateRead).toLocaleDateString()
-        csvContent += `"${childReport.child.name}",${childReport.child.age},"${book.title}","${book.author}","${dateRead}"\n`
+        csvContent += `"${childReport.child.name}","${childReport.child.grade}","${book.title}","${book.author}","${dateRead}"\n`
       })
     })
 
@@ -88,7 +88,7 @@ export default function ReportModal({ onClose }) {
                 <div key={childReport.child.id} className="border rounded-lg p-4">
                   <div className="flex justify-between items-center mb-3">
                     <h4 className="text-lg font-medium">
-                      {childReport.child.name} (Age {childReport.child.age})
+                      {childReport.child.name} ({childReport.child.grade})
                     </h4>
                     <span className="text-sm text-gray-500">
                       {childReport.totalBooks} books read

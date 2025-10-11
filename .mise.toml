@@ -2,6 +2,7 @@
 java = "graalvm-community-21.0.2"
 node = "22"
 gradle = "8.5"
+go = "1.21.0"
 
 [env]
 # Backend environment variables
@@ -29,6 +30,14 @@ run = [
     "mise run backend:dev & mise run frontend:dev & wait"
 ]
 
+[tasks."dev-go"]
+description = "Start frontend and Go backend in development mode"
+depends = ["install", "backend-go:build"]
+run = [
+    "echo '🚀 Starting development servers with Go backend...'",
+    "mise run backend-go:dev & mise run frontend:dev & wait"
+]
+
 [tasks."backend:dev"]
 description = "Start backend in development mode"
 depends = ["backend:build"]
@@ -37,11 +46,34 @@ run = [
     "cd backend && ./gradlew run"
 ]
 
+[tasks."backend-go:dev"]
+description = "Start Go backend in development mode"
+depends = ["backend-go:build"]
+env = { DATABASE_URL = "file:./booktracker.db", JWT_SECRET = "dev-secret-key-change-in-production", PORT = "8080" }
+run = [
+    "echo '🚀 Starting Go backend...'",
+    "cd backend-go && ./book-tracker-go"
+]
+
 [tasks."backend:build"]
 description = "Build backend application"
 run = [
     "echo '🔨 Building backend...'",
     "cd backend && ./gradlew build --exclude-task test"
+]
+
+[tasks."backend-go:build"]
+description = "Build Go backend application"
+run = [
+    "echo '🔨 Building Go backend...'",
+    "cd backend-go && go build -o book-tracker-go ."
+]
+
+[tasks."backend-go:test"]
+description = "Run Go backend tests"
+run = [
+    "echo '🧪 Running Go backend tests...'",
+    "cd backend-go && go test ./... -v"
 ]
 
 [tasks."backend:test"]

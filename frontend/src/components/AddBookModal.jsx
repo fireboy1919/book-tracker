@@ -27,7 +27,8 @@ export default function AddBookModal({ child, onClose, onBookAdded }) {
       await api.post(`/books/child/${child.id}`, {
         title: formData.title,
         author: formData.author,
-        dateRead: new Date(formData.dateRead)
+        dateRead: formData.dateRead,
+        childId: child.id
       })
       onBookAdded()
     } catch (error) {
@@ -47,7 +48,8 @@ export default function AddBookModal({ child, onClose, onBookAdded }) {
       await api.post(`/books/child/${child.id}`, {
         title: formData.title,
         author: formData.author,
-        dateRead: new Date() // Use current date/time
+        dateRead: new Date().toISOString().split('T')[0], // Use current date as string
+        childId: child.id
       })
       onBookAdded()
     } catch (error) {

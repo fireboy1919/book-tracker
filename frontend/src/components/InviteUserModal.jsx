@@ -5,11 +5,11 @@ import api from '../services/api'
 export default function InviteUserModal({ child, onClose }) {
   const [formData, setFormData] = useState({
     email: '',
-    permissionType: 'VIEWER'
+    permissionType: 'VIEW'
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [success, setSuccess] = useState(false)
+  const [success, setSuccess] = useState('')
 
   const handleChange = (e) => {
     setFormData({
@@ -22,18 +22,19 @@ export default function InviteUserModal({ child, onClose }) {
     e.preventDefault()
     setLoading(true)
     setError('')
-    setSuccess(false)
+    setSuccess('')
 
     try {
-      await api.post('/permissions/invite', {
+      await api.post(`/children/${child.id}/invite`, {
         email: formData.email,
-        childId: child.id,
         permissionType: formData.permissionType
       })
-      setSuccess(true)
-      setFormData({ email: '', permissionType: 'VIEWER' })
+      setSuccess('Invitation sent successfully!')
+      setTimeout(() => {
+        onClose()
+      }, 2000)
     } catch (error) {
-      setError(error.response?.data?.error || 'Failed to send invitation')
+      setError(error.response?.data?.message || 'Failed to send invitation')
     } finally {
       setLoading(false)
     }
@@ -52,12 +53,6 @@ export default function InviteUserModal({ child, onClose }) {
           </button>
         </div>
 
-        {success && (
-          <div className="mb-4 p-3 bg-green-100 border border-green-400 text-green-700 rounded">
-            Invitation sent successfully!
-          </div>
-        )}
-
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700">
@@ -70,7 +65,7 @@ export default function InviteUserModal({ child, onClose }) {
               className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
               value={formData.email}
               onChange={handleChange}
-              placeholder="user@example.com"
+              placeholder="Enter email address..."
             />
           </div>
 
@@ -84,13 +79,17 @@ export default function InviteUserModal({ child, onClose }) {
               value={formData.permissionType}
               onChange={handleChange}
             >
-              <option value="VIEWER">Viewer (can view books)</option>
-              <option value="EDITOR">Editor (can add/edit books)</option>
+              <option value="VIEW">View Only</option>
+              <option value="EDIT">View & Edit</option>
             </select>
           </div>
 
           {error && (
             <div className="text-red-600 text-sm">{error}</div>
+          )}
+
+          {success && (
+            <div className="text-green-600 text-sm">{success}</div>
           )}
 
           <div className="flex justify-end space-x-3">
