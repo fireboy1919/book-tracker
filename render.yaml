@@ -3,10 +3,11 @@ services:
   - type: web
     name: book-tracker-api
     env: docker
+    runtime: go
     region: oregon
-    plan: starter  # Starter plan required for disk storage
-    dockerfilePath: ./backend/Dockerfile
-    dockerContext: ./backend
+    plan: free
+    dockerfilePath: ./backend-go/Dockerfile
+    dockerContext: ./backend-go
     envVars:
       - key: JWT_SECRET
         generateValue: true
@@ -22,15 +23,27 @@ services:
       sizeGB: 1
 
   # Frontend static site
-  - type: static
+  - type: web
     name: book-tracker-frontend
     env: static
+    runtime: static
+    plan: free
     region: oregon
     buildCommand: |
       cd frontend && 
       npm ci && 
       npm run build
-    publishPath: ./frontend/dist
+    staticPublishPath: ./frontend/dist
     envVars:
       - key: VITE_API_URL
-        value: https://book-tracker-api.onrender.com/api
+        value: /api
+    routes:
+      - type: redirect
+        source: /api/*
+        destination: 
+          fromService:
+            type: web
+            name: book-tracker-api
+            property: host
+        path: /api/:splat
+        status: 200

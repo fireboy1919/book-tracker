@@ -1,7 +1,5 @@
 [tools]
-java = "graalvm-community-21.0.2"
 node = "22"
-gradle = "8.5"
 go = "1.21.0"
 
 [env]
@@ -19,7 +17,7 @@ run = [
     "echo '📦 Installing frontend dependencies...'",
     "cd frontend && npm install",
     "echo '📦 Installing backend dependencies...'", 
-    "cd backend && ./gradlew build --exclude-task test"
+    "cd backend-go && go mod download"
 ]
 
 [tasks.dev]
@@ -30,73 +28,33 @@ run = [
     "mise run backend:dev & mise run frontend:dev & wait"
 ]
 
-[tasks."dev-go"]
-description = "Start frontend and Go backend in development mode"
-depends = ["install", "backend-go:build"]
-run = [
-    "echo '🚀 Starting development servers with Go backend...'",
-    "mise run backend-go:dev & mise run frontend:dev & wait"
-]
 
 [tasks."backend:dev"]
 description = "Start backend in development mode"
 depends = ["backend:build"]
-run = [
-    "echo '🔧 Starting Kotlin backend...'",
-    "cd backend && ./gradlew run"
-]
-
-[tasks."backend-go:dev"]
-description = "Start Go backend in development mode"
-depends = ["backend-go:build"]
 env = { DATABASE_URL = "file:./booktracker.db", JWT_SECRET = "dev-secret-key-change-in-production", PORT = "8080" }
 run = [
     "echo '🚀 Starting Go backend...'",
     "cd backend-go && ./book-tracker-go"
 ]
 
+
 [tasks."backend:build"]
 description = "Build backend application"
-run = [
-    "echo '🔨 Building backend...'",
-    "cd backend && ./gradlew build --exclude-task test"
-]
-
-[tasks."backend-go:build"]
-description = "Build Go backend application"
 run = [
     "echo '🔨 Building Go backend...'",
     "cd backend-go && go build -o book-tracker-go ."
 ]
 
-[tasks."backend-go:test"]
-description = "Run Go backend tests"
+
+
+[tasks."backend:test"]
+description = "Run backend tests"
 run = [
     "echo '🧪 Running Go backend tests...'",
     "cd backend-go && go test ./... -v"
 ]
 
-[tasks."backend:test"]
-description = "Run backend tests"
-run = [
-    "echo '🧪 Running backend tests...'",
-    "cd backend && ./gradlew test"
-]
-
-[tasks."backend:native"]
-description = "Build native image with GraalVM"
-run = [
-    "echo '⚡ Building GraalVM native image...'",
-    "cd backend && ./gradlew nativeCompile"
-]
-
-[tasks."backend:native-run"]
-description = "Run the native compiled binary"
-depends = ["backend:native"]
-run = [
-    "echo '🏃 Running native binary...'",
-    "cd backend && ./build/native/nativeCompile/book-tracker"
-]
 
 [tasks."frontend:dev"]
 description = "Start frontend in development mode"
@@ -185,8 +143,8 @@ description = "Clean all build artifacts"
 run = [
     "echo '🧹 Cleaning build artifacts...'",
     "rm -rf frontend/node_modules frontend/dist",
-    "cd backend && ./gradlew clean",
-    "rm -f backend/booktracker.db*",
+    "rm -f backend-go/book-tracker-go",
+    "rm -f booktracker.db*",
     "echo '✅ Cleanup completed'"
 ]
 
@@ -195,13 +153,10 @@ description = "Initial project setup"
 run = [
     "echo '🎯 Setting up Book Tracker development environment...'",
     "echo '📋 Checking dependencies...'",
-    "java --version",
+    "go version",
     "node --version", 
-    "gradle --version",
     "echo '📦 Installing dependencies...'",
     "mise run install",
-    "echo '🗄️  Setting up database...'",
-    "cd backend && cp .env.example .env",
     "echo '✅ Setup completed! Run: mise run dev'",
     "echo '🌐 Frontend: http://localhost:5173'",
     "echo '🔗 Backend:  http://localhost:8080'",
@@ -212,7 +167,7 @@ run = [
 description = "Build and run Docker container"
 run = [
     "echo '🐳 Building Docker image...'",
-    "cd backend && docker build -t book-tracker .",
+    "cd backend-go && docker build -t book-tracker .",
     "echo '🚀 Running Docker container...'",
     "docker run -p 8080:8080 -e JWT_SECRET=docker-secret book-tracker"
 ]
@@ -231,7 +186,7 @@ run = [
 description = "Reset database (delete and recreate)"
 run = [
     "echo '🗑️  Resetting database...'",
-    "rm -f backend/booktracker.db*",
+    "rm -f booktracker.db*",
     "echo '✅ Database reset. Will be recreated on next start.'"
 ]
 
@@ -241,5 +196,5 @@ run = [
     "echo '🏭 Building for production...'",
     "mise run build",
     "echo '🚀 Starting production servers...'",
-    "mise run backend:native-run & mise run frontend:preview & wait"
+    "mise run backend:dev & mise run frontend:preview & wait"
 ]
