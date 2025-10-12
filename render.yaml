@@ -37,13 +37,11 @@ services:
     envVars:
       - key: VITE_API_URL
         value: /api
+      - key: BOOK_TRACKER_API_URL
+        fromService:
+          type: web
+          name: book-tracker-api
     routes:
-      - type: redirect
+      - type: rewrite
         source: /api/*
-        destination: 
-          fromService:
-            type: web
-            name: book-tracker-api
-            property: host
-        path: /api/:splat
-        status: 200
+        destination: $BOOK_TRACKER_API_URL/*
