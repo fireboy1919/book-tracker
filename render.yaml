@@ -1,26 +1,21 @@
 services:
-  # Backend API service - Single native executable with persistent database
+  # Backend API service - Go runtime
   - type: web
     name: book-tracker-api
-    env: docker
+    env: go
     runtime: go
     region: oregon
     plan: free
-    dockerfilePath: ./backend-go/Dockerfile
-    dockerContext: ./backend-go
+    startCommand: ./book-tracker-go
+    buildCommand: go build -o book-tracker-go .
     envVars:
       - key: JWT_SECRET
         generateValue: true
       - key: DATABASE_URL
-        value: file:/opt/render/project/src/data/booktracker.db
+        value: file:./booktracker.db
       - key: PORT
         value: 10000
     healthCheckPath: /health
-    # Persistent disk for SQLite database
-    disk:
-      name: database
-      mountPath: /opt/render/project/src/data
-      sizeGB: 1
 
   # Frontend static site
   - type: web
@@ -28,7 +23,6 @@ services:
     env: static
     runtime: static
     plan: free
-    region: oregon
     buildCommand: |
       cd frontend && 
       npm ci && 
@@ -36,12 +30,7 @@ services:
     staticPublishPath: ./frontend/dist
     envVars:
       - key: VITE_API_URL
-        value: /api
-      - key: BOOK_TRACKER_API_URL
         fromService:
           type: web
           name: book-tracker-api
-    routes:
-      - type: rewrite
-        source: /api/*
-        destination: $BOOK_TRACKER_API_URL/*
+          envVarKey: RENDER_EXTERNAL_URL

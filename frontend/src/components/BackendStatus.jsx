@@ -10,7 +10,8 @@ export default function BackendStatus() {
       const controller = new AbortController()
       const timeoutId = setTimeout(() => controller.abort(), 5000) // 5s timeout
 
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/health`, {
+      const apiUrl = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : 'http://localhost:8080/api'
+      const response = await fetch(`${apiUrl}/health`, {
         signal: controller.signal
       })
       
