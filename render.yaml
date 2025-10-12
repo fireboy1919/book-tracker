@@ -22,7 +22,6 @@ services:
     name: book-tracker-frontend
     env: static
     runtime: static
-    plan: free
     buildCommand: |
       cd frontend && 
       npm ci && 
