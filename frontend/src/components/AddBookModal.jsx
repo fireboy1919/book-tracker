@@ -11,7 +11,8 @@ export default function AddBookModal({ child, onClose, onBookAdded }) {
     lexileLevel: '',
     dateRead: new Date().toISOString().split('T')[0],
     isPartial: false,
-    partialComment: ''
+    partialComment: '',
+    coverUrl: ''
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -33,6 +34,10 @@ export default function AddBookModal({ child, onClose, onBookAdded }) {
     return () => {
       if (html5QrcodeScannerRef.current) {
         html5QrcodeScannerRef.current.clear()
+      }
+      // Clear ISBN lookup timeout
+      if (window.isbnLookupTimeout) {
+        clearTimeout(window.isbnLookupTimeout)
       }
     }
   }, [])
@@ -76,10 +81,57 @@ export default function AddBookModal({ child, onClose, onBookAdded }) {
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target
-    setFormData({
+    const newFormData = {
       ...formData,
       [name]: type === 'checkbox' ? checked : value
-    })
+    }
+    
+    setFormData(newFormData)
+    
+    // Auto-lookup ISBN when a complete ISBN is entered
+    if (name === 'isbn' && value) {
+      const cleanedISBN = value.replace(/[^\d]/g, '')
+      if ((cleanedISBN.length === 10 || cleanedISBN.length === 13) && 
+          (cleanedISBN.startsWith('978') || cleanedISBN.startsWith('979') || cleanedISBN.length === 10)) {
+        // Debounce the lookup to avoid excessive API calls
+        if (window.isbnLookupTimeout) {
+          clearTimeout(window.isbnLookupTimeout)
+        }
+        
+        window.isbnLookupTimeout = setTimeout(() => {
+          performISBNLookup(cleanedISBN)
+        }, 500) // Wait 500ms after user stops typing
+      }
+    }
+  }
+
+  const performISBNLookup = async (isbn) => {
+    if (!isbn) return
+
+    setIsbnLookupLoading(true)
+    setIsbnLookupError('')
+
+    try {
+      const response = await api.post('/books/lookup-isbn', { isbn: isbn })
+      if (response.data.found) {
+        setFormData(prev => ({
+          ...prev,
+          isbn: isbn,
+          title: response.data.title || prev.title,
+          author: response.data.author || prev.author,
+          lexileLevel: response.data.lexileLevel || prev.lexileLevel,
+          coverUrl: response.data.coverUrl || prev.coverUrl
+        }))
+        setIsbnLookupError('')
+      } else {
+        setIsbnLookupError('Book not found. Please fill in manually.')
+      }
+    } catch (error) {
+      console.error('ISBN lookup error:', error)
+      setIsbnLookupError(error.response?.data?.message || 'Failed to lookup ISBN')
+    } finally {
+      setIsbnLookupLoading(false)
+    }
   }
 
   const lookupISBN = async () => {
@@ -88,30 +140,8 @@ export default function AddBookModal({ child, onClose, onBookAdded }) {
       return
     }
 
-    setIsbnLookupLoading(true)
-    setIsbnLookupError('')
-
-    try {
-      const response = await api.post('/books/lookup-isbn', {
-        isbn: formData.isbn
-      })
-
-      if (response.data.found) {
-        setFormData({
-          ...formData,
-          title: response.data.title || formData.title,
-          author: response.data.author || formData.author,
-          lexileLevel: response.data.lexileLevel || formData.lexileLevel
-        })
-        setIsbnLookupError('')
-      } else {
-        setIsbnLookupError('Book not found. Please fill in manually.')
-      }
-    } catch (error) {
-      setIsbnLookupError(error.response?.data?.message || 'Failed to lookup ISBN')
-    } finally {
-      setIsbnLookupLoading(false)
-    }
+    const cleanedISBN = formData.isbn.replace(/[^\d]/g, '')
+    await performISBNLookup(cleanedISBN)
   }
 
   const extractISBN = (decodedText) => {
@@ -192,7 +222,8 @@ export default function AddBookModal({ child, onClose, onBookAdded }) {
                         isbn: validISBN,
                         title: response.data.title || prev.title,
                         author: response.data.author || prev.author,
-                        lexileLevel: response.data.lexileLevel || prev.lexileLevel
+                        lexileLevel: response.data.lexileLevel || prev.lexileLevel,
+                        coverUrl: response.data.coverUrl || prev.coverUrl
                       }))
                       setIsbnLookupError('')
                     } else {
@@ -363,45 +394,93 @@ export default function AddBookModal({ child, onClose, onBookAdded }) {
             </div>
           )}
 
+          {/* Book Display Section */}
           <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Book Title
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Book Information
             </label>
-            <input
-              type="text"
-              name="title"
-              required
-              readOnly={!!formData.isbn && !!formData.title}
-              placeholder={formData.isbn && !formData.title ? "Title will appear after ISBN lookup" : "Enter book title or use ISBN lookup"}
-              className={`mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 ${
-                (!!formData.isbn && !!formData.title) ? 'bg-gray-100 text-gray-700 cursor-not-allowed' : ''
+            <div 
+              className={`border-2 rounded-lg p-4 transition-colors ${
+                formData.title || formData.author ? 'border-indigo-200 bg-indigo-50' : 'border-gray-300 bg-gray-50'
               }`}
-              value={formData.title}
-              onChange={handleChange}
-            />
-            {formData.isbn && !formData.title && (
+              onClick={() => {
+                // Allow editing if no ISBN lookup data or if it's a custom book
+                if (!formData.isbn || (!formData.title && !formData.author)) {
+                  document.querySelector('input[name="title"]')?.focus()
+                }
+              }}
+              style={{ cursor: (!formData.isbn || (!formData.title && !formData.author)) ? 'pointer' : 'default' }}
+            >
+              <div className="flex items-start space-x-4">
+                {/* Book Cover Placeholder */}
+                <div className="flex-shrink-0 w-16 h-20 bg-gray-200 rounded border border-gray-300 flex items-center justify-center">
+                  {formData.coverUrl ? (
+                    <img
+                      src={formData.coverUrl}
+                      alt="Book cover"
+                      className="w-full h-full object-cover rounded"
+                      onError={(e) => {
+                        e.target.style.display = 'none'
+                      }}
+                    />
+                  ) : (
+                    <div className="text-xs text-gray-400 text-center p-1">No Cover</div>
+                  )}
+                </div>
+                
+                {/* Book Details */}
+                <div className="flex-1 min-w-0">
+                  {formData.title || formData.author ? (
+                    <>
+                      <h4 className="text-base font-semibold text-gray-900 truncate">
+                        {formData.title || 'Untitled'}
+                      </h4>
+                      <p className="text-sm text-gray-600 truncate">
+                        by {formData.author || 'Unknown Author'}
+                      </p>
+                      {formData.isbn && (
+                        <p className="text-xs text-gray-500 mt-1">
+                          {formData.isbn.startsWith('978') || formData.isbn.startsWith('979') ? 'ISBN-13: ' : 'ISBN-10: '}{formData.isbn}
+                        </p>
+                      )}
+                    </>
+                  ) : (
+                    <div className="text-gray-500">
+                      <p className="text-sm font-medium">Click to add book details</p>
+                      <p className="text-xs">Or use ISBN lookup above</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+              
+              {/* Editable fields (hidden by default, shown when clicked or no data) */}
+              {(!formData.isbn || !formData.title || !formData.author) && (
+                <div className="mt-3 space-y-2 border-t pt-3">
+                  <input
+                    type="text"
+                    name="title"
+                    placeholder="Enter book title"
+                    className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                    value={formData.title}
+                    onChange={handleChange}
+                  />
+                  <input
+                    type="text"
+                    name="author"
+                    placeholder="Enter author name"
+                    className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                    value={formData.author}
+                    onChange={handleChange}
+                  />
+                </div>
+              )}
+            </div>
+            
+            {formData.isbn && formData.title && formData.author && (
               <p className="text-xs text-gray-500 mt-1">
-                Enter an ISBN above and click "Lookup" to populate book details
+                Book details populated from ISBN lookup. This will be a shared book.
               </p>
             )}
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Author
-            </label>
-            <input
-              type="text"
-              name="author"
-              required
-              readOnly={!!formData.isbn && !!formData.author}
-              placeholder={formData.isbn && !formData.author ? "Author will appear after ISBN lookup" : "Enter author name or use ISBN lookup"}
-              className={`mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 ${
-                (!!formData.isbn && !!formData.author) ? 'bg-gray-100 text-gray-700 cursor-not-allowed' : ''
-              }`}
-              value={formData.author}
-              onChange={handleChange}
-            />
           </div>
 
           <div>
