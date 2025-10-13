@@ -27,3 +27,23 @@ dist-ssr
 backend/build/
 backend/.gradle/
 backend/booktracker.db
+
+# Database files
+*.db
+*.db-shm
+*.db-wal
+booktracker.db*
+
+# Go binaries
+book-tracker-go
+backend-go/book-tracker-go
+
+# Test reports and results
+frontend/playwright-report/
+playwright-report/
+test-results/
+frontend/test-results/
+backend-go/test-results/
+
+# Test artifacts
+*.html.report
