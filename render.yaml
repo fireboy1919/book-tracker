@@ -6,8 +6,9 @@ services:
     runtime: go
     region: virginia
     plan: free
-    startCommand: cd backend-go && ./book-tracker-go
-    buildCommand: cd backend-go && go build -o book-tracker-go .
+    rootDir: backend-go
+    startCommand: ./book-tracker-go
+    buildCommand: go build -o book-tracker-go .
     envVarGroups:
       - name: Default Secrets
     envVars:
