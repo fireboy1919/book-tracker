@@ -78,6 +78,7 @@ func (suite *AuthServiceTestSuite) TestAuthenticateUserWrongPassword() {
 		Password:  "correctPassword",
 		FirstName: "Test",
 		LastName:  "User",
+		IsAdmin:   false,
 	})
 	assert.NoError(suite.T(), err)
 
@@ -97,6 +98,7 @@ func (suite *AuthServiceTestSuite) TestAuthenticateUserSuccess() {
 		Password:  password,
 		FirstName: "Test",
 		LastName:  "User",
+		IsAdmin:   false,
 	})
 	assert.NoError(suite.T(), err)
 
@@ -177,6 +179,7 @@ func (suite *AuthServiceTestSuite) TestLoginWrongPassword() {
 		Password:  "correctPassword",
 		FirstName: "Test",
 		LastName:  "User",
+		IsAdmin:   false,
 	})
 	assert.NoError(suite.T(), err)
 
@@ -200,6 +203,7 @@ func (suite *AuthServiceTestSuite) TestLoginSuccess() {
 		Password:  password,
 		FirstName: "Test",
 		LastName:  "User",
+		IsAdmin:   false,
 	})
 	assert.NoError(suite.T(), err)
 

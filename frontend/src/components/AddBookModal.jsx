@@ -9,7 +9,9 @@ export default function AddBookModal({ child, onClose, onBookAdded }) {
     title: '',
     author: '',
     lexileLevel: '',
-    dateRead: new Date().toISOString().split('T')[0]
+    dateRead: new Date().toISOString().split('T')[0],
+    isPartial: false,
+    partialComment: ''
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -73,9 +75,10 @@ export default function AddBookModal({ child, onClose, onBookAdded }) {
   }
 
   const handleChange = (e) => {
+    const { name, value, type, checked } = e.target
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value
+      [name]: type === 'checkbox' ? checked : value
     })
   }
 
@@ -204,7 +207,10 @@ export default function AddBookModal({ child, onClose, onBookAdded }) {
         author: formData.author,
         lexileLevel: formData.lexileLevel,
         dateRead: formData.dateRead,
-        childId: child.id
+        childId: child.id,
+        isCustomBook: !formData.isbn || formData.isbn.trim() === '',
+        isPartial: formData.isPartial,
+        partialComment: formData.partialComment
       })
       onBookAdded()
     } catch (error) {
@@ -226,7 +232,10 @@ export default function AddBookModal({ child, onClose, onBookAdded }) {
         author: formData.author,
         lexileLevel: formData.lexileLevel,
         dateRead: new Date().toISOString().split('T')[0], // Use current date as string
-        childId: child.id
+        childId: child.id,
+        isCustomBook: !formData.isbn || formData.isbn.trim() === '',
+        isPartial: formData.isPartial,
+        partialComment: formData.partialComment
       })
       onBookAdded()
     } catch (error) {
@@ -236,10 +245,10 @@ export default function AddBookModal({ child, onClose, onBookAdded }) {
     }
   }
 
-  const isFormValid = formData.isbn.trim() && formData.title.trim() && formData.author.trim() && !isDuplicate
+  const isFormValid = formData.title.trim() && formData.author.trim() && !isDuplicate
 
   return (
-    <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+    <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-[60]">
       <div className="relative top-20 mx-auto p-5 border w-[520px] shadow-lg rounded-md bg-white">
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-lg font-medium">Add Book for {child.firstName} {child.lastName}</h3>
@@ -324,10 +333,19 @@ export default function AddBookModal({ child, onClose, onBookAdded }) {
               type="text"
               name="title"
               required
-              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+              readOnly={!!formData.isbn && !!formData.title}
+              placeholder={formData.isbn && !formData.title ? "Title will appear after ISBN lookup" : "Enter book title or use ISBN lookup"}
+              className={`mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 ${
+                (!!formData.isbn && !!formData.title) ? 'bg-gray-100 text-gray-700 cursor-not-allowed' : ''
+              }`}
               value={formData.title}
               onChange={handleChange}
             />
+            {formData.isbn && !formData.title && (
+              <p className="text-xs text-gray-500 mt-1">
+                Enter an ISBN above and click "Lookup" to populate book details
+              </p>
+            )}
           </div>
 
           <div>
@@ -338,7 +356,11 @@ export default function AddBookModal({ child, onClose, onBookAdded }) {
               type="text"
               name="author"
               required
-              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+              readOnly={!!formData.isbn && !!formData.author}
+              placeholder={formData.isbn && !formData.author ? "Author will appear after ISBN lookup" : "Enter author name or use ISBN lookup"}
+              className={`mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 ${
+                (!!formData.isbn && !!formData.author) ? 'bg-gray-100 text-gray-700 cursor-not-allowed' : ''
+              }`}
               value={formData.author}
               onChange={handleChange}
             />
@@ -384,6 +406,41 @@ export default function AddBookModal({ child, onClose, onBookAdded }) {
               onChange={handleChange}
             />
           </div>
+
+          {/* Partial Book Checkbox */}
+          <div className="flex items-center">
+            <input
+              type="checkbox"
+              id="isPartial"
+              name="isPartial"
+              checked={formData.isPartial}
+              onChange={handleChange}
+              className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+            />
+            <label htmlFor="isPartial" className="ml-2 block text-sm text-gray-900">
+              This is a partial reading (e.g., only read some chapters)
+            </label>
+          </div>
+
+          {/* Partial Comment Field */}
+          {formData.isPartial && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700">
+                What portion was read?
+              </label>
+              <textarea
+                name="partialComment"
+                rows={3}
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                placeholder="e.g., Chapters 1-5, First half, Pages 1-100, etc."
+                value={formData.partialComment}
+                onChange={handleChange}
+              />
+              <p className="mt-1 text-sm text-gray-500">
+                Describe which part of the book was read (optional)
+              </p>
+            </div>
+          )}
 
           {error && (
             <div className="text-red-600 text-sm">{error}</div>

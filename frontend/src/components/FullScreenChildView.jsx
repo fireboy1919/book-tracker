@@ -1,15 +1,21 @@
 import { useState, useEffect } from 'react'
-import { XMarkIcon, ChevronLeftIcon, ChevronRightIcon, PlusIcon } from '@heroicons/react/24/outline'
+import { XMarkIcon, ChevronLeftIcon, ChevronRightIcon, PlusIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline'
 import api from '../services/api'
+import EditBookModal from './EditBookModal'
 
 export default function FullScreenChildView({ child, onClose, onAddBook }) {
   const [books, setBooks] = useState([])
   const [loading, setLoading] = useState(true)
   const [currentDate, setCurrentDate] = useState(new Date())
   const [filteredBooks, setFilteredBooks] = useState([])
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [selectedBook, setSelectedBook] = useState(null)
+  const [canEdit, setCanEdit] = useState(false)
+  const [checkingPermissions, setCheckingPermissions] = useState(true)
 
   useEffect(() => {
     fetchBooks()
+    checkEditPermission()
   }, [child.id])
 
   useEffect(() => {
@@ -25,6 +31,28 @@ export default function FullScreenChildView({ child, onClose, onAddBook }) {
       setBooks([])
     } finally {
       setLoading(false)
+    }
+  }
+
+  const checkEditPermission = async () => {
+    try {
+      // Try to create a book request - this will check EDIT permission
+      // We're not actually creating, just checking if we have permission
+      const currentUser = JSON.parse(localStorage.getItem('user'))
+      if (currentUser && child.ownerId === currentUser.id) {
+        // User owns this child, so they have EDIT permission
+        setCanEdit(true)
+      } else {
+        // For non-owners, we'll try a test request to see if we have EDIT permission
+        // We can use a HEAD request or check permissions via another endpoint
+        // For now, assume VIEW only for non-owners (can be enhanced later)
+        setCanEdit(false)
+      }
+    } catch (error) {
+      console.error('Failed to check permissions:', error)
+      setCanEdit(false)
+    } finally {
+      setCheckingPermissions(false)
     }
   }
 
@@ -60,6 +88,29 @@ export default function FullScreenChildView({ child, onClose, onAddBook }) {
 
   const handleAddBook = () => {
     onAddBook(child)
+  }
+
+  const handleEditBook = (book) => {
+    setSelectedBook(book)
+    setShowEditModal(true)
+  }
+
+  const handleDeleteBook = async (book) => {
+    if (window.confirm(`Are you sure you want to delete "${book.title}"?`)) {
+      try {
+        await api.delete(`/books/${book.id}`)
+        // Refresh the books list
+        fetchBooks()
+      } catch (error) {
+        console.error('Failed to delete book:', error)
+        alert('Failed to delete book. Please try again.')
+      }
+    }
+  }
+
+  const handleBookUpdated = (updatedBook) => {
+    // Refresh the books list
+    fetchBooks()
   }
 
   if (loading) {
@@ -118,15 +169,17 @@ export default function FullScreenChildView({ child, onClose, onAddBook }) {
         </div>
 
         {/* Add Book Button */}
-        <div className="mb-6">
-          <button
-            onClick={handleAddBook}
-            className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700"
-          >
-            <PlusIcon className="h-4 w-4 mr-2" />
-            Add Book for {formatMonthYear(currentDate)}
-          </button>
-        </div>
+        {canEdit && (
+          <div className="mb-6">
+            <button
+              onClick={handleAddBook}
+              className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700"
+            >
+              <PlusIcon className="h-4 w-4 mr-2" />
+              Add Book for {formatMonthYear(currentDate)}
+            </button>
+          </div>
+        )}
 
         {/* Books List */}
         <div className="space-y-4">
@@ -135,35 +188,91 @@ export default function FullScreenChildView({ child, onClose, onAddBook }) {
               <div className="text-gray-400 text-lg mb-4">
                 No books recorded for {formatMonthYear(currentDate)}
               </div>
-              <button
-                onClick={handleAddBook}
-                className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700"
-              >
-                <PlusIcon className="h-4 w-4 mr-2" />
-                Add First Book
-              </button>
+              {canEdit && (
+                <button
+                  onClick={handleAddBook}
+                  className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700"
+                >
+                  <PlusIcon className="h-4 w-4 mr-2" />
+                  Add First Book
+                </button>
+              )}
             </div>
           ) : (
             <div className="grid gap-4">
               {filteredBooks.map((book, index) => (
                 <div key={book.id} className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow">
                   <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center mb-2">
-                        <span className="bg-indigo-100 text-indigo-800 text-xs font-medium px-2 py-1 rounded-full mr-3">
-                          Book #{index + 1}
-                        </span>
-                        <span className="text-sm text-gray-500">
-                          Read on {formatDateRead(book.dateRead)}
-                        </span>
+                    <div className="flex items-start space-x-4 flex-1">
+                      {/* Book Cover */}
+                      {book.coverUrl && (
+                        <div className="flex-shrink-0">
+                          <img
+                            src={book.coverUrl}
+                            alt={`Cover of ${book.title}`}
+                            className="w-16 h-20 object-cover rounded-md border border-gray-200"
+                            onError={(e) => {
+                              e.target.style.display = 'none'
+                            }}
+                          />
+                        </div>
+                      )}
+                      
+                      {/* Book Details */}
+                      <div className="flex-1">
+                        <div className="flex items-center mb-2">
+                          <span className="bg-indigo-100 text-indigo-800 text-xs font-medium px-2 py-1 rounded-full mr-3">
+                            Book #{index + 1}
+                          </span>
+                          {book.isPartial && (
+                            <span className="bg-yellow-100 text-yellow-800 text-xs font-medium px-2 py-1 rounded-full mr-3">
+                              Partial
+                            </span>
+                          )}
+                          <span className="text-sm text-gray-500">
+                            Read on {formatDateRead(book.dateRead)}
+                          </span>
+                        </div>
+                        <h5 className="text-lg font-semibold text-gray-900 mb-1">
+                          {book.title}
+                        </h5>
+                        <p className="text-gray-600 mb-2">
+                          by {book.author}
+                        </p>
+                        {book.lexileLevel && (
+                          <p className="text-sm text-gray-500 mb-2">
+                            Lexile Level: {book.lexileLevel}
+                          </p>
+                        )}
+                        {book.isPartial && book.partialComment && (
+                          <div className="bg-yellow-50 border-l-4 border-yellow-200 p-2 mt-2">
+                            <p className="text-sm text-yellow-800">
+                              <span className="font-medium">Portion read:</span> {book.partialComment}
+                            </p>
+                          </div>
+                        )}
                       </div>
-                      <h5 className="text-lg font-semibold text-gray-900 mb-1">
-                        {book.title}
-                      </h5>
-                      <p className="text-gray-600">
-                        by {book.author}
-                      </p>
                     </div>
+                    
+                    {/* Action Buttons */}
+                    {canEdit && (
+                      <div className="flex items-center space-x-2 ml-4">
+                        <button
+                          onClick={() => handleEditBook(book)}
+                          className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-gray-50 rounded-full transition-colors"
+                          title="Edit book"
+                        >
+                          <PencilIcon className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteBook(book)}
+                          className="p-2 text-gray-400 hover:text-red-600 hover:bg-gray-50 rounded-full transition-colors"
+                          title="Delete book"
+                        >
+                          <TrashIcon className="h-4 w-4" />
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}
@@ -185,6 +294,18 @@ export default function FullScreenChildView({ child, onClose, onAddBook }) {
           </div>
         )}
       </div>
+
+      {/* Edit Book Modal */}
+      {showEditModal && selectedBook && (
+        <EditBookModal
+          book={selectedBook}
+          onClose={() => {
+            setShowEditModal(false)
+            setSelectedBook(null)
+          }}
+          onBookUpdated={handleBookUpdated}
+        />
+      )}
     </div>
   )
 }

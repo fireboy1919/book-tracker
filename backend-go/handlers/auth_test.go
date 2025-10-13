@@ -49,6 +49,7 @@ func (suite *AuthHandlerTestSuite) TestRegisterUserSuccess() {
 		Password:  "password123",
 		FirstName: "Test",
 		LastName:  "User",
+		IsAdmin:   false,
 	}
 
 	jsonData, err := json.Marshal(createUserRequest)

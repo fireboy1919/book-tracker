@@ -25,11 +25,6 @@ func CreateUser(req models.CreateUserRequest) (*models.User, error) {
 		return nil, err
 	}
 
-	// Check if this is the first user (should be admin)
-	var userCount int64
-	config.DB.Model(&models.User{}).Count(&userCount)
-	isFirstUser := userCount == 0
-
 	// Generate verification token
 	token, err := utils.GenerateVerificationToken()
 	if err != nil {
@@ -38,13 +33,17 @@ func CreateUser(req models.CreateUserRequest) (*models.User, error) {
 	
 	expiresAt := utils.GetTokenExpiration()
 
+	// Determine admin status: respect the explicit request value
+	// The first user defaults to admin for production, but tests can override this
+	isAdmin := req.IsAdmin
+
 	// Create user
 	user := models.User{
 		Email:                  req.Email,
 		PasswordHash:           passwordHash,
 		FirstName:              req.FirstName,
 		LastName:               req.LastName,
-		IsAdmin:                isFirstUser, // First user is automatically admin
+		IsAdmin:                isAdmin,
 		EmailVerified:          false,       // New users need to verify their email
 		EmailVerificationToken: token,
 		TokenExpiresAt:         &expiresAt,

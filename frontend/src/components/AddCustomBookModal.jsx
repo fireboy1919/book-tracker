@@ -129,7 +129,7 @@ export default function AddCustomBookModal({ child, onClose, onBookAdded }) {
   const isFormValid = formData.title.trim() && formData.author.trim() && !isDuplicate && (!formData.isPartial || formData.partialComment.trim())
 
   return (
-    <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+    <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-[60]">
       <div className="relative top-20 mx-auto p-5 border w-[520px] shadow-lg rounded-md bg-white">
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-lg font-medium">Add Custom Book for {child.firstName} {child.lastName}</h3>

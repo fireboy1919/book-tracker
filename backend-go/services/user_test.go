@@ -30,6 +30,7 @@ func (suite *UserServiceTestSuite) TestCreateUserSuccess() {
 		Password:  "password123",
 		FirstName: "Test",
 		LastName:  "User",
+		IsAdmin:   false,
 	}
 
 	user, err := CreateUser(req)
@@ -50,6 +51,7 @@ func (suite *UserServiceTestSuite) TestCreateUserDuplicateEmail() {
 		Password:  "password123",
 		FirstName: "Test",
 		LastName:  "User",
+		IsAdmin:   false,
 	}
 
 	// First creation should succeed
@@ -71,6 +73,7 @@ func (suite *UserServiceTestSuite) TestGetUserByIDSuccess() {
 		Password:  "password123",
 		FirstName: "Test",
 		LastName:  "User",
+		IsAdmin:   false,
 	}
 
 	createdUser, err := CreateUser(req)
@@ -102,6 +105,7 @@ func (suite *UserServiceTestSuite) TestGetUserByEmailSuccess() {
 		Password:  "password123",
 		FirstName: "Test",
 		LastName:  "User",
+		IsAdmin:   false,
 	}
 
 	createdUser, err := CreateUser(req)
@@ -131,6 +135,7 @@ func (suite *UserServiceTestSuite) TestGetAllUsers() {
 		Password:  "password123",
 		FirstName: "User",
 		LastName:  "One",
+		IsAdmin:   false,
 	}
 
 	user2Req := models.CreateUserRequest{
@@ -138,6 +143,7 @@ func (suite *UserServiceTestSuite) TestGetAllUsers() {
 		Password:  "password123",
 		FirstName: "User",
 		LastName:  "Two",
+		IsAdmin:   false,
 	}
 
 	_, err1 := CreateUser(user1Req)
@@ -167,6 +173,7 @@ func (suite *UserServiceTestSuite) TestUpdateUserSuccess() {
 		Password:  "password123",
 		FirstName: "Test",
 		LastName:  "User",
+		IsAdmin:   false,
 	}
 
 	createdUser, err := CreateUser(createReq)
@@ -212,6 +219,7 @@ func (suite *UserServiceTestSuite) TestUpdateUserDuplicateEmail() {
 		Password:  "password123",
 		FirstName: "User",
 		LastName:  "One",
+		IsAdmin:   false,
 	}
 
 	user2Req := models.CreateUserRequest{
@@ -219,6 +227,7 @@ func (suite *UserServiceTestSuite) TestUpdateUserDuplicateEmail() {
 		Password:  "password123",
 		FirstName: "User",
 		LastName:  "Two",
+		IsAdmin:   false,
 	}
 
 	_, err1 := CreateUser(user1Req)
@@ -248,6 +257,7 @@ func (suite *UserServiceTestSuite) TestDeleteUserSuccess() {
 		Password:  "password123",
 		FirstName: "Test",
 		LastName:  "User",
+		IsAdmin:   false,
 	}
 
 	createdUser, err := CreateUser(req)
