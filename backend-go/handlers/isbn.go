@@ -47,45 +47,23 @@ func LookupISBN(c *gin.Context) {
 		return
 	}
 
-	// Call Open Library API
-	url := fmt.Sprintf("https://openlibrary.org/api/books?bibkeys=ISBN:%s&format=json&jscmd=data", isbn)
-	
-	resp, err := http.Get(url)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
-			Message: "Failed to lookup ISBN: " + err.Error(),
-		})
-		return
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		c.JSON(http.StatusBadRequest, models.BookInfoResponse{
-			ISBN:  isbn,
-			Found: false,
-		})
-		return
-	}
-
-	// Parse response
-	var apiResponse map[string]OpenLibraryResponse
-	if err := json.NewDecoder(resp.Body).Decode(&apiResponse); err != nil {
-		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
-			Message: "Failed to parse API response: " + err.Error(),
-		})
-		return
-	}
-
-	// Check if book was found
-	key := fmt.Sprintf("ISBN:%s", isbn)
-	bookData, found := apiResponse[key]
-	
-	if !found || bookData.Title == "" {
+	// Try original ISBN first
+	bookData, finalISBN, found := lookupSingleISBN(isbn)
+	if !found {
 		c.JSON(http.StatusOK, models.BookInfoResponse{
 			ISBN:  isbn,
 			Found: false,
 		})
 		return
+	}
+
+	// If no cover image, try to find a related ISBN with better cover
+	if bookData.Cover.Small == "" && bookData.Cover.Medium == "" && bookData.Cover.Large == "" {
+		betterData, betterISBN, foundBetter := findISBNWithCover(bookData)
+		if foundBetter {
+			bookData = betterData
+			finalISBN = betterISBN
+		}
 	}
 
 	// Extract author name (take first author if multiple)
@@ -128,7 +106,7 @@ func LookupISBN(c *gin.Context) {
 	}
 
 	bookInfo := models.BookInfoResponse{
-		ISBN:         isbn,
+		ISBN:         finalISBN, // Use the final ISBN (might be different if we found better cover)
 		Title:        bookData.Title,
 		Author:       author,
 		CoverURL:     coverURL,
@@ -139,4 +117,62 @@ func LookupISBN(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, bookInfo)
+}
+
+// lookupSingleISBN performs a single ISBN lookup
+func lookupSingleISBN(isbn string) (OpenLibraryResponse, string, bool) {
+	url := fmt.Sprintf("https://openlibrary.org/api/books?bibkeys=ISBN:%s&format=json&jscmd=data", isbn)
+	
+	resp, err := http.Get(url)
+	if err != nil {
+		return OpenLibraryResponse{}, isbn, false
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return OpenLibraryResponse{}, isbn, false
+	}
+
+	var apiResponse map[string]OpenLibraryResponse
+	if err := json.NewDecoder(resp.Body).Decode(&apiResponse); err != nil {
+		return OpenLibraryResponse{}, isbn, false
+	}
+
+	key := fmt.Sprintf("ISBN:%s", isbn)
+	bookData, found := apiResponse[key]
+	
+	if !found || bookData.Title == "" {
+		return OpenLibraryResponse{}, isbn, false
+	}
+
+	return bookData, isbn, true
+}
+
+// findISBNWithCover tries related ISBNs to find one with a cover image
+func findISBNWithCover(originalData OpenLibraryResponse) (OpenLibraryResponse, string, bool) {
+	// Collect all related ISBNs from the original response
+	var relatedISBNs []string
+	relatedISBNs = append(relatedISBNs, originalData.ISBN10...)
+	relatedISBNs = append(relatedISBNs, originalData.ISBN13...)
+
+	// Try each related ISBN until we find one with a cover
+	for _, relatedISBN := range relatedISBNs {
+		if relatedISBN == "" {
+			continue
+		}
+		
+		bookData, isbn, found := lookupSingleISBN(relatedISBN)
+		if !found {
+			continue
+		}
+		
+		// Check if this one has a cover image
+		if bookData.Cover.Small != "" || bookData.Cover.Medium != "" || bookData.Cover.Large != "" {
+			// Found one with cover! Stop here and return it
+			return bookData, isbn, true
+		}
+	}
+
+	// No ISBN with cover found
+	return OpenLibraryResponse{}, "", false
 }

@@ -297,11 +297,12 @@ type ReportResponse struct {
 
 // Database migration function
 func AutoMigrate(db *gorm.DB) error {
-	// Perform data migration for children table if needed
-	err := migrateChildrenTable(db)
-	if err != nil {
-		return err
-	}
+	// Skip the destructive migration - it's already been applied
+	// TODO: Remove migrateChildrenTable function once stable
+	// err := migrateChildrenTable(db)
+	// if err != nil {
+	// 	return err
+	// }
 	
 	return db.AutoMigrate(&User{}, &Child{}, &SharedBook{}, &Book{}, &Permission{}, &PendingInvitation{})
 }

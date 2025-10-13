@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { PlusIcon, ChartBarIcon, ShareIcon, ChevronLeftIcon, ChevronRightIcon, CogIcon } from '@heroicons/react/24/outline'
+import { PlusIcon, ChartBarIcon, ShareIcon, ChevronLeftIcon, ChevronRightIcon, PencilIcon } from '@heroicons/react/24/outline'
 import api from '../services/api'
 import ChildCard from '../components/ChildCard'
 import AddChildModal from '../components/AddChildModal'
@@ -164,14 +164,14 @@ export default function Dashboard() {
                     onAddBook={() => handleAddBook(child)}
                     onViewDetails={() => handleViewChild(child)}
                   />
-                  {/* Child Management Button */}
+                  {/* Child Edit Button */}
                   <div className="absolute top-2 right-2">
                     <button
                       onClick={() => handleManageChild(child)}
-                      className="p-1 rounded-full bg-white shadow-sm hover:bg-gray-50 transition-colors"
-                      title="Manage child"
+                      className="p-1.5 rounded-full bg-white shadow-md hover:bg-indigo-50 hover:text-indigo-600 transition-colors border border-gray-200"
+                      title="Edit child information"
                     >
-                      <CogIcon className="h-4 w-4 text-gray-500" />
+                      <PencilIcon className="h-4 w-4 text-gray-600" />
                     </button>
                   </div>
                 </div>

@@ -12,7 +12,8 @@ export default function AddBookModal({ child, onClose, onBookAdded }) {
     dateRead: new Date().toISOString().split('T')[0],
     isPartial: false,
     partialComment: '',
-    coverUrl: ''
+    coverUrl: '',
+    sharedBookId: null
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -120,7 +121,8 @@ export default function AddBookModal({ child, onClose, onBookAdded }) {
           title: response.data.title || prev.title,
           author: response.data.author || prev.author,
           lexileLevel: response.data.lexileLevel || prev.lexileLevel,
-          coverUrl: response.data.coverUrl || prev.coverUrl
+          coverUrl: response.data.coverUrl || prev.coverUrl,
+          sharedBookId: response.data.sharedBookId || null
         }))
         setIsbnLookupError('')
       } else {
@@ -223,7 +225,8 @@ export default function AddBookModal({ child, onClose, onBookAdded }) {
                         title: response.data.title || prev.title,
                         author: response.data.author || prev.author,
                         lexileLevel: response.data.lexileLevel || prev.lexileLevel,
-                        coverUrl: response.data.coverUrl || prev.coverUrl
+                        coverUrl: response.data.coverUrl || prev.coverUrl,
+                        sharedBookId: response.data.sharedBookId || null
                       }))
                       setIsbnLookupError('')
                     } else {
@@ -270,17 +273,26 @@ export default function AddBookModal({ child, onClose, onBookAdded }) {
     setLoading(true)
 
     try {
-      await api.post(`/books/child/${child.id}`, {
-        isbn: formData.isbn,
-        title: formData.title,
-        author: formData.author,
-        lexileLevel: formData.lexileLevel,
+      const requestData = {
         dateRead: formData.dateRead,
         childId: child.id,
-        isCustomBook: !formData.isbn || formData.isbn.trim() === '',
+        lexileLevel: formData.lexileLevel,
         isPartial: formData.isPartial,
         partialComment: formData.partialComment
-      })
+      }
+
+      // If we have a sharedBookId from ISBN lookup, use that
+      if (formData.sharedBookId) {
+        requestData.sharedBookId = formData.sharedBookId
+      } else {
+        // Otherwise, this is a custom book
+        requestData.isCustomBook = true
+        requestData.title = formData.title
+        requestData.author = formData.author
+        requestData.isbn = formData.isbn
+      }
+
+      await api.post(`/books/child/${child.id}`, requestData)
       onBookAdded()
     } catch (error) {
       setError(error.response?.data?.message || 'Failed to add book')
@@ -290,22 +302,31 @@ export default function AddBookModal({ child, onClose, onBookAdded }) {
   }
 
   const handleFinishedToday = async () => {
-    if (!formData.isbn || !formData.title || !formData.author || isDuplicate) return
+    if (!formData.title || !formData.author || isDuplicate) return
     
     setLoading(true)
 
     try {
-      await api.post(`/books/child/${child.id}`, {
-        isbn: formData.isbn,
-        title: formData.title,
-        author: formData.author,
-        lexileLevel: formData.lexileLevel,
+      const requestData = {
         dateRead: new Date().toISOString().split('T')[0], // Use current date as string
         childId: child.id,
-        isCustomBook: !formData.isbn || formData.isbn.trim() === '',
+        lexileLevel: formData.lexileLevel,
         isPartial: formData.isPartial,
         partialComment: formData.partialComment
-      })
+      }
+
+      // If we have a sharedBookId from ISBN lookup, use that
+      if (formData.sharedBookId) {
+        requestData.sharedBookId = formData.sharedBookId
+      } else {
+        // Otherwise, this is a custom book
+        requestData.isCustomBook = true
+        requestData.title = formData.title
+        requestData.author = formData.author
+        requestData.isbn = formData.isbn
+      }
+
+      await api.post(`/books/child/${child.id}`, requestData)
       onBookAdded()
     } catch (error) {
       setError(error.response?.data?.message || 'Failed to add book')
@@ -318,7 +339,7 @@ export default function AddBookModal({ child, onClose, onBookAdded }) {
 
   return (
     <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-[60]">
-      <div className="relative top-20 mx-auto p-5 border w-[520px] shadow-lg rounded-md bg-white">
+      <div className="relative top-10 mx-auto p-4 sm:p-5 border w-full max-w-lg shadow-lg rounded-md bg-white max-h-[90vh] overflow-y-auto">
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-lg font-medium">Add Book for {child.firstName} {child.lastName}</h3>
           <button
@@ -582,24 +603,14 @@ export default function AddBookModal({ child, onClose, onBookAdded }) {
             >
               Cancel
             </button>
-            <div className="space-x-3">
-              <button
-                type="button"
-                onClick={handleFinishedToday}
-                disabled={loading || !isFormValid}
-                className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                title={isDuplicate ? "Cannot add duplicate book" : !isFormValid ? "Please fill in ISBN, title and author first" : "Mark as finished today"}
-              >
-                {loading ? 'Adding...' : 'Finished Today'}
-              </button>
-              <button
-                type="submit"
-                disabled={loading}
-                className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50"
-              >
-                {loading ? 'Adding...' : 'Add Book'}
-              </button>
-            </div>
+            <button
+              type="submit"
+              disabled={loading || !isFormValid}
+              className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              title={isDuplicate ? "Cannot add duplicate book" : !isFormValid ? "Please fill in title and author first" : "Add book with selected date"}
+            >
+              {loading ? 'Adding...' : 'Add Book'}
+            </button>
           </div>
         </form>
       </div>

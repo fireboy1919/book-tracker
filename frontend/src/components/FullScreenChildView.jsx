@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { XMarkIcon, ChevronLeftIcon, ChevronRightIcon, PlusIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline'
 import api from '../services/api'
 import EditBookModal from './EditBookModal'
+import EditChildModal from './EditChildModal'
 
 export default function FullScreenChildView({ child, onClose, onAddBook }) {
   const [books, setBooks] = useState([])
@@ -12,6 +13,8 @@ export default function FullScreenChildView({ child, onClose, onAddBook }) {
   const [selectedBook, setSelectedBook] = useState(null)
   const [canEdit, setCanEdit] = useState(false)
   const [checkingPermissions, setCheckingPermissions] = useState(true)
+  const [showEditChildModal, setShowEditChildModal] = useState(false)
+  const [childData, setChildData] = useState(child)
 
   useEffect(() => {
     fetchBooks()
@@ -113,6 +116,11 @@ export default function FullScreenChildView({ child, onClose, onAddBook }) {
     fetchBooks()
   }
 
+  const handleChildUpdated = (updatedChild) => {
+    setChildData(updatedChild)
+    setShowEditChildModal(false)
+  }
+
   if (loading) {
     return (
       <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
@@ -130,9 +138,20 @@ export default function FullScreenChildView({ child, onClose, onAddBook }) {
       <div className="relative top-10 mx-auto p-5 border w-full max-w-6xl shadow-lg rounded-md bg-white min-h-[80vh]">
         {/* Header */}
         <div className="flex justify-between items-center mb-6">
-          <div>
-            <h3 className="text-2xl font-bold text-gray-900">{child.firstName} {child.lastName}'s Books</h3>
-            <p className="text-sm text-gray-500">{child.grade}</p>
+          <div className="flex items-center space-x-4">
+            <div>
+              <h3 className="text-2xl font-bold text-gray-900">{childData.firstName} {childData.lastName}'s Books</h3>
+              <p className="text-sm text-gray-500">{childData.grade}</p>
+            </div>
+            {canEdit && (
+              <button
+                onClick={() => setShowEditChildModal(true)}
+                className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-full transition-colors"
+                title="Edit child information"
+              >
+                <PencilIcon className="h-5 w-5" />
+              </button>
+            )}
           </div>
           <button
             onClick={onClose}
@@ -304,6 +323,15 @@ export default function FullScreenChildView({ child, onClose, onAddBook }) {
             setSelectedBook(null)
           }}
           onBookUpdated={handleBookUpdated}
+        />
+      )}
+
+      {/* Edit Child Modal */}
+      {showEditChildModal && (
+        <EditChildModal
+          child={childData}
+          onClose={() => setShowEditChildModal(false)}
+          onChildUpdated={handleChildUpdated}
         />
       )}
     </div>
