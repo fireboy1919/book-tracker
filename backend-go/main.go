@@ -114,6 +114,7 @@ func main() {
 			reports := protected.Group("/reports")
 			{
 				reports.GET("/my-books", handlers.GetMyBooksReport)
+				reports.GET("/child/:childId/monthly-pdf", handlers.GenerateMonthlyPDFReport)
 			}
 		}
 

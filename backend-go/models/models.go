@@ -307,50 +307,6 @@ func AutoMigrate(db *gorm.DB) error {
 	return db.AutoMigrate(&User{}, &Child{}, &SharedBook{}, &Book{}, &Permission{}, &PendingInvitation{})
 }
 
-// migrateChildrenTable handles the migration from single 'name' field to firstName/lastName
-func migrateChildrenTable(db *gorm.DB) error {
-	// Check if the old schema exists (has 'name' field but no 'first_name')
-	var hasName, hasFirstName bool
-	
-	// Check for name column
-	if db.Migrator().HasColumn(&Child{}, "name") {
-		hasName = true
-	}
-	
-	// Check for first_name column  
-	if db.Migrator().HasColumn(&Child{}, "first_name") {
-		hasFirstName = true
-	}
-	
-	// If we have name but not first_name, we need to migrate
-	if hasName && !hasFirstName {
-		// For production: Clear all data to avoid migration complexity
-		// Delete in correct order to respect foreign key constraints
-		
-		// First delete books (they reference children)
-		err := db.Exec("DELETE FROM books").Error
-		if err != nil {
-			return err
-		}
-		
-		// Then delete permissions (they also reference children)
-		err = db.Exec("DELETE FROM permissions").Error
-		if err != nil {
-			return err
-		}
-		
-		// Finally delete children
-		err = db.Exec("DELETE FROM children").Error
-		if err != nil {
-			return err
-		}
-		
-		// Drop and recreate the children table
-		err = db.Migrator().DropTable(&Child{})
-		if err != nil {
-			return err
-		}
-	}
-	
-	return nil
-}
+// migrateChildrenTable - REMOVED to prevent data deletion
+// This migration has been disabled to preserve data between deployments.
+// The schema migration from 'name' to 'firstName'/'lastName' has already been applied.

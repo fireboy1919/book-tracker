@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { XMarkIcon, ChevronLeftIcon, ChevronRightIcon, PlusIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline'
+import { XMarkIcon, ChevronLeftIcon, ChevronRightIcon, PlusIcon, PencilIcon, TrashIcon, DocumentArrowDownIcon } from '@heroicons/react/24/outline'
 import api from '../services/api'
 import EditBookModal from './EditBookModal'
 import EditChildModal from './EditChildModal'
@@ -121,6 +121,32 @@ export default function FullScreenChildView({ child, onClose, onAddBook }) {
     setShowEditChildModal(false)
   }
 
+  const handleDownloadPDF = async () => {
+    const currentYear = currentDate.getFullYear()
+    const currentMonth = currentDate.getMonth() + 1
+    
+    try {
+      const response = await api.get(`/reports/child/${child.id}/monthly-pdf`, {
+        params: { year: currentYear, month: currentMonth },
+        responseType: 'blob'
+      })
+      
+      // Create blob URL and download
+      const blob = new Blob([response.data], { type: 'application/pdf' })
+      const url = window.URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `${childData.firstName}_${childData.lastName}_books_${currentMonth}_${currentYear}.pdf`
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      window.URL.revokeObjectURL(url)
+    } catch (error) {
+      console.error('Failed to download PDF:', error)
+      alert('Failed to download PDF report. Please try again.')
+    }
+  }
+
   if (loading) {
     return (
       <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
@@ -177,6 +203,15 @@ export default function FullScreenChildView({ child, onClose, onAddBook }) {
             <p className="text-sm text-gray-600">
               {filteredBooks.length} book{filteredBooks.length !== 1 ? 's' : ''} read
             </p>
+            {filteredBooks.length > 0 && (
+              <button
+                onClick={handleDownloadPDF}
+                className="mt-2 inline-flex items-center px-3 py-1 border border-transparent rounded-md shadow-sm text-xs font-medium text-indigo-600 bg-indigo-100 hover:bg-indigo-200 transition-colors"
+              >
+                <DocumentArrowDownIcon className="h-4 w-4 mr-1" />
+                Download PDF
+              </button>
+            )}
           </div>
           
           <button

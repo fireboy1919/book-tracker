@@ -40,6 +40,9 @@ services:
         source: /register*
         destination: /index.html
       - type: rewrite
+        source: /accept-invitation*
+        destination: /index.html
+      - type: rewrite
         source: /login*
         destination: /index.html
       - type: rewrite

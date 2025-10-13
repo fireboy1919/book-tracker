@@ -33,9 +33,26 @@ func CreateUser(req models.CreateUserRequest) (*models.User, error) {
 	
 	expiresAt := utils.GetTokenExpiration()
 
-	// Determine admin status: respect the explicit request value
-	// The first user defaults to admin for production, but tests can override this
-	isAdmin := req.IsAdmin
+	// Determine admin status
+	var isAdmin bool
+	if req.IsAdmin {
+		// Explicit admin request (used by tests)
+		isAdmin = true
+	} else {
+		// Check if this is the first user (should be admin)
+		var userCount int64
+		err := config.DB.Model(&models.User{}).Count(&userCount).Error
+		if err != nil {
+			return nil, err
+		}
+		
+		if userCount == 0 {
+			// This is the first user - make them admin
+			isAdmin = true
+		} else {
+			isAdmin = false
+		}
+	}
 
 	// Create user
 	user := models.User{
