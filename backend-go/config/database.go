@@ -54,8 +54,11 @@ func InitDatabase() {
 			log.Fatal("libSQL URL missing authToken parameter")
 		}
 		
-		// Create libSQL connector
-		connector, err := libsql.NewConnector(dbURL)
+		// Clean URL without auth token for connection
+		baseURL := fmt.Sprintf("%s://%s%s", parsedURL.Scheme, parsedURL.Host, parsedURL.Path)
+		
+		// Create libSQL connector with separate auth token
+		connector, err := libsql.NewConnector(baseURL, libsql.WithAuthToken(authToken))
 		if err != nil {
 			log.Fatal("Failed to create libSQL connector:", err)
 		}
