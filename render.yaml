@@ -4,15 +4,13 @@ services:
     name: book-tracker-api
     env: go
     runtime: go
-    region: oregon
+    region: virginia
     plan: free
-    startCommand: ./book-tracker-go
-    buildCommand: go build -o book-tracker-go .
+    startCommand: cd backend-go && ./book-tracker-go
+    buildCommand: cd backend-go && go build -o book-tracker-go .
+    envVarGroups:
+      - name: Default Secrets
     envVars:
-      - key: JWT_SECRET
-        generateValue: true
-      - key: DATABASE_URL
-        value: file:./booktracker.db
       - key: PORT
         value: 10000
     healthCheckPath: /health
