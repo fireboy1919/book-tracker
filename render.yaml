@@ -26,6 +26,28 @@ services:
       npm ci && 
       npm run build
     staticPublishPath: ./frontend/dist
+    routes:
+      - type: rewrite
+        source: /reset-password*
+        destination: /index.html
+      - type: rewrite
+        source: /verify-email*
+        destination: /index.html
+      - type: rewrite
+        source: /forgot-password*
+        destination: /index.html
+      - type: rewrite
+        source: /register*
+        destination: /index.html
+      - type: rewrite
+        source: /login*
+        destination: /index.html
+      - type: rewrite
+        source: /dashboard*
+        destination: /index.html
+      - type: rewrite
+        source: /admin*
+        destination: /index.html
     envVars:
       - key: VITE_API_URL
         fromService:
