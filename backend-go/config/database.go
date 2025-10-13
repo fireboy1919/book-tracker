@@ -83,7 +83,21 @@ func InitDatabase() {
 			// Convert jdbc:libsql:// to libsql://
 			libsqlURL := strings.Replace(dbURL, "jdbc:libsql://", "libsql://", 1)
 			
-			connector, err := libsql.NewConnector(libsqlURL)
+			// Parse the libSQL URL to extract auth token
+			parsedURL, err := url.Parse(libsqlURL)
+			if err != nil {
+				log.Fatal("Failed to parse libSQL URL:", err)
+			}
+			
+			authToken := parsedURL.Query().Get("authToken")
+			if authToken == "" {
+				log.Fatal("libSQL URL missing authToken parameter")
+			}
+			
+			// Clean URL without auth token
+			baseURL := fmt.Sprintf("%s://%s%s", parsedURL.Scheme, parsedURL.Host, parsedURL.Path)
+			
+			connector, err := libsql.NewConnector(baseURL, libsql.WithAuthToken(authToken))
 			if err != nil {
 				log.Fatal("Failed to create libSQL connector:", err)
 			}
