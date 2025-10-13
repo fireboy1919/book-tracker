@@ -11,6 +11,18 @@ import (
 
 // CreateBook creates a new book
 func CreateBook(req models.CreateBookRequest) (*models.Book, error) {
+	// Check if ISBN already exists (if ISBN is provided)
+	if req.ISBN != "" {
+		var existingBook models.Book
+		result := config.DB.Where("isbn = ? AND isbn != ''", req.ISBN).First(&existingBook)
+		if result.Error == nil {
+			return nil, errors.New("book with this ISBN already exists")
+		}
+		if !errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			return nil, result.Error
+		}
+	}
+
 	book := models.Book{
 		ISBN:        req.ISBN,
 		Title:       req.Title,
@@ -79,6 +91,18 @@ func UpdateBook(id uint, req models.UpdateBookRequest) (*models.Book, error) {
 			return nil, errors.New("book not found")
 		}
 		return nil, result.Error
+	}
+
+	// Check if ISBN already exists (if ISBN is provided and different from current)
+	if req.ISBN != "" && req.ISBN != book.ISBN {
+		var existingBook models.Book
+		result := config.DB.Where("isbn = ? AND isbn != '' AND id != ?", req.ISBN, id).First(&existingBook)
+		if result.Error == nil {
+			return nil, errors.New("book with this ISBN already exists")
+		}
+		if !errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			return nil, result.Error
+		}
 	}
 
 	book.ISBN = req.ISBN

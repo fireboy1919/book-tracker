@@ -46,7 +46,7 @@ type Child struct {
 // Book represents a book that has been read
 type Book struct {
 	ID         uint      `json:"id" gorm:"primaryKey"`
-	ISBN       string    `json:"isbn" gorm:"uniqueIndex;not null"` // Unique ISBN constraint
+	ISBN       string    `json:"isbn"`
 	Title      string    `json:"title" gorm:"not null"`
 	Author     string    `json:"author" gorm:"not null"`
 	LexileLevel string   `json:"lexileLevel,omitempty"` // Optional Lexile level
