@@ -31,10 +31,14 @@ func (e *EmailService) SendVerificationEmail(email, firstName, verificationToken
 		return nil
 	}
 
-	verificationURL := fmt.Sprintf("http://localhost:5173/verify-email?token=%s", verificationToken)
+	frontendURL := os.Getenv("FRONTEND_URL")
+	if frontendURL == "" {
+		frontendURL = "http://localhost:5173" // fallback for development
+	}
+	verificationURL := fmt.Sprintf("%s/verify-email?token=%s", frontendURL, verificationToken)
 	
 	params := &resend.SendEmailRequest{
-		From:    "Book Tracker <onboarding@resend.dev>", // Using Resend's default domain for testing
+		From:    "Book Tracker <noreply@booktracker.rustyphillips.net>",
 		To:      []string{email},
 		Subject: "Verify your email address",
 		Html: fmt.Sprintf(`
@@ -64,10 +68,14 @@ func (e *EmailService) SendInvitationEmail(email, inviterName, childName, verifi
 		return nil
 	}
 
-	acceptURL := fmt.Sprintf("http://localhost:5173/accept-invitation?token=%s", verificationToken)
+	frontendURL := os.Getenv("FRONTEND_URL")
+	if frontendURL == "" {
+		frontendURL = "http://localhost:5173" // fallback for development
+	}
+	acceptURL := fmt.Sprintf("%s/accept-invitation?token=%s", frontendURL, verificationToken)
 	
 	params := &resend.SendEmailRequest{
-		From:    "Book Tracker <onboarding@resend.dev>", // Using Resend's default domain for testing
+		From:    "Book Tracker <noreply@booktracker.rustyphillips.net>",
 		To:      []string{email},
 		Subject: fmt.Sprintf("%s has invited you to track %s's reading progress", inviterName, childName),
 		Html: fmt.Sprintf(`
