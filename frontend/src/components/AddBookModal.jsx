@@ -114,6 +114,39 @@ export default function AddBookModal({ child, onClose, onBookAdded }) {
     }
   }
 
+  const extractISBN = (decodedText) => {
+    // Remove all non-digit characters
+    const cleanedText = decodedText.replace(/[^\d]/g, '')
+    
+    // Check for EAN-13 ISBN (most common book barcode format)
+    if (cleanedText.length === 13) {
+      // Valid ISBN-13 must start with 978 or 979
+      if (cleanedText.startsWith('978') || cleanedText.startsWith('979')) {
+        return cleanedText
+      }
+    }
+    
+    // Check for ISBN-10 format
+    if (cleanedText.length === 10) {
+      return cleanedText
+    }
+    
+    // Check if the scanned text contains multiple numbers (common with price barcodes nearby)
+    // Look for patterns like "9781234567890" within longer strings
+    const isbn13Match = decodedText.match(/\b(978|979)\d{10}\b/)
+    if (isbn13Match) {
+      return isbn13Match[0]
+    }
+    
+    // Look for 10-digit ISBN patterns
+    const isbn10Match = decodedText.match(/\b\d{10}\b/)
+    if (isbn10Match) {
+      return isbn10Match[0]
+    }
+    
+    return null // No valid ISBN found
+  }
+
   const startScanner = () => {
     setShowScanner(true)
     setScannerError('')
@@ -124,9 +157,14 @@ export default function AddBookModal({ child, onClose, onBookAdded }) {
           "barcode-scanner",
           {
             fps: 10,
-            qrbox: { width: 250, height: 100 },
+            qrbox: { width: 300, height: 120 },
             aspectRatio: 1.777778,
-            supportedScanTypes: [Html5QrcodeScanType.SCAN_TYPE_CAMERA]
+            supportedScanTypes: [Html5QrcodeScanType.SCAN_TYPE_CAMERA],
+            // Improve barcode detection
+            experimentalFeatures: {
+              useBarCodeDetectorIfSupported: true
+            },
+            rememberLastUsedCamera: true
           },
           false
         )
@@ -135,10 +173,10 @@ export default function AddBookModal({ child, onClose, onBookAdded }) {
 
         html5QrcodeScanner.render(
           (decodedText) => {
-            // Success callback - ISBN found
-            const cleanedISBN = decodedText.replace(/[^\d]/g, '') // Remove non-digits
-            if (cleanedISBN.length === 10 || cleanedISBN.length === 13) {
-              setFormData(prev => ({ ...prev, isbn: cleanedISBN }))
+            // Success callback - attempt to extract valid ISBN
+            const validISBN = extractISBN(decodedText)
+            if (validISBN) {
+              setFormData(prev => ({ ...prev, isbn: validISBN }))
               stopScanner()
               // Auto-lookup the book info after scanning
               setTimeout(() => {
@@ -146,12 +184,12 @@ export default function AddBookModal({ child, onClose, onBookAdded }) {
                 setIsbnLookupLoading(true)
                 setIsbnLookupError('')
                 
-                api.post('/books/lookup-isbn', { isbn: cleanedISBN })
+                api.post('/books/lookup-isbn', { isbn: validISBN })
                   .then(response => {
                     if (response.data.found) {
                       setFormData(prev => ({
                         ...prev,
-                        isbn: cleanedISBN,
+                        isbn: validISBN,
                         title: response.data.title || prev.title,
                         author: response.data.author || prev.author,
                         lexileLevel: response.data.lexileLevel || prev.lexileLevel
@@ -169,7 +207,7 @@ export default function AddBookModal({ child, onClose, onBookAdded }) {
                   })
               }, 500)
             } else {
-              setScannerError('Invalid ISBN format. Please try again.')
+              setScannerError('No valid ISBN found. Try scanning the larger barcode on the back cover.')
             }
           },
           (error) => {
@@ -280,7 +318,7 @@ export default function AddBookModal({ child, onClose, onBookAdded }) {
                 onClick={startScanner}
                 disabled={showScanner}
                 className="mt-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                title="Scan barcode"
+                title="Scan the main book barcode (usually on the back cover)"
               >
                 <CameraIcon className="h-4 w-4" />
               </button>
