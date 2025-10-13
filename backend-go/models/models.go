@@ -17,6 +17,8 @@ type User struct {
 	EmailVerified          bool      `json:"emailVerified" gorm:"default:false"`
 	EmailVerificationToken string    `json:"-" gorm:"index"`
 	TokenExpiresAt         *time.Time `json:"-"`
+	PasswordResetToken     string    `json:"-" gorm:"index"`
+	PasswordResetExpiresAt *time.Time `json:"-"`
 	CreatedAt              time.Time `json:"createdAt"`
 	UpdatedAt              time.Time `json:"updatedAt"`
 
@@ -108,6 +110,15 @@ type CreateBookRequest struct {
 type InviteUserRequest struct {
 	Email          string `json:"email" binding:"required,email"`
 	PermissionType string `json:"permissionType" binding:"required,oneof=VIEW EDIT"`
+}
+
+type ForgotPasswordRequest struct {
+	Email string `json:"email" binding:"required,email"`
+}
+
+type ResetPasswordRequest struct {
+	Token    string `json:"token" binding:"required"`
+	Password string `json:"password" binding:"required,min=6"`
 }
 
 type UpdateBookRequest struct {

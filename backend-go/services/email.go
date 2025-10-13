@@ -93,3 +93,39 @@ func (e *EmailService) SendInvitationEmail(email, inviterName, childName, verifi
 	_, err := e.client.Emails.Send(params)
 	return err
 }
+
+func (e *EmailService) SendPasswordResetEmail(email, firstName, resetToken string) error {
+	if e.client == nil {
+		// Development mode - just log
+		fmt.Printf("📧 [DEV] Password reset email for %s:\n", email)
+		fmt.Printf("   Token: %s\n", resetToken)
+		fmt.Printf("   URL: http://localhost:5173/reset-password?token=%s\n", resetToken)
+		return nil
+	}
+
+	frontendURL := os.Getenv("FRONTEND_URL")
+	if frontendURL == "" {
+		frontendURL = "http://localhost:5173" // fallback for development
+	}
+	resetURL := fmt.Sprintf("%s/reset-password?token=%s", frontendURL, resetToken)
+	
+	params := &resend.SendEmailRequest{
+		From:    "Book Tracker <noreply@booktracker.rustyphillips.net>",
+		To:      []string{email},
+		Subject: "Reset your password",
+		Html: fmt.Sprintf(`
+			<h1>Password Reset Request</h1>
+			<p>Hi %s,</p>
+			<p>We received a request to reset your password for your Book Tracker account.</p>
+			<p>Click the link below to reset your password:</p>
+			<p><a href="%s">Reset Password</a></p>
+			<p>If the button doesn't work, copy and paste this URL into your browser:</p>
+			<p>%s</p>
+			<p>This link will expire in 1 hour.</p>
+			<p>If you didn't request this password reset, you can safely ignore this email.</p>
+		`, firstName, resetURL, resetURL),
+	}
+
+	_, err := e.client.Emails.Send(params)
+	return err
+}

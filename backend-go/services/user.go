@@ -2,6 +2,7 @@ package services
 
 import (
 	"errors"
+	"time"
 
 	"github.com/booktracker/backend-go/config"
 	"github.com/booktracker/backend-go/models"
@@ -221,5 +222,70 @@ func GetUserByVerificationToken(token string) (*models.User, error) {
 		}
 		return nil, result.Error
 	}
+	return &user, nil
+}
+
+// RequestPasswordReset generates a password reset token for a user
+func RequestPasswordReset(email string) (*models.User, error) {
+	var user models.User
+	result := config.DB.Where("email = ?", email).First(&user)
+	if result.Error \!= nil {
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			return nil, errors.New("user not found")
+		}
+		return nil, result.Error
+	}
+
+	// Generate reset token
+	token, err := utils.GenerateVerificationToken()
+	if err \!= nil {
+		return nil, err
+	}
+	
+	// Set expiration to 1 hour from now
+	expiresAt := time.Now().Add(1 * time.Hour)
+	user.PasswordResetToken = token
+	user.PasswordResetExpiresAt = &expiresAt
+
+	result = config.DB.Save(&user)
+	if result.Error \!= nil {
+		return nil, result.Error
+	}
+
+	return &user, nil
+}
+
+// ResetPassword resets a user's password using the reset token
+func ResetPassword(token, newPassword string) (*models.User, error) {
+	var user models.User
+	result := config.DB.Where("password_reset_token = ?", token).First(&user)
+	if result.Error \!= nil {
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			return nil, errors.New("invalid reset token")
+		}
+		return nil, result.Error
+	}
+
+	// Check if token has expired
+	if user.PasswordResetExpiresAt == nil || time.Now().After(*user.PasswordResetExpiresAt) {
+		return nil, errors.New("reset token has expired")
+	}
+
+	// Hash the new password
+	hashedPassword, err := utils.HashPassword(newPassword)
+	if err \!= nil {
+		return nil, err
+	}
+
+	// Update password and clear reset token
+	user.PasswordHash = hashedPassword
+	user.PasswordResetToken = ""
+	user.PasswordResetExpiresAt = nil
+
+	result = config.DB.Save(&user)
+	if result.Error \!= nil {
+		return nil, result.Error
+	}
+
 	return &user, nil
 }

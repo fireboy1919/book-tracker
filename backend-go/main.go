@@ -53,6 +53,8 @@ func main() {
 			auth.POST("/login", handlers.LoginUser)
 			auth.GET("/verify-email", handlers.VerifyEmail)
 			auth.POST("/resend-verification", handlers.ResendVerification)
+			auth.POST("/forgot-password", handlers.ForgotPassword)
+			auth.POST("/reset-password", handlers.ResetPassword)
 		}
 
 		// Protected routes (authentication required)

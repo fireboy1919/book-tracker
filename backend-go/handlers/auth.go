@@ -68,3 +68,71 @@ func LoginUser(c *gin.Context) {
 
 	c.JSON(http.StatusOK, loginResponse)
 }
+
+// ForgotPassword handles password reset request
+func ForgotPassword(c *gin.Context) {
+	var req models.ForgotPasswordRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, models.ErrorResponse{
+			Message: "Invalid request data: " + err.Error(),
+		})
+		return
+	}
+
+	user, err := services.RequestPasswordReset(req.Email)
+	if err != nil {
+		// Don't reveal if user exists or not for security
+		c.JSON(http.StatusOK, gin.H{
+			"message": "If an account with that email exists, a password reset email has been sent",
+		})
+		return
+	}
+
+	// Send password reset email
+	emailService := services.NewEmailService()
+	err = emailService.SendPasswordResetEmail(user.Email, user.FirstName, user.PasswordResetToken)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
+			Message: "Failed to send password reset email",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "If an account with that email exists, a password reset email has been sent",
+	})
+}
+
+// ResetPassword handles password reset with token
+func ResetPassword(c *gin.Context) {
+	var req models.ResetPasswordRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, models.ErrorResponse{
+			Message: "Invalid request data: " + err.Error(),
+		})
+		return
+	}
+
+	user, err := services.ResetPassword(req.Token, req.Password)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, models.ErrorResponse{
+			Message: err.Error(),
+		})
+		return
+	}
+
+	userResponse := models.UserResponse{
+		ID:            user.ID,
+		Email:         user.Email,
+		FirstName:     user.FirstName,
+		LastName:      user.LastName,
+		IsAdmin:       user.IsAdmin,
+		EmailVerified: user.EmailVerified,
+		CreatedAt:     user.CreatedAt,
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Password reset successfully",
+		"user":    userResponse,
+	})
+}
