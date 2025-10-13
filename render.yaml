@@ -9,8 +9,6 @@ services:
     rootDir: backend-go
     startCommand: ./book-tracker-go
     buildCommand: go build -o book-tracker-go .
-    envVarGroups:
-      - name: Default Secrets
     envVars:
       - key: PORT
         value: 10000
