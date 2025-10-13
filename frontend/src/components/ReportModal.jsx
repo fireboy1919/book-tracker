@@ -2,18 +2,20 @@ import { useState, useEffect } from 'react'
 import { XMarkIcon, DocumentArrowDownIcon } from '@heroicons/react/24/outline'
 import api from '../services/api'
 
-export default function ReportModal({ onClose }) {
+export default function ReportModal({ onClose, currentMonth }) {
   const [report, setReport] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
   useEffect(() => {
     fetchReport()
-  }, [])
+  }, [currentMonth])
 
   const fetchReport = async () => {
     try {
-      const response = await api.get('/reports/my-books')
+      const year = currentMonth.getFullYear()
+      const month = currentMonth.getMonth() + 1 // JavaScript months are 0-indexed
+      const response = await api.get(`/reports/my-books?year=${year}&month=${month}`)
       setReport(response.data)
     } catch (error) {
       setError('Failed to generate report')
@@ -30,7 +32,7 @@ export default function ReportModal({ onClose }) {
     report.children.forEach(childReport => {
       childReport.books.forEach(book => {
         const dateRead = new Date(book.dateRead).toLocaleDateString()
-        csvContent += `"${childReport.child.name}","${childReport.child.grade}","${book.title}","${book.author}","${dateRead}"\n`
+        csvContent += `"${childReport.child.firstName} ${childReport.child.lastName}","${childReport.child.grade}","${book.title}","${book.author}","${dateRead}"\n`
       })
     })
 
@@ -38,7 +40,8 @@ export default function ReportModal({ onClose }) {
     const url = window.URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `book-report-${new Date().toISOString().split('T')[0]}.csv`
+    const monthYear = `${currentMonth.getFullYear()}-${String(currentMonth.getMonth() + 1).padStart(2, '0')}`
+    a.download = `book-report-${monthYear}.csv`
     a.click()
     window.URL.revokeObjectURL(url)
   }
@@ -47,7 +50,9 @@ export default function ReportModal({ onClose }) {
     <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
       <div className="relative top-10 mx-auto p-5 border w-4/5 max-w-4xl shadow-lg rounded-md bg-white">
         <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-medium">Reading Report</h3>
+          <h3 className="text-lg font-medium">
+            Reading Report - {currentMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+          </h3>
           <div className="flex items-center space-x-2">
             {report && (
               <button
@@ -88,7 +93,7 @@ export default function ReportModal({ onClose }) {
                 <div key={childReport.child.id} className="border rounded-lg p-4">
                   <div className="flex justify-between items-center mb-3">
                     <h4 className="text-lg font-medium">
-                      {childReport.child.name} ({childReport.child.grade})
+                      {childReport.child.firstName} {childReport.child.lastName} ({childReport.child.grade})
                     </h4>
                     <span className="text-sm text-gray-500">
                       {childReport.totalBooks} books read

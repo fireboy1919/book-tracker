@@ -102,6 +102,9 @@ func main() {
 				// Child-specific book routes
 				books.POST("/child/:childId", handlers.CreateBookForChild)
 				books.GET("/child/:childId", handlers.GetBooksForChild)
+				
+				// ISBN lookup route
+				books.POST("/lookup-isbn", handlers.LookupISBN)
 			}
 
 			// Reports routes

@@ -12,9 +12,10 @@ import (
 // CreateChild creates a new child
 func CreateChild(req models.CreateChildRequest, ownerID uint) (*models.Child, error) {
 	child := models.Child{
-		Name:    req.Name,
-		Grade:   req.Grade,
-		OwnerID: ownerID,
+		FirstName: req.FirstName,
+		LastName:  req.LastName,
+		Grade:     req.Grade,
+		OwnerID:   ownerID,
 	}
 
 	result := config.DB.Create(&child)
@@ -76,7 +77,8 @@ func UpdateChild(id uint, req models.UpdateChildRequest) (*models.Child, error) 
 		return nil, result.Error
 	}
 
-	child.Name = req.Name
+	child.FirstName = req.FirstName
+	child.LastName = req.LastName
 	child.Grade = req.Grade
 
 	result = config.DB.Save(&child)
@@ -159,7 +161,8 @@ func GetChildrenWithBookCounts(userID uint, year int, month int) ([]models.Child
 		
 		childWithCount := models.ChildWithBookCountResponse{
 			ID:        child.ID,
-			Name:      child.Name,
+			FirstName: child.FirstName,
+			LastName:  child.LastName,
 			Grade:     child.Grade,
 			OwnerID:   child.OwnerID,
 			CreatedAt: child.CreatedAt,

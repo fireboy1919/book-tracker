@@ -9,7 +9,7 @@ DATABASE_URL = "file:./backend/booktracker.db"
 PORT = "8080"
 
 # Frontend environment variables  
-VITE_API_URL = "http://localhost:8080/api"
+VITE_API_URL = "http://localhost:8080"
 
 [tasks.install]
 description = "Install all dependencies"

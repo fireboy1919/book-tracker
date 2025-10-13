@@ -12,10 +12,12 @@ import (
 // CreateBook creates a new book
 func CreateBook(req models.CreateBookRequest) (*models.Book, error) {
 	book := models.Book{
-		Title:    req.Title,
-		Author:   req.Author,
-		DateRead: req.DateRead,
-		ChildID:  req.ChildID,
+		ISBN:        req.ISBN,
+		Title:       req.Title,
+		Author:      req.Author,
+		LexileLevel: req.LexileLevel,
+		DateRead:    req.DateRead,
+		ChildID:     req.ChildID,
 	}
 
 	result := config.DB.Create(&book)
@@ -79,8 +81,10 @@ func UpdateBook(id uint, req models.UpdateBookRequest) (*models.Book, error) {
 		return nil, result.Error
 	}
 
+	book.ISBN = req.ISBN
 	book.Title = req.Title
 	book.Author = req.Author
+	book.LexileLevel = req.LexileLevel
 	book.DateRead = req.DateRead
 
 	result = config.DB.Save(&book)

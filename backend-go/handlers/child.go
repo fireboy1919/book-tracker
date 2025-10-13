@@ -38,7 +38,8 @@ func CreateChild(c *gin.Context) {
 
 	childResponse := models.ChildResponse{
 		ID:        child.ID,
-		Name:      child.Name,
+		FirstName: child.FirstName,
+		LastName:  child.LastName,
 		Grade:     child.Grade,
 		OwnerID:   child.OwnerID,
 		CreatedAt: child.CreatedAt,
@@ -69,7 +70,8 @@ func GetChildren(c *gin.Context) {
 	for _, child := range children {
 		childResponses = append(childResponses, models.ChildResponse{
 			ID:        child.ID,
-			Name:      child.Name,
+			FirstName: child.FirstName,
+			LastName:  child.LastName,
 			Grade:     child.Grade,
 			OwnerID:   child.OwnerID,
 			CreatedAt: child.CreatedAt,
@@ -123,7 +125,8 @@ func GetChildByID(c *gin.Context) {
 
 	childResponse := models.ChildResponse{
 		ID:        child.ID,
-		Name:      child.Name,
+		FirstName: child.FirstName,
+		LastName:  child.LastName,
 		Grade:     child.Grade,
 		OwnerID:   child.OwnerID,
 		CreatedAt: child.CreatedAt,
@@ -184,7 +187,8 @@ func UpdateChild(c *gin.Context) {
 
 	childResponse := models.ChildResponse{
 		ID:        child.ID,
-		Name:      child.Name,
+		FirstName: child.FirstName,
+		LastName:  child.LastName,
 		Grade:     child.Grade,
 		OwnerID:   child.OwnerID,
 		CreatedAt: child.CreatedAt,

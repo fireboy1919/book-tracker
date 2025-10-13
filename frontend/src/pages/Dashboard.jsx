@@ -115,26 +115,29 @@ export default function Dashboard() {
           <div className="mt-4 flex md:mt-0 md:ml-4 space-x-3">
             <button
               onClick={() => setShowReport(true)}
-              className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+              className="inline-flex items-center px-3 py-2 md:px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+              title="Generate Report"
             >
-              <ChartBarIcon className="-ml-1 mr-2 h-5 w-5" />
-              Generate Report
+              <ChartBarIcon className="h-5 w-5 md:-ml-1 md:mr-2" />
+              <span className="hidden md:inline">Generate Report</span>
             </button>
             {children.length > 0 && (
               <button
                 onClick={() => setShowBulkShare(true)}
-                className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+                className="inline-flex items-center px-3 py-2 md:px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+                title="Share Children"
               >
-                <ShareIcon className="-ml-1 mr-2 h-5 w-5" />
-                Share Children
+                <ShareIcon className="h-5 w-5 md:-ml-1 md:mr-2" />
+                <span className="hidden md:inline">Share Children</span>
               </button>
             )}
             <button
               onClick={() => setShowAddChild(true)}
-              className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700"
+              className="inline-flex items-center px-3 py-2 md:px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700"
+              title="Add Child"
             >
-              <PlusIcon className="-ml-1 mr-2 h-5 w-5" />
-              Add Child
+              <PlusIcon className="h-5 w-5 md:-ml-1 md:mr-2" />
+              <span className="hidden md:inline">Add Child</span>
             </button>
           </div>
         </div>
@@ -220,7 +223,7 @@ export default function Dashboard() {
       )}
 
       {showReport && (
-        <ReportModal onClose={() => setShowReport(false)} />
+        <ReportModal onClose={() => setShowReport(false)} currentMonth={currentMonth} />
       )}
     </div>
   )

@@ -4,7 +4,8 @@ import api from '../services/api'
 
 export default function AddChildModal({ onClose, onChildAdded }) {
   const [formData, setFormData] = useState({
-    name: '',
+    firstName: '',
+    lastName: '',
     grade: ''
   })
 
@@ -37,7 +38,8 @@ export default function AddChildModal({ onClose, onChildAdded }) {
 
     try {
       await api.post('/children', {
-        name: formData.name,
+        firstName: formData.firstName,
+        lastName: formData.lastName,
         grade: formData.grade
       })
       onChildAdded()
@@ -64,14 +66,28 @@ export default function AddChildModal({ onClose, onChildAdded }) {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700">
-              Name
+              First Name
             </label>
             <input
               type="text"
-              name="name"
+              name="firstName"
               required
               className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-              value={formData.name}
+              value={formData.firstName}
+              onChange={handleChange}
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700">
+              Last Name
+            </label>
+            <input
+              type="text"
+              name="lastName"
+              required
+              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+              value={formData.lastName}
               onChange={handleChange}
             />
           </div>

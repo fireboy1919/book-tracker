@@ -10,7 +10,8 @@ export default function ChildManagementModal({ child, onClose, onChildUpdated })
   
   // Child details form
   const [childData, setChildData] = useState({
-    name: child.name,
+    firstName: child.firstName,
+    lastName: child.lastName,
     grade: child.grade
   })
   
@@ -105,7 +106,7 @@ export default function ChildManagementModal({ child, onClose, onChildUpdated })
     <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
       <div className="relative top-10 mx-auto p-5 border w-full max-w-3xl shadow-lg rounded-md bg-white">
         <div className="flex justify-between items-center mb-6">
-          <h3 className="text-xl font-medium">Manage {child.name}</h3>
+          <h3 className="text-xl font-medium">Manage {child.firstName} {child.lastName}</h3>
           <button
             onClick={onClose}
             className="text-gray-400 hover:text-gray-600"
@@ -145,14 +146,27 @@ export default function ChildManagementModal({ child, onClose, onChildUpdated })
           <form onSubmit={handleChildUpdate} className="space-y-6">
             <div>
               <label className="block text-sm font-medium text-gray-700">
-                Child's Name
+                First Name
               </label>
               <input
                 type="text"
                 required
                 className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                value={childData.name}
-                onChange={(e) => setChildData({...childData, name: e.target.value})}
+                value={childData.firstName}
+                onChange={(e) => setChildData({...childData, firstName: e.target.value})}
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700">
+                Last Name
+              </label>
+              <input
+                type="text"
+                required
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                value={childData.lastName}
+                onChange={(e) => setChildData({...childData, lastName: e.target.value})}
               />
             </div>
 

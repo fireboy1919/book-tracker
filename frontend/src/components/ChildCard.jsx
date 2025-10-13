@@ -54,7 +54,7 @@ export default function ChildCard({ child, onAddBook, onViewDetails, currentMont
           <div className="ml-5 w-0 flex-1">
             <dl>
               <dt className="text-sm font-medium text-gray-500 truncate">
-                {child.name}
+                {child.firstName} {child.lastName}
               </dt>
               <dd className="text-lg font-medium text-gray-900">
                 {child.grade}

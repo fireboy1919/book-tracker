@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { ExclamationTriangleIcon, CheckCircleIcon } from '@heroicons/react/24/outline'
+import api from '../services/api'
 
 export default function BackendStatus() {
   const [status, setStatus] = useState('checking') // checking, online, waking, offline

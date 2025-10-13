@@ -495,6 +495,13 @@ func GetMyBooksReport(c *gin.Context) {
 		return
 	}
 	
+	// Get year and month from query parameters
+	yearStr := c.Query("year")
+	monthStr := c.Query("month")
+	
+	var books []models.Book
+	var err error
+	
 	// Get all children for user
 	children, err := services.GetChildrenWithPermission(userID)
 	if err != nil {
@@ -507,8 +514,21 @@ func GetMyBooksReport(c *gin.Context) {
 	var childReports []models.ChildReportResponse
 	
 	for _, child := range children {
-		// Get books for this child
-		books, err := services.GetBooksByChild(child.ID)
+		// Get books for this child - either all time or for specific month
+		if yearStr != "" && monthStr != "" {
+			year, yearErr := strconv.Atoi(yearStr)
+			month, monthErr := strconv.Atoi(monthStr)
+			if yearErr != nil || monthErr != nil || month < 1 || month > 12 {
+				c.JSON(http.StatusBadRequest, models.ErrorResponse{
+					Message: "Invalid year or month parameter",
+				})
+				return
+			}
+			books, err = services.GetBooksByChildAndMonth(child.ID, year, month)
+		} else {
+			books, err = services.GetBooksByChild(child.ID)
+		}
+		
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, models.ErrorResponse{
 				Message: "Failed to get books for child: " + err.Error(),
@@ -531,7 +551,8 @@ func GetMyBooksReport(c *gin.Context) {
 		childReport := models.ChildReportResponse{
 			Child: models.ChildResponse{
 				ID:        child.ID,
-				Name:      child.Name,
+				FirstName: child.FirstName,
+				LastName:  child.LastName,
 				Grade:     child.Grade,
 				OwnerID:   child.OwnerID,
 				CreatedAt: child.CreatedAt,

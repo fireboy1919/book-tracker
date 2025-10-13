@@ -80,7 +80,7 @@ export default function FullScreenChildView({ child, onClose, onAddBook }) {
         {/* Header */}
         <div className="flex justify-between items-center mb-6">
           <div>
-            <h3 className="text-2xl font-bold text-gray-900">{child.name}'s Books</h3>
+            <h3 className="text-2xl font-bold text-gray-900">{child.firstName} {child.lastName}'s Books</h3>
             <p className="text-sm text-gray-500">{child.grade}</p>
           </div>
           <button

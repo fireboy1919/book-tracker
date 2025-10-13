@@ -39,24 +39,27 @@ func (suite *ChildServiceTestSuite) TearDownTest() {
 
 func (suite *ChildServiceTestSuite) TestCreateChildSuccess() {
 	req := models.CreateChildRequest{
-		Name: "Test Child",
-		Age:  8,
+		FirstName: "Test",
+		LastName:  "Child",
+		Grade:     "3rd",
 	}
 
 	child, err := CreateChild(req, suite.testUser.ID)
 
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), child)
-	assert.Equal(suite.T(), "Test Child", child.Name)
-	assert.Equal(suite.T(), 8, child.Age)
+	assert.Equal(suite.T(), "Test", child.FirstName)
+	assert.Equal(suite.T(), "Child", child.LastName)
+	assert.Equal(suite.T(), "3rd", child.Grade)
 	assert.Equal(suite.T(), suite.testUser.ID, child.OwnerID)
 }
 
 func (suite *ChildServiceTestSuite) TestGetChildByIDSuccess() {
 	// Create a child first
 	req := models.CreateChildRequest{
-		Name: "Test Child",
-		Age:  8,
+		FirstName: "Test",
+		LastName:  "Child",
+		Grade:     "3rd",
 	}
 
 	createdChild, err := CreateChild(req, suite.testUser.ID)
@@ -68,8 +71,9 @@ func (suite *ChildServiceTestSuite) TestGetChildByIDSuccess() {
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), child)
 	assert.Equal(suite.T(), createdChild.ID, child.ID)
-	assert.Equal(suite.T(), "Test Child", child.Name)
-	assert.Equal(suite.T(), 8, child.Age)
+	assert.Equal(suite.T(), "Test", child.FirstName)
+	assert.Equal(suite.T(), "Child", child.LastName)
+	assert.Equal(suite.T(), "3rd", child.Grade)
 	assert.Equal(suite.T(), suite.testUser.ID, child.OwnerID)
 }
 
@@ -84,13 +88,15 @@ func (suite *ChildServiceTestSuite) TestGetChildByIDNotFound() {
 func (suite *ChildServiceTestSuite) TestGetChildrenByOwner() {
 	// Create multiple children
 	child1Req := models.CreateChildRequest{
-		Name: "Child One",
-		Age:  7,
+		FirstName: "Child",
+		LastName:  "One",
+		Grade:     "2nd",
 	}
 
 	child2Req := models.CreateChildRequest{
-		Name: "Child Two",
-		Age:  9,
+		FirstName: "Child",
+		LastName:  "Two",
+		Grade:     "4th",
 	}
 
 	_, err1 := CreateChild(child1Req, suite.testUser.ID)
@@ -105,19 +111,20 @@ func (suite *ChildServiceTestSuite) TestGetChildrenByOwner() {
 	assert.Len(suite.T(), children, 2)
 
 	// Check if both children are present
-	names := make([]string, len(children))
+	lastNames := make([]string, len(children))
 	for i, child := range children {
-		names[i] = child.Name
+		lastNames[i] = child.LastName
 	}
-	assert.Contains(suite.T(), names, "Child One")
-	assert.Contains(suite.T(), names, "Child Two")
+	assert.Contains(suite.T(), lastNames, "One")
+	assert.Contains(suite.T(), lastNames, "Two")
 }
 
 func (suite *ChildServiceTestSuite) TestGetChildrenWithPermission() {
 	// Create a child
 	childReq := models.CreateChildRequest{
-		Name: "Test Child",
-		Age:  8,
+		FirstName: "Test",
+		LastName:  "Child",
+		Grade:     "3rd",
 	}
 
 	_, err := CreateChild(childReq, suite.testUser.ID)
@@ -128,14 +135,16 @@ func (suite *ChildServiceTestSuite) TestGetChildrenWithPermission() {
 
 	assert.NoError(suite.T(), err)
 	assert.Len(suite.T(), children, 1)
-	assert.Equal(suite.T(), "Test Child", children[0].Name)
+	assert.Equal(suite.T(), "Test", children[0].FirstName)
+	assert.Equal(suite.T(), "Child", children[0].LastName)
 }
 
 func (suite *ChildServiceTestSuite) TestUpdateChildSuccess() {
 	// Create a child first
 	createReq := models.CreateChildRequest{
-		Name: "Original Name",
-		Age:  7,
+		FirstName: "Original",
+		LastName:  "Name",
+		Grade:     "2nd",
 	}
 
 	createdChild, err := CreateChild(createReq, suite.testUser.ID)
@@ -143,23 +152,26 @@ func (suite *ChildServiceTestSuite) TestUpdateChildSuccess() {
 
 	// Update the child
 	updateReq := models.UpdateChildRequest{
-		Name: "Updated Name",
-		Age:  8,
+		FirstName: "Updated",
+		LastName:  "Name",
+		Grade:     "3rd",
 	}
 
 	updatedChild, err := UpdateChild(createdChild.ID, updateReq)
 
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), updatedChild)
-	assert.Equal(suite.T(), "Updated Name", updatedChild.Name)
-	assert.Equal(suite.T(), 8, updatedChild.Age)
+	assert.Equal(suite.T(), "Updated", updatedChild.FirstName)
+	assert.Equal(suite.T(), "Name", updatedChild.LastName)
+	assert.Equal(suite.T(), "3rd", updatedChild.Grade)
 	assert.Equal(suite.T(), createdChild.ID, updatedChild.ID)
 }
 
 func (suite *ChildServiceTestSuite) TestUpdateChildNotFound() {
 	updateReq := models.UpdateChildRequest{
-		Name: "Updated Name",
-		Age:  8,
+		FirstName: "Updated",
+		LastName:  "Name",
+		Grade:     "3rd",
 	}
 
 	updatedChild, err := UpdateChild(999, updateReq)
@@ -172,8 +184,9 @@ func (suite *ChildServiceTestSuite) TestUpdateChildNotFound() {
 func (suite *ChildServiceTestSuite) TestDeleteChildSuccess() {
 	// Create a child first
 	req := models.CreateChildRequest{
-		Name: "Test Child",
-		Age:  8,
+		FirstName: "Test",
+		LastName:  "Child",
+		Grade:     "3rd",
 	}
 
 	createdChild, err := CreateChild(req, suite.testUser.ID)
@@ -199,8 +212,9 @@ func (suite *ChildServiceTestSuite) TestDeleteChildNotFound() {
 func (suite *ChildServiceTestSuite) TestCheckChildPermissionOwner() {
 	// Create a child
 	childReq := models.CreateChildRequest{
-		Name: "Test Child",
-		Age:  8,
+		FirstName: "Test",
+		LastName:  "Child",
+		Grade:     "3rd",
 	}
 
 	child, err := CreateChild(childReq, suite.testUser.ID)
@@ -230,8 +244,9 @@ func (suite *ChildServiceTestSuite) TestCheckChildPermissionNonOwner() {
 
 	// Create a child owned by the test user
 	childReq := models.CreateChildRequest{
-		Name: "Test Child",
-		Age:  8,
+		FirstName: "Test",
+		LastName:  "Child",
+		Grade:     "3rd",
 	}
 
 	child, err := CreateChild(childReq, suite.testUser.ID)

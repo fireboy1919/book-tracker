@@ -169,7 +169,7 @@ export default function BulkShareModal({ children, onClose }) {
                           onChange={() => toggleChildSelection(child.id)}
                         />
                         <label htmlFor={`child-${child.id}`} className="ml-3 text-sm font-medium text-gray-900">
-                          {child.name} ({child.grade})
+                          {child.firstName} {child.lastName} ({child.grade})
                         </label>
                       </div>
                       {formData.individualPermissions[child.id] && (

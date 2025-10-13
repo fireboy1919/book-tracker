@@ -30,7 +30,8 @@ type User struct {
 // Child represents a child in the system
 type Child struct {
 	ID        uint      `json:"id" gorm:"primaryKey"`
-	Name      string    `json:"name" gorm:"not null"`
+	FirstName string    `json:"firstName" gorm:"not null"`
+	LastName  string    `json:"lastName" gorm:"not null"`
 	Grade     string    `json:"grade" gorm:"not null"`
 	OwnerID   uint      `json:"ownerId" gorm:"not null;index"`
 	CreatedAt time.Time `json:"createdAt"`
@@ -44,13 +45,15 @@ type Child struct {
 
 // Book represents a book that has been read
 type Book struct {
-	ID        uint      `json:"id" gorm:"primaryKey"`
-	Title     string    `json:"title" gorm:"not null"`
-	Author    string    `json:"author" gorm:"not null"`
-	DateRead  string    `json:"dateRead" gorm:"not null"`
-	ChildID   uint      `json:"childId" gorm:"not null;index"`
-	CreatedAt time.Time `json:"createdAt"`
-	UpdatedAt time.Time `json:"updatedAt"`
+	ID         uint      `json:"id" gorm:"primaryKey"`
+	ISBN       string    `json:"isbn" gorm:"uniqueIndex;not null"` // Unique ISBN constraint
+	Title      string    `json:"title" gorm:"not null"`
+	Author     string    `json:"author" gorm:"not null"`
+	LexileLevel string   `json:"lexileLevel,omitempty"` // Optional Lexile level
+	DateRead   string    `json:"dateRead" gorm:"not null"`
+	ChildID    uint      `json:"childId" gorm:"not null;index"`
+	CreatedAt  time.Time `json:"createdAt"`
+	UpdatedAt  time.Time `json:"updatedAt"`
 
 	// Relationships
 	Child Child `json:"child,omitempty" gorm:"foreignKey:ChildID"`
@@ -91,20 +94,36 @@ type LoginRequest struct {
 }
 
 type CreateChildRequest struct {
-	Name  string `json:"name" binding:"required"`
-	Grade string `json:"grade" binding:"required"`
+	FirstName string `json:"firstName" binding:"required"`
+	LastName  string `json:"lastName" binding:"required"`
+	Grade     string `json:"grade" binding:"required"`
 }
 
 type UpdateChildRequest struct {
-	Name  string `json:"name" binding:"required"`
-	Grade string `json:"grade" binding:"required"`
+	FirstName string `json:"firstName" binding:"required"`
+	LastName  string `json:"lastName" binding:"required"`
+	Grade     string `json:"grade" binding:"required"`
 }
 
 type CreateBookRequest struct {
-	Title    string `json:"title" binding:"required"`
-	Author   string `json:"author" binding:"required"`
-	DateRead string `json:"dateRead" binding:"required"`
-	ChildID  uint   `json:"childId" binding:"required"`
+	ISBN        string `json:"isbn" binding:"required"`
+	Title       string `json:"title" binding:"required"`
+	Author      string `json:"author" binding:"required"`
+	LexileLevel string `json:"lexileLevel,omitempty"`
+	DateRead    string `json:"dateRead" binding:"required"`
+	ChildID     uint   `json:"childId" binding:"required"`
+}
+
+type ISBNLookupRequest struct {
+	ISBN string `json:"isbn" binding:"required"`
+}
+
+type BookInfoResponse struct {
+	ISBN        string `json:"isbn"`
+	Title       string `json:"title"`
+	Author      string `json:"author"`
+	LexileLevel string `json:"lexileLevel,omitempty"`
+	Found       bool   `json:"found"`
 }
 
 type InviteUserRequest struct {
@@ -122,9 +141,11 @@ type ResetPasswordRequest struct {
 }
 
 type UpdateBookRequest struct {
-	Title    string `json:"title" binding:"required"`
-	Author   string `json:"author" binding:"required"`
-	DateRead string `json:"dateRead" binding:"required"`
+	ISBN        string `json:"isbn" binding:"required"`
+	Title       string `json:"title" binding:"required"`
+	Author      string `json:"author" binding:"required"`
+	LexileLevel string `json:"lexileLevel,omitempty"`
+	DateRead    string `json:"dateRead" binding:"required"`
 }
 
 type CreatePermissionRequest struct {
@@ -151,7 +172,8 @@ type LoginResponse struct {
 
 type ChildResponse struct {
 	ID        uint      `json:"id"`
-	Name      string    `json:"name"`
+	FirstName string    `json:"firstName"`
+	LastName  string    `json:"lastName"`
 	Grade     string    `json:"grade"`
 	OwnerID   uint      `json:"ownerId"`
 	CreatedAt time.Time `json:"createdAt"`
@@ -159,7 +181,8 @@ type ChildResponse struct {
 
 type ChildWithBookCountResponse struct {
 	ID        uint      `json:"id"`
-	Name      string    `json:"name"`
+	FirstName string    `json:"firstName"`
+	LastName  string    `json:"lastName"`
 	Grade     string    `json:"grade"`
 	OwnerID   uint      `json:"ownerId"`
 	CreatedAt time.Time `json:"createdAt"`
@@ -172,12 +195,14 @@ type BookCountResponse struct {
 }
 
 type BookResponse struct {
-	ID        uint      `json:"id"`
-	Title     string    `json:"title"`
-	Author    string    `json:"author"`
-	DateRead  string    `json:"dateRead"`
-	ChildID   uint      `json:"childId"`
-	CreatedAt time.Time `json:"createdAt"`
+	ID          uint      `json:"id"`
+	ISBN        string    `json:"isbn"`
+	Title       string    `json:"title"`
+	Author      string    `json:"author"`
+	LexileLevel string    `json:"lexileLevel,omitempty"`
+	DateRead    string    `json:"dateRead"`
+	ChildID     uint      `json:"childId"`
+	CreatedAt   time.Time `json:"createdAt"`
 }
 
 type PermissionResponse struct {
@@ -206,5 +231,56 @@ type ReportResponse struct {
 
 // Database migration function
 func AutoMigrate(db *gorm.DB) error {
+	// Perform data migration for children table if needed
+	err := migrateChildrenTable(db)
+	if err != nil {
+		return err
+	}
+	
 	return db.AutoMigrate(&User{}, &Child{}, &Book{}, &Permission{})
+}
+
+// migrateChildrenTable handles the migration from single 'name' field to firstName/lastName
+func migrateChildrenTable(db *gorm.DB) error {
+	// Check if the old schema exists (has 'name' field but no 'first_name')
+	var hasName, hasFirstName bool
+	
+	// Check for name column
+	if db.Migrator().HasColumn(&Child{}, "name") {
+		hasName = true
+	}
+	
+	// Check for first_name column  
+	if db.Migrator().HasColumn(&Child{}, "first_name") {
+		hasFirstName = true
+	}
+	
+	// If we have name but not first_name, we need to migrate
+	if hasName && !hasFirstName {
+		// For production: Clear all children data to avoid migration complexity
+		// This is acceptable since the user requested to clear old child data
+		err := db.Exec("DELETE FROM children").Error
+		if err != nil {
+			return err
+		}
+		
+		// Also clear related books and permissions
+		err = db.Exec("DELETE FROM books").Error
+		if err != nil {
+			return err
+		}
+		
+		err = db.Exec("DELETE FROM permissions").Error
+		if err != nil {
+			return err
+		}
+		
+		// Drop and recreate the children table
+		err = db.Migrator().DropTable(&Child{})
+		if err != nil {
+			return err
+		}
+	}
+	
+	return nil
 }
