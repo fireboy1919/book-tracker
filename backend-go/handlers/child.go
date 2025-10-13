@@ -303,3 +303,87 @@ func InviteUser(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"message": "Invitation sent successfully"})
 }
+
+// GetChildrenWithBookCounts handles getting children with their book counts for a specific month
+func GetChildrenWithBookCounts(c *gin.Context) {
+	userID, exists := middleware.GetCurrentUserID(c)
+	if !exists {
+		c.JSON(http.StatusUnauthorized, models.ErrorResponse{
+			Message: "User not found",
+		})
+		return
+	}
+
+	// Required query parameters
+	year := c.Query("year")
+	month := c.Query("month")
+	
+	if year == "" || month == "" {
+		c.JSON(http.StatusBadRequest, models.ErrorResponse{
+			Message: "Year and month parameters are required",
+		})
+		return
+	}
+
+	yearInt, yearErr := strconv.Atoi(year)
+	monthInt, monthErr := strconv.Atoi(month)
+	
+	if yearErr != nil || monthErr != nil || monthInt < 1 || monthInt > 12 {
+		c.JSON(http.StatusBadRequest, models.ErrorResponse{
+			Message: "Invalid year or month parameter",
+		})
+		return
+	}
+
+	childrenWithCounts, err := services.GetChildrenWithBookCounts(userID, yearInt, monthInt)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
+			Message: "Failed to get children with book counts: " + err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, childrenWithCounts)
+}
+
+// GetBookCountsForChildren handles getting just book counts for existing children (month switching)
+func GetBookCountsForChildren(c *gin.Context) {
+	userID, exists := middleware.GetCurrentUserID(c)
+	if !exists {
+		c.JSON(http.StatusUnauthorized, models.ErrorResponse{
+			Message: "User not found",
+		})
+		return
+	}
+
+	// Required query parameters
+	year := c.Query("year")
+	month := c.Query("month")
+	
+	if year == "" || month == "" {
+		c.JSON(http.StatusBadRequest, models.ErrorResponse{
+			Message: "Year and month parameters are required",
+		})
+		return
+	}
+
+	yearInt, yearErr := strconv.Atoi(year)
+	monthInt, monthErr := strconv.Atoi(month)
+	
+	if yearErr != nil || monthErr != nil || monthInt < 1 || monthInt > 12 {
+		c.JSON(http.StatusBadRequest, models.ErrorResponse{
+			Message: "Invalid year or month parameter",
+		})
+		return
+	}
+
+	bookCounts, err := services.GetBookCountsForUserChildren(userID, yearInt, monthInt)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
+			Message: "Failed to get book counts: " + err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, bookCounts)
+}

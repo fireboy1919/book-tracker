@@ -2,6 +2,7 @@ package services
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/booktracker/backend-go/config"
 	"github.com/booktracker/backend-go/models"
@@ -100,4 +101,48 @@ func DeleteBook(id uint) error {
 		return errors.New("book not found")
 	}
 	return nil
+}
+
+// GetBooksByChildAndMonth gets books for a child in a specific month/year
+func GetBooksByChildAndMonth(childID uint, year int, month int) ([]models.Book, error) {
+	var books []models.Book
+	
+	// Create start and end dates for the month
+	startDate := fmt.Sprintf("%d-%02d-01", year, month)
+	
+	// Calculate end date (first day of next month)
+	endYear := year
+	endMonth := month + 1
+	if endMonth > 12 {
+		endMonth = 1
+		endYear++
+	}
+	endDate := fmt.Sprintf("%d-%02d-01", endYear, endMonth)
+	
+	result := config.DB.Where("child_id = ? AND date_read >= ? AND date_read < ?", 
+		childID, startDate, endDate).Order("date_read DESC").Find(&books)
+	
+	return books, result.Error
+}
+
+// GetBookCountByChildAndMonth gets the count of books for a child in a specific month/year
+func GetBookCountByChildAndMonth(childID uint, year int, month int) (int, error) {
+	var count int64
+	
+	// Create start and end dates for the month
+	startDate := fmt.Sprintf("%d-%02d-01", year, month)
+	
+	// Calculate end date (first day of next month)
+	endYear := year
+	endMonth := month + 1
+	if endMonth > 12 {
+		endMonth = 1
+		endYear++
+	}
+	endDate := fmt.Sprintf("%d-%02d-01", endYear, endMonth)
+	
+	result := config.DB.Model(&models.Book{}).Where("child_id = ? AND date_read >= ? AND date_read < ?", 
+		childID, startDate, endDate).Count(&count)
+	
+	return int(count), result.Error
 }

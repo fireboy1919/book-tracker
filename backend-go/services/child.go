@@ -2,6 +2,7 @@ package services
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/booktracker/backend-go/config"
 	"github.com/booktracker/backend-go/models"
@@ -130,4 +131,76 @@ func CheckChildPermission(userID, childID uint, permissionType string) (bool, er
 	}
 
 	return true, nil
+}
+
+// GetChildrenWithBookCounts gets children with their book counts for a specific month
+func GetChildrenWithBookCounts(userID uint, year int, month int) ([]models.ChildWithBookCountResponse, error) {
+	children, err := GetChildrenWithPermission(userID)
+	if err != nil {
+		return nil, err
+	}
+
+	var childrenWithCounts []models.ChildWithBookCountResponse
+	
+	// Create start and end dates for the month
+	startDate := fmt.Sprintf("%d-%02d-01", year, month)
+	endYear := year
+	endMonth := month + 1
+	if endMonth > 12 {
+		endMonth = 1
+		endYear++
+	}
+	endDate := fmt.Sprintf("%d-%02d-01", endYear, endMonth)
+
+	for _, child := range children {
+		var count int64
+		config.DB.Model(&models.Book{}).Where("child_id = ? AND date_read >= ? AND date_read < ?", 
+			child.ID, startDate, endDate).Count(&count)
+		
+		childWithCount := models.ChildWithBookCountResponse{
+			ID:        child.ID,
+			Name:      child.Name,
+			Grade:     child.Grade,
+			OwnerID:   child.OwnerID,
+			CreatedAt: child.CreatedAt,
+			BookCount: int(count),
+		}
+		childrenWithCounts = append(childrenWithCounts, childWithCount)
+	}
+
+	return childrenWithCounts, nil
+}
+
+// GetBookCountsForUserChildren gets just book counts for user's children (for month switching)
+func GetBookCountsForUserChildren(userID uint, year int, month int) ([]models.BookCountResponse, error) {
+	children, err := GetChildrenWithPermission(userID)
+	if err != nil {
+		return nil, err
+	}
+
+	var bookCounts []models.BookCountResponse
+	
+	// Create start and end dates for the month
+	startDate := fmt.Sprintf("%d-%02d-01", year, month)
+	endYear := year
+	endMonth := month + 1
+	if endMonth > 12 {
+		endMonth = 1
+		endYear++
+	}
+	endDate := fmt.Sprintf("%d-%02d-01", endYear, endMonth)
+
+	for _, child := range children {
+		var count int64
+		config.DB.Model(&models.Book{}).Where("child_id = ? AND date_read >= ? AND date_read < ?", 
+			child.ID, startDate, endDate).Count(&count)
+		
+		bookCount := models.BookCountResponse{
+			ChildID:   child.ID,
+			BookCount: int(count),
+		}
+		bookCounts = append(bookCounts, bookCount)
+	}
+
+	return bookCounts, nil
 }

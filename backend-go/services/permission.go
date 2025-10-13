@@ -46,3 +46,18 @@ func GetPermissionsByChild(childID uint) ([]models.Permission, error) {
 func DeletePermission(userID, childID uint) error {
 	return config.DB.Where("user_id = ? AND child_id = ?", userID, childID).Delete(&models.Permission{}).Error
 }
+
+// GetPermissionByID gets a permission by ID
+func GetPermissionByID(permissionID uint) (*models.Permission, error) {
+	var permission models.Permission
+	result := config.DB.First(&permission, permissionID)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+	return &permission, nil
+}
+
+// DeletePermissionByID removes a permission by ID
+func DeletePermissionByID(permissionID uint) error {
+	return config.DB.Delete(&models.Permission{}, permissionID).Error
+}

@@ -425,7 +425,44 @@ func GetBooksForChild(c *gin.Context) {
 		return
 	}
 
-	books, err := services.GetBooksByChild(uint(childID))
+	// Get optional query parameters for month filtering
+	year := c.Query("year")
+	month := c.Query("month")
+	countOnly := c.Query("count_only") == "true"
+
+	var books []models.Book
+	var bookCount int
+	
+	if year != "" && month != "" {
+		// Filter by specific month/year
+		yearInt, yearErr := strconv.Atoi(year)
+		monthInt, monthErr := strconv.Atoi(month)
+		
+		if yearErr != nil || monthErr != nil || monthInt < 1 || monthInt > 12 {
+			c.JSON(http.StatusBadRequest, models.ErrorResponse{
+				Message: "Invalid year or month parameter",
+			})
+			return
+		}
+		
+		if countOnly {
+			bookCount, err = services.GetBookCountByChildAndMonth(uint(childID), yearInt, monthInt)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, models.ErrorResponse{
+					Message: "Failed to get book count: " + err.Error(),
+				})
+				return
+			}
+			c.JSON(http.StatusOK, gin.H{"count": bookCount})
+			return
+		} else {
+			books, err = services.GetBooksByChildAndMonth(uint(childID), yearInt, monthInt)
+		}
+	} else {
+		// Get all books (existing behavior)
+		books, err = services.GetBooksByChild(uint(childID))
+	}
+	
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
 			Message: "Failed to get books: " + err.Error(),

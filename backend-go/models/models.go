@@ -157,6 +157,20 @@ type ChildResponse struct {
 	CreatedAt time.Time `json:"createdAt"`
 }
 
+type ChildWithBookCountResponse struct {
+	ID        uint      `json:"id"`
+	Name      string    `json:"name"`
+	Grade     string    `json:"grade"`
+	OwnerID   uint      `json:"ownerId"`
+	CreatedAt time.Time `json:"createdAt"`
+	BookCount int       `json:"bookCount"`
+}
+
+type BookCountResponse struct {
+	ChildID   uint `json:"childId"`
+	BookCount int  `json:"bookCount"`
+}
+
 type BookResponse struct {
 	ID        uint      `json:"id"`
 	Title     string    `json:"title"`
@@ -167,11 +181,12 @@ type BookResponse struct {
 }
 
 type PermissionResponse struct {
-	ID             uint      `json:"id"`
-	UserID         uint      `json:"userId"`
-	ChildID        uint      `json:"childId"`
-	PermissionType string    `json:"permissionType"`
-	CreatedAt      time.Time `json:"createdAt"`
+	ID             uint          `json:"id"`
+	UserID         uint          `json:"userId"`
+	ChildID        uint          `json:"childId"`
+	PermissionType string        `json:"permissionType"`
+	CreatedAt      time.Time     `json:"createdAt"`
+	User           *UserResponse `json:"user,omitempty"`
 }
 
 type ErrorResponse struct {

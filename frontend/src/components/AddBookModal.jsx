@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { XMarkIcon } from '@heroicons/react/24/outline'
 import api from '../services/api'
 
@@ -10,6 +10,49 @@ export default function AddBookModal({ child, onClose, onBookAdded }) {
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [existingBooks, setExistingBooks] = useState([])
+  const [isDuplicate, setIsDuplicate] = useState(false)
+
+  useEffect(() => {
+    fetchExistingBooks()
+  }, [child.id])
+
+  useEffect(() => {
+    checkForDuplicate()
+  }, [formData.title, formData.author, existingBooks])
+
+  const fetchExistingBooks = async () => {
+    try {
+      const response = await api.get(`/books/child/${child.id}`)
+      setExistingBooks(response.data || [])
+    } catch (error) {
+      console.error('Failed to fetch existing books:', error)
+      setExistingBooks([])
+    }
+  }
+
+  const checkForDuplicate = () => {
+    if (!formData.title.trim() || !formData.author.trim()) {
+      setIsDuplicate(false)
+      return
+    }
+
+    const normalizeString = (str) => str.toLowerCase().trim()
+    const normalizedTitle = normalizeString(formData.title)
+    const normalizedAuthor = normalizeString(formData.author)
+
+    const duplicate = existingBooks.some(book => 
+      normalizeString(book.title) === normalizedTitle && 
+      normalizeString(book.author) === normalizedAuthor
+    )
+
+    setIsDuplicate(duplicate)
+    if (duplicate) {
+      setError(`${child.name} has already read "${formData.title}" by ${formData.author}`)
+    } else {
+      setError('')
+    }
+  }
 
   const handleChange = (e) => {
     setFormData({
@@ -20,8 +63,12 @@ export default function AddBookModal({ child, onClose, onBookAdded }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+    
+    if (isDuplicate) {
+      return
+    }
+
     setLoading(true)
-    setError('')
 
     try {
       await api.post(`/books/child/${child.id}`, {
@@ -32,17 +79,16 @@ export default function AddBookModal({ child, onClose, onBookAdded }) {
       })
       onBookAdded()
     } catch (error) {
-      setError(error.response?.data?.error || 'Failed to add book')
+      setError(error.response?.data?.message || 'Failed to add book')
     } finally {
       setLoading(false)
     }
   }
 
   const handleFinishedToday = async () => {
-    if (!formData.title || !formData.author) return
+    if (!formData.title || !formData.author || isDuplicate) return
     
     setLoading(true)
-    setError('')
 
     try {
       await api.post(`/books/child/${child.id}`, {
@@ -53,13 +99,13 @@ export default function AddBookModal({ child, onClose, onBookAdded }) {
       })
       onBookAdded()
     } catch (error) {
-      setError(error.response?.data?.error || 'Failed to add book')
+      setError(error.response?.data?.message || 'Failed to add book')
     } finally {
       setLoading(false)
     }
   }
 
-  const isFormValid = formData.title.trim() && formData.author.trim()
+  const isFormValid = formData.title.trim() && formData.author.trim() && !isDuplicate
 
   return (
     <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
@@ -121,6 +167,17 @@ export default function AddBookModal({ child, onClose, onBookAdded }) {
             <div className="text-red-600 text-sm">{error}</div>
           )}
 
+          {isDuplicate && (
+            <div className="bg-red-50 border border-red-200 rounded-md p-3">
+              <div className="text-red-800 text-sm font-medium">
+                Duplicate Book Detected
+              </div>
+              <div className="text-red-700 text-sm mt-1">
+                {child.name} has already read this book. Each child can only read a book once.
+              </div>
+            </div>
+          )}
+
           <div className="flex justify-between">
             <button
               type="button"
@@ -135,7 +192,7 @@ export default function AddBookModal({ child, onClose, onBookAdded }) {
                 onClick={handleFinishedToday}
                 disabled={loading || !isFormValid}
                 className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                title={!isFormValid ? "Please fill in title and author first" : "Mark as finished today"}
+                title={isDuplicate ? "Cannot add duplicate book" : !isFormValid ? "Please fill in title and author first" : "Mark as finished today"}
               >
                 {loading ? 'Adding...' : 'Finished Today'}
               </button>

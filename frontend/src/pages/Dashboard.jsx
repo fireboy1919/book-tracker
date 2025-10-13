@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react'
-import { PlusIcon, UserPlusIcon, ChartBarIcon } from '@heroicons/react/24/outline'
+import { PlusIcon, ChartBarIcon, ShareIcon, ChevronLeftIcon, ChevronRightIcon, CogIcon } from '@heroicons/react/24/outline'
 import api from '../services/api'
 import ChildCard from '../components/ChildCard'
 import AddChildModal from '../components/AddChildModal'
 import AddBookModal from '../components/AddBookModal'
-import InviteUserModal from '../components/InviteUserModal'
+import BulkShareModal from '../components/BulkShareModal'
+import ChildManagementModal from '../components/ChildManagementModal'
+import FullScreenChildView from '../components/FullScreenChildView'
 import ReportModal from '../components/ReportModal'
 
 export default function Dashboard() {
@@ -12,10 +14,13 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true)
   const [showAddChild, setShowAddChild] = useState(false)
   const [showAddBook, setShowAddBook] = useState(false)
-  const [showInviteUser, setShowInviteUser] = useState(false)
+  const [showBulkShare, setShowBulkShare] = useState(false)
+  const [showChildManagement, setShowChildManagement] = useState(false)
+  const [showFullScreenView, setShowFullScreenView] = useState(false)
   const [showReport, setShowReport] = useState(false)
   const [selectedChild, setSelectedChild] = useState(null)
   const [refreshTrigger, setRefreshTrigger] = useState(0)
+  const [currentMonth, setCurrentMonth] = useState(new Date())
 
   useEffect(() => {
     fetchChildren()
@@ -49,10 +54,26 @@ export default function Dashboard() {
     setShowAddBook(true)
   }
 
-  const handleInviteUser = (child) => {
+  const handleManageChild = (child) => {
     setSelectedChild(child)
-    setShowInviteUser(true)
+    setShowChildManagement(true)
   }
+
+  const handleViewChild = (child) => {
+    setSelectedChild(child)
+    setShowFullScreenView(true)
+  }
+
+  const navigateMonth = (direction) => {
+    const newDate = new Date(currentMonth)
+    newDate.setMonth(currentMonth.getMonth() + direction)
+    setCurrentMonth(newDate)
+  }
+
+  const formatMonthYear = (date) => {
+    return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+  }
+
 
   if (loading) {
     return (
@@ -70,6 +91,26 @@ export default function Dashboard() {
             <h2 className="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">
               My Children
             </h2>
+            {/* Month Navigation */}
+            <div className="flex items-center mt-2 space-x-4">
+              <button
+                onClick={() => navigateMonth(-1)}
+                className="p-1 rounded-full hover:bg-gray-200 transition-colors"
+              >
+                <ChevronLeftIcon className="h-5 w-5 text-gray-600" />
+              </button>
+              
+              <div className="text-lg font-medium text-gray-700">
+                {formatMonthYear(currentMonth)}
+              </div>
+              
+              <button
+                onClick={() => navigateMonth(1)}
+                className="p-1 rounded-full hover:bg-gray-200 transition-colors"
+              >
+                <ChevronRightIcon className="h-5 w-5 text-gray-600" />
+              </button>
+            </div>
           </div>
           <div className="mt-4 flex md:mt-0 md:ml-4 space-x-3">
             <button
@@ -79,6 +120,15 @@ export default function Dashboard() {
               <ChartBarIcon className="-ml-1 mr-2 h-5 w-5" />
               Generate Report
             </button>
+            {children.length > 0 && (
+              <button
+                onClick={() => setShowBulkShare(true)}
+                className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+              >
+                <ShareIcon className="-ml-1 mr-2 h-5 w-5" />
+                Share Children
+              </button>
+            )}
             <button
               onClick={() => setShowAddChild(true)}
               className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700"
@@ -104,12 +154,24 @@ export default function Dashboard() {
           ) : (
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {children.map((child) => (
-                <ChildCard
-                  key={`${child.id}-${refreshTrigger}`}
-                  child={child}
-                  onAddBook={() => handleAddBook(child)}
-                  onInviteUser={() => handleInviteUser(child)}
-                />
+                <div key={`${child.id}-${refreshTrigger}`} className="relative">
+                  <ChildCard
+                    child={child}
+                    currentMonth={currentMonth}
+                    onAddBook={() => handleAddBook(child)}
+                    onViewDetails={() => handleViewChild(child)}
+                  />
+                  {/* Child Management Button */}
+                  <div className="absolute top-2 right-2">
+                    <button
+                      onClick={() => handleManageChild(child)}
+                      className="p-1 rounded-full bg-white shadow-sm hover:bg-gray-50 transition-colors"
+                      title="Manage child"
+                    >
+                      <CogIcon className="h-4 w-4 text-gray-500" />
+                    </button>
+                  </div>
+                </div>
               ))}
             </div>
           )}
@@ -131,10 +193,29 @@ export default function Dashboard() {
         />
       )}
 
-      {showInviteUser && selectedChild && (
-        <InviteUserModal
+      {showBulkShare && (
+        <BulkShareModal
+          children={children}
+          onClose={() => setShowBulkShare(false)}
+        />
+      )}
+
+      {showChildManagement && selectedChild && (
+        <ChildManagementModal
           child={selectedChild}
-          onClose={() => setShowInviteUser(false)}
+          onClose={() => setShowChildManagement(false)}
+          onChildUpdated={() => {
+            fetchChildren()
+            setRefreshTrigger(prev => prev + 1)
+          }}
+        />
+      )}
+
+      {showFullScreenView && selectedChild && (
+        <FullScreenChildView
+          child={selectedChild}
+          onClose={() => setShowFullScreenView(false)}
+          onAddBook={handleAddBook}
         />
       )}
 

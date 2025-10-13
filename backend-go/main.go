@@ -75,10 +75,19 @@ func main() {
 			{
 				children.POST("", handlers.CreateChild)
 				children.GET("", handlers.GetChildren)
+				children.GET("/with-counts", handlers.GetChildrenWithBookCounts)
+				children.GET("/book-counts", handlers.GetBookCountsForChildren)
 				children.GET("/:id", handlers.GetChildByID)
 				children.PUT("/:id", handlers.UpdateChild)
 				children.DELETE("/:id", handlers.DeleteChild)
 				children.POST("/:id/invite", handlers.InviteUser)
+				children.GET("/:id/permissions", handlers.GetPermissionsByChild)
+			}
+
+			// Permission routes
+			permissions := protected.Group("/permissions")
+			{
+				permissions.DELETE("/:id", handlers.DeletePermissionByID)
 			}
 
 			// Books routes

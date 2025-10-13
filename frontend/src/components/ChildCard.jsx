@@ -1,14 +1,19 @@
 import { useState, useEffect } from 'react'
-import { BookOpenIcon, PlusIcon, UserPlusIcon } from '@heroicons/react/24/outline'
+import { BookOpenIcon, PlusIcon, EyeIcon } from '@heroicons/react/24/outline'
 import api from '../services/api'
 
-export default function ChildCard({ child, onAddBook, onInviteUser }) {
+export default function ChildCard({ child, onAddBook, onViewDetails, currentMonth }) {
   const [books, setBooks] = useState([])
   const [loading, setLoading] = useState(true)
+  const [currentMonthBooks, setCurrentMonthBooks] = useState([])
 
   useEffect(() => {
     fetchBooks()
   }, [child.id])
+
+  useEffect(() => {
+    filterBooksByMonth()
+  }, [books, currentMonth])
 
   const fetchBooks = async () => {
     try {
@@ -20,6 +25,23 @@ export default function ChildCard({ child, onAddBook, onInviteUser }) {
     } finally {
       setLoading(false)
     }
+  }
+
+  const filterBooksByMonth = () => {
+    if (!currentMonth || !books.length) {
+      setCurrentMonthBooks([])
+      return
+    }
+
+    const currentYear = currentMonth.getFullYear()
+    const currentMonthIndex = currentMonth.getMonth()
+
+    const filtered = books.filter(book => {
+      const bookDate = new Date(book.dateRead)
+      return bookDate.getFullYear() === currentYear && bookDate.getMonth() === currentMonthIndex
+    })
+
+    setCurrentMonthBooks(filtered)
   }
 
   return (
@@ -44,11 +66,14 @@ export default function ChildCard({ child, onAddBook, onInviteUser }) {
       <div className="bg-gray-50 px-5 py-3">
         <div className="text-sm">
           <div className="font-medium text-gray-900 mb-2">
-            {loading ? 'Loading...' : `${books?.length || 0} books read`}
+            {loading ? 'Loading...' : `${currentMonthBooks?.length || 0} books this month`}
           </div>
-          {!loading && books?.length > 0 && (
+          {!loading && (
             <div className="text-gray-600">
-              Recent: {books[books.length - 1]?.title}
+              {currentMonth ? 
+                currentMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) :
+                'Current Month'
+              }
             </div>
           )}
         </div>
@@ -61,11 +86,11 @@ export default function ChildCard({ child, onAddBook, onInviteUser }) {
             Add Book
           </button>
           <button
-            onClick={() => onInviteUser(child)}
+            onClick={() => onViewDetails(child)}
             className="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-full text-gray-700 bg-gray-100 hover:bg-gray-200"
           >
-            <UserPlusIcon className="h-3 w-3 mr-1" />
-            Share
+            <EyeIcon className="h-3 w-3 mr-1" />
+            View All
           </button>
         </div>
       </div>
