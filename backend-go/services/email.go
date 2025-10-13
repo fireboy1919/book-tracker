@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/booktracker/backend-go/models"
 	"github.com/resend/resend-go/v2"
 )
 
@@ -128,4 +129,17 @@ func (e *EmailService) SendPasswordResetEmail(email, firstName, resetToken strin
 
 	_, err := e.client.Emails.Send(params)
 	return err
+}
+
+var emailService *EmailService
+
+func init() {
+	emailService = NewEmailService()
+}
+
+// SendInvitationEmail sends an invitation email using the models
+func SendInvitationEmail(email, token string, inviter *models.User, child *models.Child) error {
+	inviterName := fmt.Sprintf("%s %s", inviter.FirstName, inviter.LastName)
+	childName := fmt.Sprintf("%s %s", child.FirstName, child.LastName)
+	return emailService.SendInvitationEmail(email, inviterName, childName, token)
 }

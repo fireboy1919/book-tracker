@@ -48,6 +48,73 @@ func RegisterUser(c *gin.Context) {
 	c.JSON(http.StatusCreated, userResponse)
 }
 
+// RegisterUserWithInvitation handles user registration via invitation
+func RegisterUserWithInvitation(c *gin.Context) {
+	var req models.CreateUserWithInvitationRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, models.ErrorResponse{
+			Message: "Invalid request data: " + err.Error(),
+		})
+		return
+	}
+
+	user, err := services.ProcessInvitationRegistration(req)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, models.ErrorResponse{
+			Message: err.Error(),
+		})
+		return
+	}
+
+	// Send verification email (optional, since they're invited)
+	emailService := services.NewEmailService()
+	err = emailService.SendVerificationEmail(user.Email, user.FirstName, user.EmailVerificationToken)
+	if err != nil {
+		// Don't fail registration if email fails
+		c.Header("X-Email-Warning", "Verification email failed to send")
+	}
+
+	userResponse := models.UserResponse{
+		ID:            user.ID,
+		Email:         user.Email,
+		FirstName:     user.FirstName,
+		LastName:      user.LastName,
+		IsAdmin:       user.IsAdmin,
+		EmailVerified: user.EmailVerified,
+		CreatedAt:     user.CreatedAt,
+	}
+
+	c.JSON(http.StatusCreated, userResponse)
+}
+
+// GetInvitationDetails handles getting invitation details by token
+func GetInvitationDetails(c *gin.Context) {
+	token := c.Query("token")
+	if token == "" {
+		c.JSON(http.StatusBadRequest, models.ErrorResponse{
+			Message: "Invitation token is required",
+		})
+		return
+	}
+
+	invitation, err := services.GetPendingInvitationByToken(token)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, models.ErrorResponse{
+			Message: err.Error(),
+		})
+		return
+	}
+
+	response := gin.H{
+		"email":          invitation.Email,
+		"childName":      invitation.Child.FirstName + " " + invitation.Child.LastName,
+		"inviterName":    invitation.InvitedBy.FirstName + " " + invitation.InvitedBy.LastName,
+		"permissionType": invitation.PermissionType,
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
 // LoginUser handles user login
 func LoginUser(c *gin.Context) {
 	var req models.LoginRequest

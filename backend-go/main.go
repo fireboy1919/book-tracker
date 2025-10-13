@@ -50,6 +50,8 @@ func main() {
 		auth := api.Group("/auth")
 		{
 			auth.POST("/register", handlers.RegisterUser)
+			auth.POST("/register-with-invitation", handlers.RegisterUserWithInvitation)
+			auth.GET("/invitation-details", handlers.GetInvitationDetails)
 			auth.POST("/login", handlers.LoginUser)
 			auth.GET("/verify-email", handlers.VerifyEmail)
 			auth.POST("/resend-verification", handlers.ResendVerification)
@@ -101,6 +103,7 @@ func main() {
 				
 				// Child-specific book routes
 				books.POST("/child/:childId", handlers.CreateBookForChild)
+				books.POST("/child/:childId/custom", handlers.CreateCustomBookForChild)
 				books.GET("/child/:childId", handlers.GetBooksForChild)
 				
 				// ISBN lookup route

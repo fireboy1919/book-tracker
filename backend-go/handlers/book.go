@@ -51,14 +51,7 @@ func CreateBook(c *gin.Context) {
 		return
 	}
 
-	bookResponse := models.BookResponse{
-		ID:        book.ID,
-		Title:     book.Title,
-		Author:    book.Author,
-		DateRead:  book.DateRead,
-		ChildID:   book.ChildID,
-		CreatedAt: book.CreatedAt,
-	}
+	bookResponse := convertBookToResponse(book)
 
 	c.JSON(http.StatusCreated, bookResponse)
 }
@@ -109,14 +102,7 @@ func GetBooks(c *gin.Context) {
 
 		var bookResponses []models.BookResponse
 		for _, book := range books {
-			bookResponses = append(bookResponses, models.BookResponse{
-				ID:        book.ID,
-				Title:     book.Title,
-				Author:    book.Author,
-				DateRead:  book.DateRead,
-				ChildID:   book.ChildID,
-				CreatedAt: book.CreatedAt,
-			})
+			bookResponses = append(bookResponses, convertBookToResponse(&book))
 		}
 
 		c.JSON(http.StatusOK, bookResponses)
@@ -134,14 +120,7 @@ func GetBooks(c *gin.Context) {
 
 	var bookResponses []models.BookResponse
 	for _, book := range books {
-		bookResponses = append(bookResponses, models.BookResponse{
-			ID:        book.ID,
-			Title:     book.Title,
-			Author:    book.Author,
-			DateRead:  book.DateRead,
-			ChildID:   book.ChildID,
-			CreatedAt: book.CreatedAt,
-		})
+		bookResponses = append(bookResponses, convertBookToResponse(&book))
 	}
 
 	c.JSON(http.StatusOK, bookResponses)
@@ -189,14 +168,7 @@ func GetBookByID(c *gin.Context) {
 		return
 	}
 
-	bookResponse := models.BookResponse{
-		ID:        book.ID,
-		Title:     book.Title,
-		Author:    book.Author,
-		DateRead:  book.DateRead,
-		ChildID:   book.ChildID,
-		CreatedAt: book.CreatedAt,
-	}
+	bookResponse := convertBookToResponse(book)
 
 	c.JSON(http.StatusOK, bookResponse)
 }
@@ -260,15 +232,7 @@ func UpdateBook(c *gin.Context) {
 		return
 	}
 
-	bookResponse := models.BookResponse{
-		ID:        updatedBook.ID,
-		Title:     updatedBook.Title,
-		Author:    updatedBook.Author,
-		DateRead:  updatedBook.DateRead,
-		ChildID:   updatedBook.ChildID,
-		CreatedAt: updatedBook.CreatedAt,
-	}
-
+	bookResponse := convertBookToResponse(updatedBook)
 	c.JSON(http.StatusOK, bookResponse)
 }
 
@@ -379,14 +343,7 @@ func CreateBookForChild(c *gin.Context) {
 		return
 	}
 
-	bookResponse := models.BookResponse{
-		ID:        book.ID,
-		Title:     book.Title,
-		Author:    book.Author,
-		DateRead:  book.DateRead,
-		ChildID:   book.ChildID,
-		CreatedAt: book.CreatedAt,
-	}
+	bookResponse := convertBookToResponse(book)
 
 	c.JSON(http.StatusCreated, bookResponse)
 }
@@ -472,14 +429,7 @@ func GetBooksForChild(c *gin.Context) {
 
 	var bookResponses []models.BookResponse
 	for _, book := range books {
-		bookResponses = append(bookResponses, models.BookResponse{
-			ID:        book.ID,
-			Title:     book.Title,
-			Author:    book.Author,
-			DateRead:  book.DateRead,
-			ChildID:   book.ChildID,
-			CreatedAt: book.CreatedAt,
-		})
+		bookResponses = append(bookResponses, convertBookToResponse(&book))
 	}
 
 	c.JSON(http.StatusOK, bookResponses)
@@ -538,14 +488,7 @@ func GetMyBooksReport(c *gin.Context) {
 		
 		var bookResponses []models.BookResponse
 		for _, book := range books {
-			bookResponses = append(bookResponses, models.BookResponse{
-				ID:        book.ID,
-				Title:     book.Title,
-				Author:    book.Author,
-				DateRead:  book.DateRead,
-				ChildID:   book.ChildID,
-				CreatedAt: book.CreatedAt,
-			})
+			bookResponses = append(bookResponses, convertBookToResponse(&book))
 		}
 		
 		childReport := models.ChildReportResponse{
@@ -568,4 +511,95 @@ func GetMyBooksReport(c *gin.Context) {
 	}
 	
 	c.JSON(http.StatusOK, report)
+}
+
+// convertBookToResponse converts a Book model to BookResponse
+func convertBookToResponse(book *models.Book) models.BookResponse {
+	response := models.BookResponse{
+		ID:             book.ID,
+		DateRead:       book.DateRead,
+		ChildID:        book.ChildID,
+		LexileLevel:    book.LexileLevel,
+		IsPartial:      book.IsPartial,
+		PartialComment: book.PartialComment,
+		CreatedAt:      book.CreatedAt,
+	}
+	
+	// Set book details based on whether it's a shared book or custom book
+	if book.SharedBookID != nil && book.SharedBook != nil {
+		// This is a shared book from Open Library
+		response.ISBN = book.SharedBook.ISBN
+		response.Title = book.SharedBook.Title
+		response.Author = book.SharedBook.Author
+		response.CoverURL = book.SharedBook.CoverURL
+		response.IsCustomBook = false
+		response.SharedBookID = book.SharedBookID
+		// Lexile level is always from the user's reading record (per-user)
+		response.LexileLevel = book.LexileLevel
+	} else {
+		// This is a custom book
+		response.ISBN = book.CustomISBN
+		response.Title = book.CustomTitle
+		response.Author = book.CustomAuthor
+		response.IsCustomBook = true
+	}
+	
+	return response
+}
+
+// CreateCustomBookForChild handles creating a custom book for a specific child
+func CreateCustomBookForChild(c *gin.Context) {
+	userID, exists := middleware.GetCurrentUserID(c)
+	if !exists {
+		c.JSON(http.StatusUnauthorized, models.ErrorResponse{
+			Message: "User not found",
+		})
+		return
+	}
+
+	childIDParam := c.Param("childId")
+	childID, err := strconv.ParseUint(childIDParam, 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, models.ErrorResponse{
+			Message: "Invalid child ID",
+		})
+		return
+	}
+
+	var req models.CreateCustomBookRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, models.ErrorResponse{
+			Message: "Invalid request data: " + err.Error(),
+		})
+		return
+	}
+
+	// Override childId from URL
+	req.ChildID = uint(childID)
+
+	// Check permission to edit the child
+	hasPermission, err := services.CheckChildPermission(userID, req.ChildID, "EDIT")
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
+			Message: "Failed to check permission: " + err.Error(),
+		})
+		return
+	}
+	if !hasPermission {
+		c.JSON(http.StatusForbidden, models.ErrorResponse{
+			Message: "Access denied",
+		})
+		return
+	}
+
+	book, err := services.CreateCustomBook(req)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
+			Message: "Failed to create book: " + err.Error(),
+		})
+		return
+	}
+
+	bookResponse := convertBookToResponse(book)
+	c.JSON(http.StatusCreated, bookResponse)
 }

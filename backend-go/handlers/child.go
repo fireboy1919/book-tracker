@@ -286,17 +286,58 @@ func InviteUser(c *gin.Context) {
 		return
 	}
 
-	// Check if user exists, if not, handle invitation for non-registered user
+	// Check if user exists
 	targetUser, err := services.GetUserByEmail(req.Email)
 	if err != nil {
-		// User doesn't exist - for now return an error, but we could implement invitation system later
-		c.JSON(http.StatusBadRequest, models.ErrorResponse{
-			Message: "User with email " + req.Email + " not found. They must register first.",
+		// User doesn't exist - create pending invitation
+		invitation, err := services.CreatePendingInvitation(req.Email, uint(childID), req.PermissionType, userID)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, models.ErrorResponse{
+				Message: "Failed to create invitation: " + err.Error(),
+			})
+			return
+		}
+
+		// Send invitation email
+		currentUser, err := services.GetUserByID(userID)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, models.ErrorResponse{
+				Message: "Failed to get current user: " + err.Error(),
+			})
+			return
+		}
+
+		err = services.SendInvitationEmail(req.Email, invitation.Token, currentUser, child)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, models.ErrorResponse{
+				Message: "Failed to send invitation email: " + err.Error(),
+			})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{"message": "Invitation sent to " + req.Email + ". They will need to register to access the child's data."})
+		return
+	}
+
+	// User exists - check if they already have permission
+	hasExistingPermission, err := services.CheckChildPermission(targetUser.ID, uint(childID), "VIEW")
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
+			Message: "Failed to check existing permissions: " + err.Error(),
 		})
 		return
 	}
 
-	// Create permission for the target user
+	if hasExistingPermission {
+		// Update existing permission if it's different
+		// (Implementation would need a service to update permissions)
+		c.JSON(http.StatusBadRequest, models.ErrorResponse{
+			Message: "User already has access to this child",
+		})
+		return
+	}
+
+	// Create permission for the existing user
 	err = services.CreatePermission(targetUser.ID, uint(childID), req.PermissionType)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
@@ -305,7 +346,7 @@ func InviteUser(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Invitation sent successfully"})
+	c.JSON(http.StatusOK, gin.H{"message": "Permission granted to existing user"})
 }
 
 // GetChildrenWithBookCounts handles getting children with their book counts for a specific month
