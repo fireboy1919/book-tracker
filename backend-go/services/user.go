@@ -229,7 +229,7 @@ func GetUserByVerificationToken(token string) (*models.User, error) {
 func RequestPasswordReset(email string) (*models.User, error) {
 	var user models.User
 	result := config.DB.Where("email = ?", email).First(&user)
-	if result.Error \!= nil {
+	if result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 			return nil, errors.New("user not found")
 		}
@@ -238,7 +238,7 @@ func RequestPasswordReset(email string) (*models.User, error) {
 
 	// Generate reset token
 	token, err := utils.GenerateVerificationToken()
-	if err \!= nil {
+	if err != nil {
 		return nil, err
 	}
 	
@@ -248,7 +248,7 @@ func RequestPasswordReset(email string) (*models.User, error) {
 	user.PasswordResetExpiresAt = &expiresAt
 
 	result = config.DB.Save(&user)
-	if result.Error \!= nil {
+	if result.Error != nil {
 		return nil, result.Error
 	}
 
@@ -259,7 +259,7 @@ func RequestPasswordReset(email string) (*models.User, error) {
 func ResetPassword(token, newPassword string) (*models.User, error) {
 	var user models.User
 	result := config.DB.Where("password_reset_token = ?", token).First(&user)
-	if result.Error \!= nil {
+	if result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 			return nil, errors.New("invalid reset token")
 		}
@@ -272,8 +272,8 @@ func ResetPassword(token, newPassword string) (*models.User, error) {
 	}
 
 	// Hash the new password
-	hashedPassword, err := utils.HashPassword(newPassword)
-	if err \!= nil {
+	hashedPassword, err := HashPassword(newPassword)
+	if err != nil {
 		return nil, err
 	}
 
@@ -283,7 +283,7 @@ func ResetPassword(token, newPassword string) (*models.User, error) {
 	user.PasswordResetExpiresAt = nil
 
 	result = config.DB.Save(&user)
-	if result.Error \!= nil {
+	if result.Error != nil {
 		return nil, result.Error
 	}
 
