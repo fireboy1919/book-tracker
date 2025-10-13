@@ -19,8 +19,21 @@ object DatabaseConfig {
         when {
             // Turso libSQL URL format: libsql://database-name.turso.io?authToken=token
             databaseUrl.startsWith("libsql://") -> {
-                config.driverClassName = "org.libsql.jdbc.LibsqlDriver"
-                config.jdbcUrl = databaseUrl.replace("libsql://", "jdbc:libsql://")
+                config.driverClassName = "com.dbeaver.jdbc.driver.libsql.LibSqlDriver"
+                
+                // Parse URL to extract authToken
+                val url = java.net.URL(databaseUrl)
+                val params = url.query?.split("&")?.associate { 
+                    val (key, value) = it.split("=", limit = 2)
+                    key to value
+                } ?: emptyMap()
+                
+                val authToken = params["authToken"] ?: throw IllegalArgumentException("authToken is required for Turso")
+                val baseUrl = "${url.protocol}://${url.host}${if (url.port != -1) ":${url.port}" else ""}"
+                
+                config.jdbcUrl = "jdbc:dbeaver:libsql:$baseUrl"
+                config.username = null // Username is null for token auth
+                config.password = authToken // Token passed as password
                 config.maximumPoolSize = 5 // Turso can handle more connections
             }
             // Local SQLite file
@@ -37,7 +50,7 @@ object DatabaseConfig {
                         config.maximumPoolSize = 3
                     }
                     databaseUrl.contains("libsql") -> {
-                        config.driverClassName = "org.libsql.jdbc.LibsqlDriver"
+                        config.driverClassName = "com.dbeaver.jdbc.driver.libsql.LibSqlDriver"
                         config.maximumPoolSize = 5
                     }
                     else -> throw IllegalArgumentException("Unsupported database URL: $databaseUrl")
@@ -60,16 +73,16 @@ object DatabaseConfig {
         val dataSource = HikariDataSource(config)
         
         // Run Flyway migrations
-        runMigrations(config.jdbcUrl)
+        runMigrations(config.jdbcUrl, config.username, config.password)
         
         return Database.connect(dataSource)
     }
     
-    private fun runMigrations(jdbcUrl: String) {
+    private fun runMigrations(jdbcUrl: String, username: String?, password: String?) {
         println("Running database migrations for: ${jdbcUrl.substringBefore("?")}")
         
         val flyway = Flyway.configure()
-            .dataSource(jdbcUrl, null, null)
+            .dataSource(jdbcUrl, username, password)
             .locations("classpath:db/migration")
             .load()
         
