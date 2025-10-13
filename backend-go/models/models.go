@@ -257,20 +257,23 @@ func migrateChildrenTable(db *gorm.DB) error {
 	
 	// If we have name but not first_name, we need to migrate
 	if hasName && !hasFirstName {
-		// For production: Clear all children data to avoid migration complexity
-		// This is acceptable since the user requested to clear old child data
-		err := db.Exec("DELETE FROM children").Error
+		// For production: Clear all data to avoid migration complexity
+		// Delete in correct order to respect foreign key constraints
+		
+		// First delete books (they reference children)
+		err := db.Exec("DELETE FROM books").Error
 		if err != nil {
 			return err
 		}
 		
-		// Also clear related books and permissions
-		err = db.Exec("DELETE FROM books").Error
-		if err != nil {
-			return err
-		}
-		
+		// Then delete permissions (they also reference children)
 		err = db.Exec("DELETE FROM permissions").Error
+		if err != nil {
+			return err
+		}
+		
+		// Finally delete children
+		err = db.Exec("DELETE FROM children").Error
 		if err != nil {
 			return err
 		}
