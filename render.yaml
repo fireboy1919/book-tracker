@@ -13,10 +13,7 @@ services:
       - key: PORT
         value: 10000
       - key: FRONTEND_URL
-        fromService:
-          type: web
-          name: book-tracker-frontend
-          envVarKey: RENDER_EXTERNAL_URL
+        value: https://booktracker.rustyphillips.net
     healthCheckPath: /health
 
   # Frontend static site
