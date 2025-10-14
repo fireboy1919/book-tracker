@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
-import { BookOpenIcon, PlusIcon, EyeIcon } from '@heroicons/react/24/outline'
+import { BookOpenIcon, PlusIcon, EyeIcon, PencilIcon } from '@heroicons/react/24/outline'
 import api from '../services/api'
 
-export default function ChildCard({ child, onAddBook, onViewDetails, currentMonth }) {
+export default function ChildCard({ child, onAddBook, onViewDetails, onEditChild, currentMonth }) {
   const [books, setBooks] = useState([])
   const [loading, setLoading] = useState(true)
   const [currentMonthBooks, setCurrentMonthBooks] = useState([])
@@ -46,9 +46,18 @@ export default function ChildCard({ child, onAddBook, onViewDetails, currentMont
 
 
   return (
-    <div className="bg-white overflow-hidden shadow rounded-lg">
+    <div className="bg-white overflow-hidden shadow rounded-lg relative">
       <div className="p-5">
         <div className="flex items-center">
+          {/* Edit button in upper left corner */}
+          <button
+            onClick={() => onEditChild(child)}
+            className="absolute top-2 left-2 p-1.5 rounded-full bg-white shadow-md hover:bg-indigo-50 hover:text-indigo-600 transition-colors border border-gray-200"
+            title="Edit child information"
+          >
+            <PencilIcon className="h-4 w-4 text-gray-600" />
+          </button>
+          
           <div className="flex-shrink-0">
             <BookOpenIcon className="h-8 w-8 text-indigo-600" />
           </div>
