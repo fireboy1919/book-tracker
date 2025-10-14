@@ -255,48 +255,29 @@ export default function FullScreenChildView({ child, onClose, onAddBook }) {
           ) : (
             <div className="grid gap-4">
               {filteredBooks.map((book, index) => (
-                <div key={book.id} className="bg-white border border-gray-200 rounded-lg p-3 sm:p-4 shadow-sm hover:shadow-md transition-shadow relative">
-                  {/* Action Buttons - Mobile: Top Right, Desktop: Right Side */}
-                  {canEdit && (
-                    <div className="absolute top-2 right-2 flex space-x-1 sm:space-x-2">
-                      <button
-                        onClick={() => handleEditBook(book)}
-                        className="p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-full transition-colors border border-gray-200 bg-white shadow-sm"
-                        title="Edit book"
-                      >
-                        <PencilIcon className="h-3 w-3 sm:h-4 sm:w-4" />
-                      </button>
-                      <button
-                        onClick={() => handleDeleteBook(book)}
-                        className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors border border-gray-200 bg-white shadow-sm"
-                        title="Delete book"
-                      >
-                        <TrashIcon className="h-3 w-3 sm:h-4 sm:w-4" />
-                      </button>
-                    </div>
-                  )}
-
-                  <div className="flex items-start space-x-3 pr-16 sm:pr-0">
-                    {/* Book Cover - Only show if URL exists and loads successfully */}
-                    {book.coverUrl && (
-                      <div className="flex-shrink-0 hidden sm:block">
+                <div key={book.id} className="bg-white border border-gray-200 rounded-lg p-3 sm:p-4 shadow-sm hover:shadow-md transition-shadow">
+                  <div className="flex items-start gap-3">
+                    {/* Book Cover - 25% width max */}
+                    <div className="flex-shrink-0 w-16 sm:w-20">
+                      {book.coverUrl ? (
                         <img
                           src={book.coverUrl}
                           alt={`Cover of ${book.title}`}
-                          className="w-12 h-16 sm:w-16 sm:h-20 object-cover rounded-md border border-gray-200"
+                          className="w-full h-20 sm:h-24 object-cover rounded-md border border-gray-200"
                           onError={(e) => {
-                            e.target.closest('.flex-shrink-0').style.display = 'none'
+                            e.target.style.display = 'none'
                           }}
                         />
-                      </div>
-                    )}
+                      ) : (
+                        <div className="w-full h-20 sm:h-24 bg-gray-100 rounded-md border border-gray-200 flex items-center justify-center">
+                          <BookOpenIcon className="h-6 w-6 text-gray-400" />
+                        </div>
+                      )}
+                    </div>
                     
-                    {/* Book Details */}
+                    {/* Book Details - flexible width */}
                     <div className="flex-1 min-w-0">
                       <div className="flex flex-wrap items-center gap-2 mb-2">
-                        <span className="bg-indigo-100 text-indigo-800 text-xs font-medium px-2 py-1 rounded-full">
-                          Book #{index + 1}
-                        </span>
                         {book.isPartial && (
                           <span className="bg-yellow-100 text-yellow-800 text-xs font-medium px-2 py-1 rounded-full">
                             Partial
@@ -306,7 +287,7 @@ export default function FullScreenChildView({ child, onClose, onAddBook }) {
                           Read on {formatDateRead(book.dateRead)}
                         </span>
                       </div>
-                      <h5 className="text-base sm:text-lg font-semibold text-gray-900 mb-1 pr-2 break-words">
+                      <h5 className="text-base sm:text-lg font-semibold text-gray-900 mb-1 break-words">
                         {book.title}
                       </h5>
                       <p className="text-sm sm:text-base text-gray-600 mb-2 break-words">
@@ -325,6 +306,26 @@ export default function FullScreenChildView({ child, onClose, onAddBook }) {
                         </div>
                       )}
                     </div>
+
+                    {/* Action Buttons - fixed width on right */}
+                    {canEdit && (
+                      <div className="flex flex-col gap-2 flex-shrink-0">
+                        <button
+                          onClick={() => handleEditBook(book)}
+                          className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-full transition-colors border border-gray-200 bg-white shadow-sm"
+                          title="Edit book"
+                        >
+                          <PencilIcon className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteBook(book)}
+                          className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors border border-gray-200 bg-white shadow-sm"
+                          title="Delete book"
+                        >
+                          <TrashIcon className="h-4 w-4" />
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}

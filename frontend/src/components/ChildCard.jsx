@@ -71,11 +71,27 @@ export default function ChildCard({ child, onAddBook, onViewDetails, onEditChild
 
 
   return (
-    <div className="bg-white overflow-hidden shadow rounded-lg relative">
+    <div className="bg-white overflow-hidden shadow rounded-lg">
       <div className="p-3 sm:p-5">
-        <div className="flex items-center">
-          {/* Action buttons in upper right corner */}
-          <div className="absolute top-2 right-2 flex space-x-1">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center flex-1 min-w-0">
+            <div className="flex-shrink-0">
+              <BookOpenIcon className="h-6 w-6 sm:h-8 sm:w-8 text-indigo-600" />
+            </div>
+            <div className="ml-3 sm:ml-5 flex-1 min-w-0">
+              <dl>
+                <dt className="text-sm font-medium text-gray-500 truncate">
+                  {child.firstName} {child.lastName}
+                </dt>
+                <dd className="text-base sm:text-lg font-medium text-gray-900">
+                  {child.grade}
+                </dd>
+              </dl>
+            </div>
+          </div>
+          
+          {/* Action buttons on the right */}
+          <div className="flex space-x-1 flex-shrink-0 ml-3">
             <button
               onClick={handleDownloadPDF}
               className="p-1.5 rounded-full bg-white shadow-md hover:bg-blue-50 hover:text-blue-600 transition-colors border border-gray-200"
@@ -90,20 +106,6 @@ export default function ChildCard({ child, onAddBook, onViewDetails, onEditChild
             >
               <PencilIcon className="h-3 w-3 sm:h-4 sm:w-4 text-gray-600" />
             </button>
-          </div>
-          
-          <div className="flex-shrink-0">
-            <BookOpenIcon className="h-6 w-6 sm:h-8 sm:w-8 text-indigo-600" />
-          </div>
-          <div className="ml-3 sm:ml-5 w-0 flex-1 pr-16 sm:pr-0">
-            <dl>
-              <dt className="text-sm font-medium text-gray-500 truncate">
-                {child.firstName} {child.lastName}
-              </dt>
-              <dd className="text-base sm:text-lg font-medium text-gray-900">
-                {child.grade}
-              </dd>
-            </dl>
           </div>
         </div>
       </div>
