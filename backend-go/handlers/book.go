@@ -100,10 +100,7 @@ func GetBooks(c *gin.Context) {
 			return
 		}
 
-		var bookResponses []models.BookResponse
-		for _, book := range books {
-			bookResponses = append(bookResponses, convertBookToResponse(&book))
-		}
+		bookResponses := convertBooksToResponses(books)
 
 		c.JSON(http.StatusOK, bookResponses)
 		return
@@ -118,11 +115,7 @@ func GetBooks(c *gin.Context) {
 		return
 	}
 
-	var bookResponses []models.BookResponse
-	for _, book := range books {
-		bookResponses = append(bookResponses, convertBookToResponse(&book))
-	}
-
+	bookResponses := convertBooksToResponses(books)
 	c.JSON(http.StatusOK, bookResponses)
 }
 
@@ -367,8 +360,9 @@ func GetBooksForChild(c *gin.Context) {
 		return
 	}
 
-	// Check permission
-	hasPermission, err := services.CheckChildPermission(userID, uint(childID), "VIEW")
+	// Check permission using cache
+	permCache := middleware.GetPermissionCache(c)
+	hasPermission, err := permCache.GetOrCheck(userID, uint(childID), "VIEW")
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
 			Message: "Failed to check permission: " + err.Error(),
@@ -427,11 +421,7 @@ func GetBooksForChild(c *gin.Context) {
 		return
 	}
 
-	var bookResponses []models.BookResponse
-	for _, book := range books {
-		bookResponses = append(bookResponses, convertBookToResponse(&book))
-	}
-
+	bookResponses := convertBooksToResponses(books)
 	c.JSON(http.StatusOK, bookResponses)
 }
 
@@ -486,10 +476,7 @@ func GetMyBooksReport(c *gin.Context) {
 			return
 		}
 		
-		var bookResponses []models.BookResponse
-		for _, book := range books {
-			bookResponses = append(bookResponses, convertBookToResponse(&book))
-		}
+		bookResponses := convertBooksToResponses(books)
 		
 		childReport := models.ChildReportResponse{
 			Child: models.ChildResponse{
@@ -513,7 +500,51 @@ func GetMyBooksReport(c *gin.Context) {
 	c.JSON(http.StatusOK, report)
 }
 
-// convertBookToResponse converts a Book model to BookResponse
+// convertBooksToResponses efficiently converts multiple Book models to BookResponse slice
+func convertBooksToResponses(books []models.Book) []models.BookResponse {
+	if len(books) == 0 {
+		return []models.BookResponse{}
+	}
+	
+	// Pre-allocate slice with exact capacity for efficiency
+	responses := make([]models.BookResponse, len(books))
+	
+	// Batch convert all books
+	for i, book := range books {
+		responses[i] = models.BookResponse{
+			ID:             book.ID,
+			DateRead:       book.DateRead,
+			ChildID:        book.ChildID,
+			LexileLevel:    book.LexileLevel,
+			IsPartial:      book.IsPartial,
+			PartialComment: book.PartialComment,
+			CreatedAt:      book.CreatedAt,
+		}
+		
+		// Set book details based on whether it's a shared book or custom book
+		if book.SharedBookID != nil && book.SharedBook != nil {
+			// This is a shared book from Open Library
+			responses[i].ISBN = book.SharedBook.ISBN
+			responses[i].Title = book.SharedBook.Title
+			responses[i].Author = book.SharedBook.Author
+			responses[i].CoverURL = book.SharedBook.CoverURL
+			responses[i].IsCustomBook = false
+			responses[i].SharedBookID = book.SharedBookID
+			// Lexile level is always from the user's reading record (per-user)
+			responses[i].LexileLevel = book.LexileLevel
+		} else {
+			// This is a custom book
+			responses[i].ISBN = book.CustomISBN
+			responses[i].Title = book.CustomTitle
+			responses[i].Author = book.CustomAuthor
+			responses[i].IsCustomBook = true
+		}
+	}
+	
+	return responses
+}
+
+// convertBookToResponse converts a single Book model to BookResponse (for single book operations)
 func convertBookToResponse(book *models.Book) models.BookResponse {
 	response := models.BookResponse{
 		ID:             book.ID,

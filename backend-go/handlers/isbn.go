@@ -47,7 +47,23 @@ func LookupISBN(c *gin.Context) {
 		return
 	}
 
-	// Try original ISBN first
+	// Check database first for existing SharedBook
+	var existingSharedBook models.SharedBook
+	if err := services.GetDB().Where("isbn = ?", isbn).First(&existingSharedBook).Error; err == nil {
+		// Found in database! Return immediately without API call
+		bookInfo := models.BookInfoResponse{
+			ISBN:         existingSharedBook.ISBN,
+			Title:        existingSharedBook.Title,
+			Author:       existingSharedBook.Author,
+			CoverURL:     existingSharedBook.CoverURL,
+			Found:        true,
+			SharedBookID: &existingSharedBook.ID,
+		}
+		c.JSON(http.StatusOK, bookInfo)
+		return
+	}
+
+	// Not in database, try API lookup
 	bookData, finalISBN, found := lookupSingleISBN(isbn)
 	if !found {
 		c.JSON(http.StatusOK, models.BookInfoResponse{
@@ -82,27 +98,17 @@ func LookupISBN(c *gin.Context) {
 		coverURL = bookData.Cover.Small
 	}
 
-	// Check if this book already exists in SharedBook table
-	var existingSharedBook models.SharedBook
+	// Create new SharedBook entry since we didn't find it in database
+	newSharedBook := models.SharedBook{
+		ISBN:     isbn,
+		Title:    bookData.Title,
+		Author:   author,
+		CoverURL: coverURL,
+		Source:   "openlibrary",
+	}
 	var sharedBookID *uint
-	if err := services.GetDB().Where("isbn = ?", isbn).First(&existingSharedBook).Error; err == nil {
-		sharedBookID = &existingSharedBook.ID
-		// Update cover URL if we have a better one
-		if coverURL != "" && existingSharedBook.CoverURL != coverURL {
-			services.GetDB().Model(&existingSharedBook).Update("cover_url", coverURL)
-		}
-	} else {
-		// Create new SharedBook entry (no lexile level - that's per-user)
-		newSharedBook := models.SharedBook{
-			ISBN:     isbn,
-			Title:    bookData.Title,
-			Author:   author,
-			CoverURL: coverURL,
-			Source:   "openlibrary",
-		}
-		if err := services.GetDB().Create(&newSharedBook).Error; err == nil {
-			sharedBookID = &newSharedBook.ID
-		}
+	if err := services.GetDB().Create(&newSharedBook).Error; err == nil {
+		sharedBookID = &newSharedBook.ID
 	}
 
 	bookInfo := models.BookInfoResponse{

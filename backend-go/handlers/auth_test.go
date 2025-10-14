@@ -44,6 +44,17 @@ func (suite *AuthHandlerTestSuite) TearDownTest() {
 }
 
 func (suite *AuthHandlerTestSuite) TestRegisterUserSuccess() {
+	// Create a first user to ensure the test user won't be made admin
+	firstUser := models.User{
+		Email:         "admin@example.com",
+		PasswordHash:  "hashedpassword",
+		FirstName:     "Admin",
+		LastName:      "User",
+		IsAdmin:       true,
+		EmailVerified: true,
+	}
+	config.DB.Create(&firstUser)
+
 	createUserRequest := models.CreateUserRequest{
 		Email:     "test@example.com",
 		Password:  "password123",

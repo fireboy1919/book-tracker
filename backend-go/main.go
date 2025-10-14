@@ -1,3 +1,6 @@
+//go:build !serverless
+// +build !serverless
+
 package main
 
 import (
@@ -32,6 +35,9 @@ func main() {
 	corsConfig.AllowHeaders = []string{"Origin", "Content-Length", "Content-Type", "Authorization"}
 	corsConfig.AllowMethods = []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}
 	router.Use(cors.New(corsConfig))
+	
+	// Add permission cache middleware
+	router.Use(middleware.PermissionCacheMiddleware())
 
 	// Health check endpoint
 	router.GET("/health", func(c *gin.Context) {

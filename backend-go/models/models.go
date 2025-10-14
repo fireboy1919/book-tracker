@@ -39,7 +39,7 @@ type Child struct {
 	FirstName string    `json:"firstName" gorm:"not null"`
 	LastName  string    `json:"lastName" gorm:"not null"`
 	Grade     string    `json:"grade" gorm:"not null"`
-	OwnerID   uint      `json:"ownerId" gorm:"not null;index"`
+	OwnerID   uint      `json:"ownerId" gorm:"not null;index:idx_child_owner"`
 	CreatedAt time.Time `json:"createdAt"`
 	UpdatedAt time.Time `json:"updatedAt"`
 
@@ -64,16 +64,16 @@ type SharedBook struct {
 // Book represents a reading record - links a child to either a shared book or custom book
 type Book struct {
 	ID           uint      `json:"id" gorm:"primaryKey"`
-	DateRead     string    `json:"dateRead" gorm:"not null"`
-	ChildID      uint      `json:"childId" gorm:"not null;index"`
-	SharedBookID *uint     `json:"sharedBookId,omitempty" gorm:"index"` // Reference to SharedBook
+	DateRead     string    `json:"dateRead" gorm:"not null;index:idx_book_date"`
+	ChildID      uint      `json:"childId" gorm:"not null;index:idx_book_child"`
+	SharedBookID *uint     `json:"sharedBookId,omitempty" gorm:"index:idx_book_shared"` // Reference to SharedBook
 	// For custom books (user-specific)
-	CustomTitle  string    `json:"customTitle,omitempty"`
-	CustomAuthor string    `json:"customAuthor,omitempty"`
+	CustomTitle  string    `json:"customTitle,omitempty" gorm:"index:idx_custom_title"`
+	CustomAuthor string    `json:"customAuthor,omitempty" gorm:"index:idx_custom_author"`
 	CustomISBN   string    `json:"customIsbn,omitempty"`
 	LexileLevel  string    `json:"lexileLevel,omitempty"`
 	// For partial books
-	IsPartial       bool   `json:"isPartial" gorm:"default:false"`
+	IsPartial       bool   `json:"isPartial" gorm:"default:false;index:idx_book_partial"`
 	PartialComment  string `json:"partialComment,omitempty"` // Description of what portion was read
 	CreatedAt       time.Time `json:"createdAt"`
 	UpdatedAt       time.Time `json:"updatedAt"`
@@ -86,8 +86,8 @@ type Book struct {
 // Permission represents user permissions for children
 type Permission struct {
 	ID             uint      `json:"id" gorm:"primaryKey"`
-	UserID         uint      `json:"userId" gorm:"not null;index"`
-	ChildID        uint      `json:"childId" gorm:"not null;index"`
+	UserID         uint      `json:"userId" gorm:"not null;index:idx_permission_user;uniqueIndex:idx_user_child_unique"`
+	ChildID        uint      `json:"childId" gorm:"not null;index:idx_permission_child;uniqueIndex:idx_user_child_unique"`
 	PermissionType string    `json:"permissionType" gorm:"not null;check:permission_type IN ('VIEW', 'EDIT')"`
 	CreatedAt      time.Time `json:"createdAt"`
 

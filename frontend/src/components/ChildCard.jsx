@@ -91,20 +91,20 @@ export default function ChildCard({ child, onAddBook, onViewDetails, onEditChild
           </div>
           
           {/* Action buttons on the right */}
-          <div className="flex space-x-1 flex-shrink-0 ml-3">
+          <div className="flex space-x-2 flex-shrink-0 ml-3">
             <button
               onClick={handleDownloadPDF}
-              className="p-1.5 rounded-full bg-white shadow-md hover:bg-blue-50 hover:text-blue-600 transition-colors border border-gray-200"
+              className="p-2 rounded-full bg-white shadow-md hover:bg-blue-50 hover:text-blue-600 transition-colors border border-gray-200"
               title="Download monthly PDF report"
             >
-              <DocumentArrowDownIcon className="h-3 w-3 sm:h-4 sm:w-4 text-gray-600" />
+              <DocumentArrowDownIcon className="h-6 w-6 sm:h-8 sm:w-8 text-gray-600" />
             </button>
             <button
               onClick={() => onEditChild(child)}
-              className="p-1.5 rounded-full bg-white shadow-md hover:bg-indigo-50 hover:text-indigo-600 transition-colors border border-gray-200"
+              className="p-2 rounded-full bg-white shadow-md hover:bg-indigo-50 hover:text-indigo-600 transition-colors border border-gray-200"
               title="Edit child information"
             >
-              <PencilIcon className="h-3 w-3 sm:h-4 sm:w-4 text-gray-600" />
+              <PencilIcon className="h-6 w-6 sm:h-8 sm:w-8 text-gray-600" />
             </button>
           </div>
         </div>
