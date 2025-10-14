@@ -6,7 +6,7 @@
       "config": {
         "installCommand": "npm install",
         "buildCommand": "npm run build",
-        "distDir": "frontend/dist"
+        "distDir": "dist"
       }
     },
     {

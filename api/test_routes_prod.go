@@ -1,7 +1,7 @@
 //go:build production
 // +build production
 
-package main
+package handler
 
 import "github.com/gin-gonic/gin"
 
