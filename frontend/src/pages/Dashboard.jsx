@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { PlusIcon, ChartBarIcon, ShareIcon, ChevronLeftIcon, ChevronRightIcon, PencilIcon, DocumentArrowDownIcon } from '@heroicons/react/24/outline'
+import { PlusIcon, ChartBarIcon, ShareIcon, ChevronLeftIcon, ChevronRightIcon, PencilIcon } from '@heroicons/react/24/outline'
 import api from '../services/api'
 import ChildCard from '../components/ChildCard'
 import AddChildModal from '../components/AddChildModal'
@@ -74,31 +74,6 @@ export default function Dashboard() {
     return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
   }
 
-  const handleDownloadMonthlyPDF = async () => {
-    try {
-      const month = currentMonth.getMonth() + 1
-      const year = currentMonth.getFullYear()
-      
-      const response = await api.get(`/reports/monthly-pdf`, {
-        params: { month, year },
-        responseType: 'blob'
-      })
-      
-      const blob = new Blob([response.data], { type: 'application/pdf' })
-      const url = window.URL.createObjectURL(blob)
-      const link = document.createElement('a')
-      link.href = url
-      link.download = `monthly_report_${formatMonthYear(currentMonth).replace(' ', '_')}.pdf`
-      document.body.appendChild(link)
-      link.click()
-      link.remove()
-      window.URL.revokeObjectURL(url)
-    } catch (error) {
-      console.error('Failed to download PDF:', error)
-      alert('Failed to download PDF report')
-    }
-  }
-
 
   if (loading) {
     return (
@@ -111,41 +86,13 @@ export default function Dashboard() {
   return (
     <div className="py-6">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
-        <div className="flex items-start justify-between">
-          <div className="flex-1 min-w-0">
+        <div>
+          {/* Header with title and buttons aligned */}
+          <div className="flex items-center justify-between">
             <h2 className="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">
               My Children
             </h2>
-            {/* Month Navigation */}
-            <div className="flex items-center mt-2 space-x-4">
-              <button
-                onClick={() => navigateMonth(-1)}
-                className="p-1 rounded-full hover:bg-gray-200 transition-colors"
-              >
-                <ChevronLeftIcon className="h-5 w-5 text-gray-600" />
-              </button>
-              
-              <div className="text-lg font-medium text-gray-700">
-                {formatMonthYear(currentMonth)}
-              </div>
-              
-              <button
-                onClick={() => navigateMonth(1)}
-                className="p-1 rounded-full hover:bg-gray-200 transition-colors"
-              >
-                <ChevronRightIcon className="h-5 w-5 text-gray-600" />
-              </button>
-            </div>
-          </div>
-          <div className="flex space-x-1 ml-4">
-            <button
-              onClick={handleDownloadMonthlyPDF}
-              className="p-1.5 md:px-3 md:py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 inline-flex items-center"
-              title="Download Monthly PDF"
-            >
-              <DocumentArrowDownIcon className="h-4 w-4 md:h-5 md:w-5 md:mr-2" />
-              <span className="hidden md:inline">Download PDF</span>
-            </button>
+            <div className="flex space-x-1 ml-4">
             <button
               onClick={() => setShowReport(true)}
               className="p-1.5 md:px-3 md:py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 inline-flex items-center"
@@ -171,6 +118,28 @@ export default function Dashboard() {
             >
               <PlusIcon className="h-4 w-4 md:h-5 md:w-5 md:mr-2" />
               <span className="hidden md:inline">Add Child</span>
+            </button>
+            </div>
+          </div>
+          
+          {/* Month Navigation */}
+          <div className="flex items-center mt-4 space-x-4">
+            <button
+              onClick={() => navigateMonth(-1)}
+              className="p-1 rounded-full hover:bg-gray-200 transition-colors"
+            >
+              <ChevronLeftIcon className="h-5 w-5 text-gray-600" />
+            </button>
+            
+            <div className="text-lg font-medium text-gray-700">
+              {formatMonthYear(currentMonth)}
+            </div>
+            
+            <button
+              onClick={() => navigateMonth(1)}
+              className="p-1 rounded-full hover:bg-gray-200 transition-colors"
+            >
+              <ChevronRightIcon className="h-5 w-5 text-gray-600" />
             </button>
           </div>
         </div>

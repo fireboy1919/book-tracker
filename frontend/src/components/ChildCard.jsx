@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { BookOpenIcon, PlusIcon, EyeIcon, PencilIcon } from '@heroicons/react/24/outline'
+import { BookOpenIcon, PlusIcon, EyeIcon, PencilIcon, DocumentArrowDownIcon } from '@heroicons/react/24/outline'
 import api from '../services/api'
 
 export default function ChildCard({ child, onAddBook, onViewDetails, onEditChild, currentMonth }) {
@@ -44,19 +44,53 @@ export default function ChildCard({ child, onAddBook, onViewDetails, onEditChild
     setCurrentMonthBooks(filtered)
   }
 
+  const handleDownloadPDF = async () => {
+    try {
+      const month = currentMonth.getMonth() + 1
+      const year = currentMonth.getFullYear()
+      
+      const response = await api.get(`/reports/child/${child.id}/monthly-pdf`, {
+        params: { month, year },
+        responseType: 'blob'
+      })
+      
+      const blob = new Blob([response.data], { type: 'application/pdf' })
+      const url = window.URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `${child.firstName}_${child.lastName}_books_${currentMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }).replace(' ', '_')}.pdf`
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      window.URL.revokeObjectURL(url)
+    } catch (error) {
+      console.error('Failed to download PDF:', error)
+      alert('Failed to download PDF report')
+    }
+  }
+
 
   return (
     <div className="bg-white overflow-hidden shadow rounded-lg relative">
       <div className="p-5">
         <div className="flex items-center">
-          {/* Edit button in upper left corner */}
-          <button
-            onClick={() => onEditChild(child)}
-            className="absolute top-2 left-2 p-1.5 rounded-full bg-white shadow-md hover:bg-indigo-50 hover:text-indigo-600 transition-colors border border-gray-200"
-            title="Edit child information"
-          >
-            <PencilIcon className="h-4 w-4 text-gray-600" />
-          </button>
+          {/* Action buttons in upper right corner */}
+          <div className="absolute top-2 right-2 flex space-x-1">
+            <button
+              onClick={handleDownloadPDF}
+              className="p-1.5 rounded-full bg-white shadow-md hover:bg-blue-50 hover:text-blue-600 transition-colors border border-gray-200"
+              title="Download monthly PDF report"
+            >
+              <DocumentArrowDownIcon className="h-4 w-4 text-gray-600" />
+            </button>
+            <button
+              onClick={() => onEditChild(child)}
+              className="p-1.5 rounded-full bg-white shadow-md hover:bg-indigo-50 hover:text-indigo-600 transition-colors border border-gray-200"
+              title="Edit child information"
+            >
+              <PencilIcon className="h-4 w-4 text-gray-600" />
+            </button>
+          </div>
           
           <div className="flex-shrink-0">
             <BookOpenIcon className="h-8 w-8 text-indigo-600" />
