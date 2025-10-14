@@ -1,6 +1,7 @@
 [tools]
 node = "22"
 go = "1.21.0"
+"npm:vercel" = "latest"
 
 [env]
 # Backend environment variables
@@ -197,4 +198,25 @@ run = [
     "mise run build",
     "echo '🚀 Starting production servers...'",
     "mise run backend:dev & mise run frontend:preview & wait"
+]
+
+[tasks."vercel:dev"]
+description = "Start Vercel development server"
+run = [
+    "echo '⚡ Starting Vercel dev server...'",
+    "vercel dev"
+]
+
+[tasks."vercel:deploy"]
+description = "Deploy to Vercel"
+run = [
+    "echo '🚀 Deploying to Vercel...'",
+    "vercel --prod"
+]
+
+[tasks."vercel:build"]
+description = "Build for Vercel locally"
+run = [
+    "echo '🔨 Building for Vercel...'",
+    "vercel build"
 ]
