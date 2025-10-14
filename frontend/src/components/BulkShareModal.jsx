@@ -53,15 +53,15 @@ export default function BulkShareModal({ children, onClose }) {
     setSuccess('')
 
     try {
+      // Prepare bulk invitation data
+      let childrenToShare = []
+      
       if (formData.shareAll) {
         // Share all children with the same permission
-        const promises = children.map(child =>
-          api.post(`/children/${child.id}/invite`, {
-            email: formData.email,
-            permissionType: formData.allPermissionType
-          })
-        )
-        await Promise.all(promises)
+        childrenToShare = children.map(child => ({
+          childId: child.id,
+          permissionType: formData.allPermissionType
+        }))
       } else {
         // Share selected children with individual permissions
         const selectedChildren = Object.keys(formData.individualPermissions)
@@ -71,21 +71,24 @@ export default function BulkShareModal({ children, onClose }) {
           return
         }
 
-        const promises = selectedChildren.map(childId =>
-          api.post(`/children/${childId}/invite`, {
-            email: formData.email,
-            permissionType: formData.individualPermissions[childId]
-          })
-        )
-        await Promise.all(promises)
+        childrenToShare = selectedChildren.map(childId => ({
+          childId: parseInt(childId),
+          permissionType: formData.individualPermissions[childId]
+        }))
       }
 
-      setSuccess('All invitations sent successfully!')
+      // Send single bulk invitation
+      await api.post('/invite-user', {
+        email: formData.email,
+        children: childrenToShare
+      })
+
+      setSuccess('Invitation sent successfully!')
       setTimeout(() => {
         onClose()
       }, 2000)
     } catch (error) {
-      setError(error.response?.data?.message || 'Failed to send invitations')
+      setError(error.response?.data?.message || 'Failed to send invitation')
     } finally {
       setLoading(false)
     }
@@ -210,7 +213,7 @@ export default function BulkShareModal({ children, onClose }) {
               disabled={loading}
               className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50"
             >
-              {loading ? 'Sending Invitations...' : 'Send Invitations'}
+              {loading ? 'Sending Invitation...' : 'Send Invitation'}
             </button>
           </div>
         </form>

@@ -61,3 +61,8 @@ func GetPermissionByID(permissionID uint) (*models.Permission, error) {
 func DeletePermissionByID(permissionID uint) error {
 	return config.DB.Delete(&models.Permission{}, permissionID).Error
 }
+
+// CreateOrUpdatePermission is an alias for CreatePermission which already handles updates
+func CreateOrUpdatePermission(userID, childID uint, permissionType string) error {
+	return CreatePermission(userID, childID, permissionType)
+}

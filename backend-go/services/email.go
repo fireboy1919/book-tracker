@@ -131,6 +131,43 @@ func (e *EmailService) SendPasswordResetEmail(email, firstName, resetToken strin
 	return err
 }
 
+func (e *EmailService) SendSystemInvitationEmail(email, inviterName, token string) error {
+	if e.client == nil {
+		// Development mode - just log
+		fmt.Printf("📧 [DEV] System invitation email for %s:\n", email)
+		fmt.Printf("   Inviter: %s\n", inviterName)
+		fmt.Printf("   Token: %s\n", token)
+		fmt.Printf("   URL: http://localhost:5173/accept-invitation?token=%s\n", token)
+		return nil
+	}
+
+	frontendURL := os.Getenv("FRONTEND_URL")
+	if frontendURL == "" {
+		frontendURL = "http://localhost:5173" // fallback for development
+	}
+	acceptURL := fmt.Sprintf("%s/accept-invitation?token=%s", frontendURL, token)
+	
+	params := &resend.SendEmailRequest{
+		From:    "Book Tracker <noreply@booktracker.rustyphillips.net>",
+		To:      []string{email},
+		Subject: fmt.Sprintf("%s has invited you to join Book Tracker", inviterName),
+		Html: fmt.Sprintf(`
+			<h1>You've been invited to Book Tracker!</h1>
+			<p>%s has invited you to join Book Tracker to help track reading progress.</p>
+			<p>Book Tracker is a simple way to log and monitor children's reading activities, celebrate achievements, and encourage a love of reading.</p>
+			<p>Click the link below to create your account and get started:</p>
+			<p><a href="%s" style="background-color: #4F46E5; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Join Book Tracker</a></p>
+			<p>If the button doesn't work, copy and paste this URL into your browser:</p>
+			<p>%s</p>
+			<p>Once you create your account, you'll automatically have access to the children %s has shared with you.</p>
+			<p>If you don't want to join, you can safely ignore this email.</p>
+		`, inviterName, acceptURL, acceptURL, inviterName),
+	}
+
+	_, err := e.client.Emails.Send(params)
+	return err
+}
+
 var emailService *EmailService
 
 func init() {
@@ -142,4 +179,10 @@ func SendInvitationEmail(email, token string, inviter *models.User, child *model
 	inviterName := fmt.Sprintf("%s %s", inviter.FirstName, inviter.LastName)
 	childName := fmt.Sprintf("%s %s", child.FirstName, child.LastName)
 	return emailService.SendInvitationEmail(email, inviterName, childName, token)
+}
+
+// SendSystemInvitationEmail sends a general system invitation (not child-specific)
+func SendSystemInvitationEmail(email, token string, inviter *models.User) error {
+	inviterName := fmt.Sprintf("%s %s", inviter.FirstName, inviter.LastName)
+	return emailService.SendSystemInvitationEmail(email, inviterName, token)
 }

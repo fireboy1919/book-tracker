@@ -2,6 +2,7 @@ package services
 
 import (
 	"errors"
+	"strings"
 	"time"
 
 	"github.com/booktracker/backend-go/config"
@@ -304,4 +305,143 @@ func ResetPassword(token, newPassword string) (*models.User, error) {
 	}
 
 	return &user, nil
+}
+
+// GoogleUserInfo represents user info from Google OAuth
+type GoogleUserInfo struct {
+	ID            string `json:"id"`
+	Email         string `json:"email"`
+	VerifiedEmail bool   `json:"verified_email"`
+	Name          string `json:"name"`
+	GivenName     string `json:"given_name"`
+	FamilyName    string `json:"family_name"`
+	Picture       string `json:"picture"`
+}
+
+// CreateGoogleUser creates a new user from Google OAuth info
+func CreateGoogleUser(userInfo *GoogleUserInfo) (*models.User, error) {
+	// Check if user already exists
+	var existingUser models.User
+	result := config.DB.Where("email = ?", userInfo.Email).First(&existingUser)
+	if result.Error == nil {
+		return nil, errors.New("user with this email already exists")
+	}
+
+	// Determine admin status
+	var userCount int64
+	err := config.DB.Model(&models.User{}).Count(&userCount).Error
+	if err != nil {
+		return nil, err
+	}
+	
+	isAdmin := userCount == 0 // First user is admin
+
+	// Create user
+	user := models.User{
+		Email:          userInfo.Email,
+		FirstName:      userInfo.GivenName,
+		LastName:       userInfo.FamilyName,
+		IsAdmin:        isAdmin,
+		EmailVerified:  userInfo.VerifiedEmail, // Trust Google's verification
+		GoogleID:       userInfo.ID,
+		AuthProvider:   "google",
+		ProfilePicture: userInfo.Picture,
+	}
+
+	result = config.DB.Create(&user)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return &user, nil
+}
+
+// CreateGoogleUserWithInvitation creates a new user from Google OAuth and processes invitation
+func CreateGoogleUserWithInvitation(userInfo *GoogleUserInfo, invitationToken string) (*models.User, error) {
+	// Validate invitation token first
+	invitations, err := GetPendingInvitationsByToken(invitationToken)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(invitations) == 0 {
+		return nil, errors.New("invalid invitation token")
+	}
+
+	// Verify email matches invitation
+	if !strings.EqualFold(invitations[0].Email, userInfo.Email) {
+		return nil, errors.New("email does not match invitation")
+	}
+
+	// Create user with Google OAuth info
+	user := models.User{
+		Email:          userInfo.Email,
+		FirstName:      userInfo.GivenName,
+		LastName:       userInfo.FamilyName,
+		IsAdmin:        false, // Invited users are not admin by default
+		EmailVerified:  userInfo.VerifiedEmail,
+		GoogleID:       userInfo.ID,
+		AuthProvider:   "google",
+		ProfilePicture: userInfo.Picture,
+	}
+
+	// Start transaction
+	tx := config.DB.Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+
+	// Create user
+	if err := tx.Create(&user).Error; err != nil {
+		tx.Rollback()
+		return nil, err
+	}
+
+	// Process invitations and create permissions
+	for _, invitation := range invitations {
+		permission := models.Permission{
+			UserID:         user.ID,
+			ChildID:        invitation.ChildID,
+			PermissionType: invitation.PermissionType,
+		}
+
+		if err := tx.Create(&permission).Error; err != nil {
+			tx.Rollback()
+			return nil, err
+		}
+	}
+
+	// Delete processed invitations
+	if err := tx.Where("token = ?", invitationToken).Delete(&models.PendingInvitation{}).Error; err != nil {
+		tx.Rollback()
+		return nil, err
+	}
+
+	// Commit transaction
+	if err := tx.Commit().Error; err != nil {
+		return nil, err
+	}
+
+	return &user, nil
+}
+
+// LinkGoogleAccount links a Google account to an existing user
+func LinkGoogleAccount(userID uint, googleID, profilePicture string) error {
+	result := config.DB.Model(&models.User{}).Where("id = ?", userID).Updates(map[string]interface{}{
+		"google_id":       googleID,
+		"auth_provider":   "google",
+		"profile_picture": profilePicture,
+	})
+
+	if result.Error != nil {
+		return result.Error
+	}
+
+	if result.RowsAffected == 0 {
+		return errors.New("user not found")
+	}
+
+	return nil
 }

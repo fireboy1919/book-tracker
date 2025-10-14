@@ -125,3 +125,18 @@ func Login(loginReq models.LoginRequest) (*models.LoginResponse, error) {
 		User:  userResponse,
 	}, nil
 }
+
+// GenerateJWT generates a JWT token for a user by ID and email
+func GenerateJWT(userID uint, email string) (string, error) {
+	claims := &Claims{
+		UserID: userID,
+		Email:  email,
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * time.Hour)),
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
+		},
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	return token.SignedString(jwtSecret)
+}

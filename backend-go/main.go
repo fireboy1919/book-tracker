@@ -57,12 +57,19 @@ func main() {
 			auth.POST("/resend-verification", handlers.ResendVerification)
 			auth.POST("/forgot-password", handlers.ForgotPassword)
 			auth.POST("/reset-password", handlers.ResetPassword)
+			
+			// Google OAuth routes
+			auth.GET("/google", handlers.GoogleLogin)
+			auth.GET("/google/callback", handlers.GoogleCallback)
 		}
 
 		// Protected routes (authentication required)
 		protected := api.Group("")
 		protected.Use(middleware.AuthMiddleware())
 		{
+			// Invitation routes
+			protected.POST("/invite-user", handlers.BulkInviteUser)
+			
 			// User routes
 			users := protected.Group("/users")
 			{

@@ -3,6 +3,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext'
 import Login from './pages/Login'
 import Register from './pages/Register'
 import AcceptInvitation from './pages/AcceptInvitation'
+import GoogleCallback from './pages/GoogleCallback'
 import VerifyEmail from './pages/VerifyEmail'
 import EmailVerificationRequired from './pages/EmailVerificationRequired'
 import ForgotPassword from './pages/ForgotPassword'
@@ -50,6 +51,7 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/accept-invitation" element={<AcceptInvitation />} />
+          <Route path="/google-callback" element={<GoogleCallback />} />
           <Route path="/verify-email" element={<VerifyEmail />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} />

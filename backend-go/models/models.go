@@ -10,7 +10,7 @@ import (
 type User struct {
 	ID                     uint      `json:"id" gorm:"primaryKey"`
 	Email                  string    `json:"email" gorm:"uniqueIndex;not null"`
-	PasswordHash           string    `json:"-" gorm:"not null"`
+	PasswordHash           string    `json:"-"` // Optional for OAuth users
 	FirstName              string    `json:"firstName" gorm:"not null"`
 	LastName               string    `json:"lastName" gorm:"not null"`
 	IsAdmin                bool      `json:"isAdmin" gorm:"default:false"`
@@ -19,8 +19,14 @@ type User struct {
 	TokenExpiresAt         *time.Time `json:"-"`
 	PasswordResetToken     string    `json:"-" gorm:"index"`
 	PasswordResetExpiresAt *time.Time `json:"-"`
-	CreatedAt              time.Time `json:"createdAt"`
-	UpdatedAt              time.Time `json:"updatedAt"`
+	
+	// OAuth fields
+	GoogleID       string    `json:"-" gorm:"index"` // Google OAuth user ID
+	AuthProvider   string    `json:"authProvider" gorm:"default:'local'"` // 'local', 'google'
+	ProfilePicture string    `json:"profilePicture,omitempty"` // OAuth profile picture URL
+	
+	CreatedAt      time.Time `json:"createdAt"`
+	UpdatedAt      time.Time `json:"updatedAt"`
 
 	// Relationships
 	Children    []Child      `json:"children,omitempty" gorm:"foreignKey:OwnerID"`
@@ -188,6 +194,16 @@ type BookInfoResponse struct {
 type InviteUserRequest struct {
 	Email          string `json:"email" binding:"required,email"`
 	PermissionType string `json:"permissionType" binding:"required,oneof=VIEW EDIT"`
+}
+
+type ChildPermission struct {
+	ChildID        uint   `json:"childId" binding:"required"`
+	PermissionType string `json:"permissionType" binding:"required,oneof=VIEW EDIT"`
+}
+
+type BulkInviteUserRequest struct {
+	Email    string            `json:"email" binding:"required,email"`
+	Children []ChildPermission `json:"children" binding:"required,min=1"`
 }
 
 type ForgotPasswordRequest struct {
