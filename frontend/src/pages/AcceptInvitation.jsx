@@ -94,8 +94,9 @@ export default function AcceptInvitation() {
   }
 
   const handleGoogleLogin = () => {
-    // Use the invitation token for Google OAuth
-    window.location.href = `/api/auth/google?invitation_token=${token}`
+    // Use the same base URL as the API
+    const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8080'
+    window.location.href = `${apiBaseUrl}/api/auth/google?invitation_token=${token}`
   }
 
   if (loading) {

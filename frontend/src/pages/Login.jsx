@@ -32,7 +32,9 @@ export default function Login() {
     const urlParams = new URLSearchParams(window.location.search)
     const invitationToken = urlParams.get('invitation_token')
     
-    let googleAuthUrl = '/api/auth/google'
+    // Use the same base URL as the API
+    const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8080'
+    let googleAuthUrl = `${apiBaseUrl}/api/auth/google`
     if (invitationToken) {
       googleAuthUrl += `?invitation_token=${invitationToken}`
     }
