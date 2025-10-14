@@ -1,5 +1,5 @@
-//go:build !serverless
-// +build !serverless
+//go:build server
+// +build server
 
 package main
 
