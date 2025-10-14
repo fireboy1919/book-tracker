@@ -72,7 +72,7 @@ export default function ChildCard({ child, onAddBook, onViewDetails, onEditChild
 
   return (
     <div className="bg-white overflow-hidden shadow rounded-lg relative">
-      <div className="p-5">
+      <div className="p-3 sm:p-5">
         <div className="flex items-center">
           {/* Action buttons in upper right corner */}
           <div className="absolute top-2 right-2 flex space-x-1">
@@ -81,39 +81,39 @@ export default function ChildCard({ child, onAddBook, onViewDetails, onEditChild
               className="p-1.5 rounded-full bg-white shadow-md hover:bg-blue-50 hover:text-blue-600 transition-colors border border-gray-200"
               title="Download monthly PDF report"
             >
-              <DocumentArrowDownIcon className="h-4 w-4 text-gray-600" />
+              <DocumentArrowDownIcon className="h-3 w-3 sm:h-4 sm:w-4 text-gray-600" />
             </button>
             <button
               onClick={() => onEditChild(child)}
               className="p-1.5 rounded-full bg-white shadow-md hover:bg-indigo-50 hover:text-indigo-600 transition-colors border border-gray-200"
               title="Edit child information"
             >
-              <PencilIcon className="h-4 w-4 text-gray-600" />
+              <PencilIcon className="h-3 w-3 sm:h-4 sm:w-4 text-gray-600" />
             </button>
           </div>
           
           <div className="flex-shrink-0">
-            <BookOpenIcon className="h-8 w-8 text-indigo-600" />
+            <BookOpenIcon className="h-6 w-6 sm:h-8 sm:w-8 text-indigo-600" />
           </div>
-          <div className="ml-5 w-0 flex-1">
+          <div className="ml-3 sm:ml-5 w-0 flex-1 pr-16 sm:pr-0">
             <dl>
               <dt className="text-sm font-medium text-gray-500 truncate">
                 {child.firstName} {child.lastName}
               </dt>
-              <dd className="text-lg font-medium text-gray-900">
+              <dd className="text-base sm:text-lg font-medium text-gray-900">
                 {child.grade}
               </dd>
             </dl>
           </div>
         </div>
       </div>
-      <div className="bg-gray-50 px-5 py-3">
+      <div className="bg-gray-50 px-3 sm:px-5 py-3">
         <div className="text-sm">
           <div className="font-medium text-gray-900 mb-2">
             {loading ? 'Loading...' : `${currentMonthBooks?.length || 0} books this month`}
           </div>
           {!loading && (
-            <div className="text-gray-600">
+            <div className="text-gray-600 text-xs sm:text-sm">
               {currentMonth ? 
                 currentMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) :
                 'Current Month'
@@ -121,17 +121,17 @@ export default function ChildCard({ child, onAddBook, onViewDetails, onEditChild
             </div>
           )}
         </div>
-        <div className="mt-3 flex space-x-2">
+        <div className="mt-3 flex flex-wrap gap-2">
           <button
             onClick={() => onAddBook(child)}
-            className="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-full text-indigo-700 bg-indigo-100 hover:bg-indigo-200"
+            className="inline-flex items-center px-2 sm:px-3 py-1 border border-transparent text-xs font-medium rounded-full text-indigo-700 bg-indigo-100 hover:bg-indigo-200"
           >
             <PlusIcon className="h-3 w-3 mr-1" />
             Add Book
           </button>
           <button
             onClick={() => onViewDetails(child)}
-            className="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-full text-gray-700 bg-gray-100 hover:bg-gray-200"
+            className="inline-flex items-center px-2 sm:px-3 py-1 border border-transparent text-xs font-medium rounded-full text-gray-700 bg-gray-100 hover:bg-gray-200"
           >
             <EyeIcon className="h-3 w-3 mr-1" />
             View All

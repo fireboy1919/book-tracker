@@ -255,78 +255,76 @@ export default function FullScreenChildView({ child, onClose, onAddBook }) {
           ) : (
             <div className="grid gap-4">
               {filteredBooks.map((book, index) => (
-                <div key={book.id} className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow">
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-start space-x-4 flex-1">
-                      {/* Book Cover */}
-                      {book.coverUrl && (
-                        <div className="flex-shrink-0">
-                          <img
-                            src={book.coverUrl}
-                            alt={`Cover of ${book.title}`}
-                            className="w-16 h-20 object-cover rounded-md border border-gray-200"
-                            onError={(e) => {
-                              e.target.style.display = 'none'
-                            }}
-                          />
-                        </div>
-                      )}
-                      
-                      {/* Book Details */}
-                      <div className="flex-1">
-                        <div className="flex items-center mb-2">
-                          <span className="bg-indigo-100 text-indigo-800 text-xs font-medium px-2 py-1 rounded-full mr-3">
-                            Book #{index + 1}
-                          </span>
-                          {book.isPartial && (
-                            <span className="bg-yellow-100 text-yellow-800 text-xs font-medium px-2 py-1 rounded-full mr-3">
-                              Partial
-                            </span>
-                          )}
-                          <span className="text-sm text-gray-500">
-                            Read on {formatDateRead(book.dateRead)}
-                          </span>
-                        </div>
-                        <h5 className="text-lg font-semibold text-gray-900 mb-1">
-                          {book.title}
-                        </h5>
-                        <p className="text-gray-600 mb-2">
-                          by {book.author}
-                        </p>
-                        {book.lexileLevel && (
-                          <p className="text-sm text-gray-500 mb-2">
-                            Lexile Level: {book.lexileLevel}
-                          </p>
-                        )}
-                        {book.isPartial && book.partialComment && (
-                          <div className="bg-yellow-50 border-l-4 border-yellow-200 p-2 mt-2">
-                            <p className="text-sm text-yellow-800">
-                              <span className="font-medium">Portion read:</span> {book.partialComment}
-                            </p>
-                          </div>
-                        )}
-                      </div>
+                <div key={book.id} className="bg-white border border-gray-200 rounded-lg p-3 sm:p-4 shadow-sm hover:shadow-md transition-shadow relative">
+                  {/* Action Buttons - Mobile: Top Right, Desktop: Right Side */}
+                  {canEdit && (
+                    <div className="absolute top-2 right-2 flex space-x-1 sm:space-x-2">
+                      <button
+                        onClick={() => handleEditBook(book)}
+                        className="p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-full transition-colors border border-gray-200 bg-white shadow-sm"
+                        title="Edit book"
+                      >
+                        <PencilIcon className="h-3 w-3 sm:h-4 sm:w-4" />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteBook(book)}
+                        className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors border border-gray-200 bg-white shadow-sm"
+                        title="Delete book"
+                      >
+                        <TrashIcon className="h-3 w-3 sm:h-4 sm:w-4" />
+                      </button>
                     </div>
-                    
-                    {/* Action Buttons */}
-                    {canEdit && (
-                      <div className="flex items-center space-x-2 ml-4">
-                        <button
-                          onClick={() => handleEditBook(book)}
-                          className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-gray-50 rounded-full transition-colors"
-                          title="Edit book"
-                        >
-                          <PencilIcon className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteBook(book)}
-                          className="p-2 text-gray-400 hover:text-red-600 hover:bg-gray-50 rounded-full transition-colors"
-                          title="Delete book"
-                        >
-                          <TrashIcon className="h-4 w-4" />
-                        </button>
+                  )}
+
+                  <div className="flex items-start space-x-3 pr-16 sm:pr-0">
+                    {/* Book Cover - Only show if URL exists and loads successfully */}
+                    {book.coverUrl && (
+                      <div className="flex-shrink-0 hidden sm:block">
+                        <img
+                          src={book.coverUrl}
+                          alt={`Cover of ${book.title}`}
+                          className="w-12 h-16 sm:w-16 sm:h-20 object-cover rounded-md border border-gray-200"
+                          onError={(e) => {
+                            e.target.closest('.flex-shrink-0').style.display = 'none'
+                          }}
+                        />
                       </div>
                     )}
+                    
+                    {/* Book Details */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex flex-wrap items-center gap-2 mb-2">
+                        <span className="bg-indigo-100 text-indigo-800 text-xs font-medium px-2 py-1 rounded-full">
+                          Book #{index + 1}
+                        </span>
+                        {book.isPartial && (
+                          <span className="bg-yellow-100 text-yellow-800 text-xs font-medium px-2 py-1 rounded-full">
+                            Partial
+                          </span>
+                        )}
+                        <span className="text-xs sm:text-sm text-gray-500">
+                          Read on {formatDateRead(book.dateRead)}
+                        </span>
+                      </div>
+                      <h5 className="text-base sm:text-lg font-semibold text-gray-900 mb-1 pr-2 break-words">
+                        {book.title}
+                      </h5>
+                      <p className="text-sm sm:text-base text-gray-600 mb-2 break-words">
+                        by {book.author}
+                      </p>
+                      {book.lexileLevel && (
+                        <p className="text-xs sm:text-sm text-gray-500 mb-2">
+                          Lexile Level: {book.lexileLevel}
+                        </p>
+                      )}
+                      {book.isPartial && book.partialComment && (
+                        <div className="bg-yellow-50 border-l-4 border-yellow-200 p-2 mt-2">
+                          <p className="text-xs sm:text-sm text-yellow-800">
+                            <span className="font-medium">Portion read:</span> {book.partialComment}
+                          </p>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               ))}
