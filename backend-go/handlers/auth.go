@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"strings"
 
 	"github.com/booktracker/backend-go/middleware"
 	"github.com/booktracker/backend-go/models"
