@@ -47,3 +47,4 @@ backend-go/test-results/
 
 # Test artifacts
 *.html.report
+.vercel

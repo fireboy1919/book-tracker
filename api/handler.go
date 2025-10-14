@@ -1,16 +1,16 @@
 //go:build serverless
 // +build serverless
 
-package handler
+package main
 
 import (
 	"net/http"
 	"sync"
 
-	"github.com/booktracker/backend-go/config"
-	"github.com/booktracker/backend-go/handlers"
-	"github.com/booktracker/backend-go/middleware"
-	"github.com/booktracker/backend-go/models"
+	"github.com/booktracker/api/config"
+	"github.com/booktracker/api/handlers"
+	"github.com/booktracker/api/middleware"
+	"github.com/booktracker/api/models"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )

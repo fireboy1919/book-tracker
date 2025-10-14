@@ -6,7 +6,7 @@ services:
     runtime: go
     region: oregon
     plan: free
-    rootDir: backend-go
+    rootDir: api
     startCommand: ./book-tracker-go
     buildCommand: go build -o book-tracker-go .
     envVars:

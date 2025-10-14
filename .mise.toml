@@ -18,7 +18,7 @@ run = [
     "echo '📦 Installing frontend dependencies...'",
     "cd frontend && npm install",
     "echo '📦 Installing backend dependencies...'", 
-    "cd backend-go && go mod download"
+    "cd api && go mod download"
 ]
 
 [tasks.dev]
@@ -36,7 +36,7 @@ depends = ["backend:build"]
 env = { DATABASE_URL = "file:./booktracker.db", JWT_SECRET = "dev-secret-key-change-in-production", PORT = "8080" }
 run = [
     "echo '🚀 Starting Go backend...'",
-    "cd backend-go && ./book-tracker-go"
+    "cd api && ./book-tracker-go"
 ]
 
 
@@ -44,7 +44,7 @@ run = [
 description = "Build backend application"
 run = [
     "echo '🔨 Building Go backend...'",
-    "cd backend-go && go build -o book-tracker-go ."
+    "cd api && go build -o book-tracker-go ."
 ]
 
 
@@ -53,7 +53,7 @@ run = [
 description = "Run backend tests"
 run = [
     "echo '🧪 Running Go backend tests...'",
-    "cd backend-go && go test ./... -v"
+    "cd api && go test ./... -v"
 ]
 
 
@@ -144,7 +144,7 @@ description = "Clean all build artifacts"
 run = [
     "echo '🧹 Cleaning build artifacts...'",
     "rm -rf frontend/node_modules frontend/dist",
-    "rm -f backend-go/book-tracker-go",
+    "rm -f api/book-tracker-go",
     "rm -f booktracker.db*",
     "echo '✅ Cleanup completed'"
 ]
@@ -168,7 +168,7 @@ run = [
 description = "Build and run Docker container"
 run = [
     "echo '🐳 Building Docker image...'",
-    "cd backend-go && docker build -t book-tracker .",
+    "cd api && docker build -t book-tracker .",
     "echo '🚀 Running Docker container...'",
     "docker run -p 8080:8080 -e JWT_SECRET=docker-secret book-tracker"
 ]
