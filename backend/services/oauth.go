@@ -33,8 +33,10 @@ func NewOAuthService() *OAuthService {
 		// Auto-detect based on the current environment
 		backendURL := os.Getenv("RENDER_EXTERNAL_URL") // Render.com provides this
 		if backendURL == "" {
-			backendURL := os.Getenv("VERCEL_URL") // Vercel provides this
-			if (backendURL == "") {
+			vercelURL := os.Getenv("NEXT_PUBLIC_VERCEL_PROJECT_PRODUCTION_URL") // Vercel provides this
+			if vercelURL != "" {
+				backendURL = "https://" + vercelURL
+			} else {
 				// Local development fallback
 				backendURL = "http://localhost:8080"
 			}
