@@ -5,11 +5,11 @@
   "installCommand": "cd frontend && npm install",
   "rewrites": [
     {
-      "source": "^/api/(.*)$",
+      "source": "/api/(.*)",
       "destination": "/api/handler"
     },
     {
-      "source": "^/health$",
+      "source": "/health",
       "destination": "/api/handler"
     }
   ]
