@@ -33,8 +33,11 @@ func NewOAuthService() *OAuthService {
 		// Auto-detect based on the current environment
 		backendURL := os.Getenv("RENDER_EXTERNAL_URL") // Render.com provides this
 		if backendURL == "" {
-			// Local development fallback
-			backendURL = "http://localhost:8080"
+			backendURL := os.Getenv("VERCEL_URL") // Vercel provides this
+			if (backendURL == "") {
+				// Local development fallback
+				backendURL = "http://localhost:8080"
+			}
 		}
 		redirectURL = backendURL + "/api/auth/google/callback"
 	}
