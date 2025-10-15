@@ -1,8 +1,12 @@
-package handler
+//go:build server
+// +build server
+
+package main
 
 import (
+	"log"
 	"net/http"
-	"sync"
+	"os"
 
 	"github.com/booktracker/backend/config"
 	"github.com/booktracker/backend/handlers"
@@ -12,23 +16,18 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-var (
-	router *gin.Engine
-	once   sync.Once
-)
-
-func initRouter() {
-	// Initialize database with optimized settings for serverless
+func main() {
+	// Initialize database
 	config.InitDatabase()
 	
 	// Auto-migrate the database
 	err := models.AutoMigrate(config.GetDB())
 	if err != nil {
-		panic("Failed to migrate database: " + err.Error())
+		log.Fatal("Failed to migrate database:", err)
 	}
 
 	// Setup Gin router
-	router = gin.Default()
+	router := gin.Default()
 
 	// Setup CORS
 	corsConfig := cors.DefaultConfig()
@@ -131,14 +130,17 @@ func initRouter() {
 				reports.GET("/child/:childId/monthly-pdf", handlers.GenerateMonthlyPDFReport)
 			}
 		}
-	}
-}
 
-// Handler is the Vercel serverless function entry point
-func Handler(w http.ResponseWriter, r *http.Request) {
-	// Initialize router only once using sync.Once
-	once.Do(initRouter)
-	
-	// Handle the request using Gin router
-	router.ServeHTTP(w, r)
+		// Test routes setup (build tag controlled)
+		setupTestRoutes(api)
+	}
+
+	// Get port from environment or default to 8080
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+
+	log.Printf("Starting server on port %s", port)
+	log.Fatal(router.Run(":" + port))
 }

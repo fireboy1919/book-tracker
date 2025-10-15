@@ -1,23 +1,16 @@
 {
-  "builds": [
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "cd frontend && npm run build",
+  "outputDirectory": "frontend/dist",
+  "installCommand": "cd frontend && npm install",
+  "rewrites": [
     {
-      "src": "frontend/package.json",
-      "use": "@vercel/static-build",
-      "config": {
-        "installCommand": "npm install",
-        "buildCommand": "npm run build",
-        "distDir": "dist"
-      }
+      "source": "^/api/(.*)$",
+      "destination": "/api/handler"
     },
     {
-      "src": "api/handler.go",
-      "use": "@vercel/go"
+      "source": "^/health$",
+      "destination": "/api/handler"
     }
-  ],
-  "routes": [
-    { "src": "/api/(.*)", "dest": "/api/handler" },
-    { "src": "/health", "dest": "/api/handler" },
-    { "handle": "filesystem" },
-    { "src": "/(.*)", "dest": "/index.html" }
   ]
 }

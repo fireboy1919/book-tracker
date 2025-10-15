@@ -6,9 +6,9 @@ services:
     runtime: go
     region: oregon
     plan: free
-    rootDir: api
+    rootDir: backend
     startCommand: ./book-tracker-go
-    buildCommand: go build -tags server -o book-tracker-go .
+    buildCommand: go build -tags server -o book-tracker-go ./cmd
     envVars:
       - key: PORT
         value: 10000
