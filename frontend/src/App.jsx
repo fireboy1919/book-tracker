@@ -46,7 +46,7 @@ function App() {
   return (
     <AuthProvider>
       <Router>
-        <BackendStatus />
+        {import.meta.env.VITE_API_URL && <BackendStatus />}
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
