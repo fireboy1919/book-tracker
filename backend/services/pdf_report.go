@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/booktracker/backend/config"
@@ -181,33 +182,49 @@ func createPDF(child *models.Child, books []*BookForPDF, year int, month int) (s
 	pageWidth, pageHeight := pdf.GetPageSize()
 	leftMargin, topMargin, rightMargin, bottomMargin := pdf.GetMargins()
 	usableWidth := pageWidth - leftMargin - rightMargin
-	usableHeight := pageHeight - topMargin - bottomMargin - 25 // Reserve space for header
 
-	// Calculate layout: 4 columns, 8 rows = 32 books per page
-	cols := 4
-	rows := 8
-	cellWidth := usableWidth / float64(cols)
-	cellHeight := usableHeight / float64(rows)
-
-	// Draw books in grid
-	for i, book := range books {
-		if i > 0 && i%32 == 0 {
-			// Add new page every 32 books
+	// Calculate layout for 4-column display with dynamic row heights
+	columnsPerRow := 4
+	columnSpacing := 3.0 // Reduced spacing for more column width
+	columnWidth := (usableWidth - (columnSpacing * float64(columnsPerRow-1))) / float64(columnsPerRow)
+	
+	// Start drawing books
+	currentY := topMargin + 25 // Start after header
+	
+	// Process books in groups of 4 (one row at a time)
+	for i := 0; i < len(books); i += columnsPerRow {
+		// Get books for this row (up to 4)
+		rowBooks := books[i:]
+		if len(rowBooks) > columnsPerRow {
+			rowBooks = rowBooks[:columnsPerRow]
+		}
+		
+		// Calculate the maximum height needed for this entire row
+		maxRowHeight := 30.0 // minimum height
+		for _, book := range rowBooks {
+			bookHeight := calculateRowHeight(pdf, book, columnWidth)
+			if bookHeight > maxRowHeight {
+				maxRowHeight = bookHeight
+			}
+		}
+		
+		// Check if we need a new page
+		if currentY + maxRowHeight > pageHeight - bottomMargin - 30 {
 			pdf.AddPage()
 			pdf.SetFont("Arial", "B", 16)
 			pdf.Cell(0, 10, header)
 			pdf.Ln(15)
+			currentY = topMargin + 25
 		}
-
-		// Calculate position
-		bookIndex := i % 32
-		col := bookIndex % cols
-		row := bookIndex / cols
-
-		x := leftMargin + float64(col)*cellWidth
-		y := topMargin + 25 + float64(row)*cellHeight // 25 for header space
-
-		drawBookCell(pdf, book, x, y, cellWidth, cellHeight)
+		
+		// Draw all books in this row using the same height
+		for j, book := range rowBooks {
+			columnX := leftMargin + float64(j)*(columnWidth+columnSpacing)
+			drawBookColumn(pdf, book, columnX, currentY, columnWidth, maxRowHeight)
+		}
+		
+		// Move to next row
+		currentY += maxRowHeight + 2 // Add small spacing between rows
 	}
 
 	// Save PDF
@@ -223,74 +240,109 @@ func createPDF(child *models.Child, books []*BookForPDF, year int, month int) (s
 	return pdfPath, nil
 }
 
-// drawBookCell draws a single book in the PDF grid
-func drawBookCell(pdf *gofpdf.Fpdf, book *BookForPDF, x, y, width, height float64) {
-	// Set position
-	pdf.SetXY(x, y)
+// calculateRowHeight determines the height needed for a book entry based on text wrapping
+func calculateRowHeight(pdf *gofpdf.Fpdf, book *BookForPDF, columnWidth float64) float64 {
+	// Minimum height for cover image area
+	minHeight := 30.0
 	
-	// Draw border
-	pdf.SetDrawColor(200, 200, 200)
+	// Calculate text area width (subtract cover area and margins)
+	hasImage := book.CoverImagePath != "" && fileExists(book.CoverImagePath)
+	var textWidth float64
+	if hasImage {
+		textWidth = columnWidth - 20.0 - 4.0 // 20mm cover + 4mm margins
+	} else {
+		textWidth = columnWidth - 4.0 // Just margins
+	}
+	
+	// Calculate height needed for title text (most likely to wrap)
+	pdf.SetFont("Arial", "B", 10) // Slightly smaller font for columns
+	titleLines := wrapText(pdf, book.Title, textWidth)
+	titleHeight := float64(len(titleLines)) * 4.0
+	
+	// Calculate height needed for author text
+	pdf.SetFont("Arial", "", 9)
+	authorLines := wrapText(pdf, "by "+book.Author, textWidth)
+	authorHeight := float64(len(authorLines)) * 3.5
+	
+	// Total text height plus spacing
+	textHeight := 6.0 + titleHeight + authorHeight + 8.0 // date + title + author + details
+	
+	// Return the larger of minimum height or calculated text height
+	if textHeight > minHeight {
+		return textHeight
+	}
+	return minHeight
+}
+
+// drawBookColumn draws a single book in a column with proper text wrapping
+func drawBookColumn(pdf *gofpdf.Fpdf, book *BookForPDF, x, y, width, height float64) {
+	// Draw column border
+	pdf.SetDrawColor(220, 220, 220)
 	pdf.Rect(x, y, width, height, "D")
 	
-	// Image area (top 60% of cell)
-	imageHeight := height * 0.6
-	imageWidth := width * 0.8
-	imageX := x + (width-imageWidth)/2
-	imageY := y + 5
+	margin := 2.0
+	currentY := y + margin
 	
-	// Add cover image if available
-	if book.CoverImagePath != "" && fileExists(book.CoverImagePath) {
-		// Try to add image, but continue if it fails
-		pdf.ImageOptions(book.CoverImagePath, imageX, imageY, imageWidth, imageHeight, 
+	// Check if we have a cover image
+	hasImage := book.CoverImagePath != "" && fileExists(book.CoverImagePath)
+	
+	var textX, textWidth float64
+	
+	if hasImage {
+		// Cover image area (left side, smaller for column layout)
+		maxCoverWidth := 20.0
+		maxCoverHeight := 25.0
+		coverX := x + margin
+		coverY := currentY
+		
+		// Calculate actual image dimensions while maintaining aspect ratio
+		actualWidth, actualHeight := calculateImageDimensions(pdf, book.CoverImagePath, maxCoverWidth, maxCoverHeight)
+		
+		pdf.ImageOptions(book.CoverImagePath, coverX, coverY, actualWidth, actualHeight, 
 			false, gofpdf.ImageOptions{ImageType: "JPG", ReadDpi: false}, 0, "")
+		
+		// Text area (right side) - use maxCoverWidth for consistent text positioning
+		textX = coverX + maxCoverWidth + 2
+		textWidth = width - maxCoverWidth - margin*2 - 2
 	} else {
-		// Draw placeholder rectangle
-		pdf.SetFillColor(240, 240, 240)
-		pdf.Rect(imageX, imageY, imageWidth, imageHeight, "F")
-		pdf.SetXY(imageX, imageY+imageHeight/2-2)
-		pdf.SetFont("Arial", "", 8)
-		pdf.CellFormat(imageWidth, 4, "No Cover", "0", 0, "C", false, 0, "")
+		// No image - use full width for text
+		textX = x + margin
+		textWidth = width - margin*2
 	}
 	
-	// Text area (bottom 40% of cell)
-	textY := y + imageHeight + 10
-	
-	pdf.SetXY(x+2, textY)
-	pdf.SetFont("Arial", "B", 8)
-	
-	// Title (truncated to fit)
-	title := truncateString(book.Title, 25)
-	pdf.CellFormat(width-4, 3, title, "0", 1, "L", false, 0, "")
-	
-	// Author
-	pdf.SetX(x+2)
+	// Date and partial status
+	pdf.SetXY(textX, currentY)
 	pdf.SetFont("Arial", "", 7)
-	author := truncateString(book.Author, 30)
-	pdf.CellFormat(width-4, 3, author, "0", 1, "L", false, 0, "")
+	dateStr := book.DateRead.Format("Jan 2")
+	if book.IsPartial {
+		dateStr = "PARTIAL - " + dateStr
+	}
+	pdf.CellFormat(textWidth, 3, dateStr, "0", 1, "L", false, 0, "")
+	currentY += 4
 	
-	// Date read
-	pdf.SetX(x+2)
-	dateStr := book.DateRead.Format("1/2/2006")
-	pdf.CellFormat(width-4, 3, dateStr, "0", 1, "L", false, 0, "")
+	// Title with text wrapping
+	pdf.SetFont("Arial", "B", 10)
+	titleLines := wrapText(pdf, book.Title, textWidth)
+	for _, line := range titleLines {
+		pdf.SetXY(textX, currentY)
+		pdf.CellFormat(textWidth, 4, line, "0", 1, "L", false, 0, "")
+		currentY += 4
+	}
 	
-	// Lexile level (if available)
+	// Author with text wrapping
+	pdf.SetFont("Arial", "", 9)
+	authorText := "by " + book.Author
+	authorLines := wrapText(pdf, authorText, textWidth)
+	for _, line := range authorLines {
+		pdf.SetXY(textX, currentY)
+		pdf.CellFormat(textWidth, 3.5, line, "0", 1, "L", false, 0, "")
+		currentY += 3.5
+	}
+	
+	// Additional details (Lexile level if available)
 	if book.LexileLevel != "" {
-		pdf.SetX(x+2)
-		pdf.CellFormat(width-4, 3, "Lexile: "+book.LexileLevel, "0", 1, "L", false, 0, "")
-	}
-	
-	// ISBN (if available)
-	if book.ISBN != "" {
-		pdf.SetX(x+2)
-		isbn := truncateString(book.ISBN, 15)
-		pdf.CellFormat(width-4, 3, "ISBN: "+isbn, "0", 1, "L", false, 0, "")
-	}
-	
-	// Partial comment (if available)
-	if book.IsPartial && book.PartialComment != "" {
-		pdf.SetX(x+2)
-		comment := truncateString(book.PartialComment, 30)
-		pdf.CellFormat(width-4, 3, "Note: "+comment, "0", 1, "L", false, 0, "")
+		pdf.SetXY(textX, currentY)
+		pdf.CellFormat(textWidth, 3, "Lexile: "+book.LexileLevel, "0", 1, "L", false, 0, "")
 	}
 }
 
@@ -305,4 +357,99 @@ func truncateString(s string, maxLen int) string {
 		return s
 	}
 	return s[:maxLen-3] + "..."
+}
+
+// calculateImageDimensions calculates scaled image dimensions that fit within maxWidth x maxHeight while maintaining aspect ratio
+func calculateImageDimensions(pdf *gofpdf.Fpdf, imagePath string, maxWidth, maxHeight float64) (float64, float64) {
+	// Get image info from gofpdf
+	info := pdf.RegisterImageOptions(imagePath, gofpdf.ImageOptions{ImageType: "JPG", ReadDpi: false})
+	if info == nil {
+		// If we can't get image info, return default size
+		return maxWidth, maxHeight
+	}
+	
+	// Get original dimensions in points (gofpdf uses points internally)
+	originalWidth, originalHeight := info.Extent()
+	
+	if originalWidth <= 0 || originalHeight <= 0 {
+		return maxWidth, maxHeight
+	}
+	
+	// Convert to mm (gofpdf's default unit for this PDF)
+	// 1 point = 0.352778 mm
+	pointToMM := 0.352778
+	origWidthMM := originalWidth * pointToMM
+	origHeightMM := originalHeight * pointToMM
+	
+	// Calculate aspect ratio
+	aspectRatio := origWidthMM / origHeightMM
+	
+	// Scale to fit within max dimensions while maintaining aspect ratio
+	var scaledWidth, scaledHeight float64
+	
+	if aspectRatio > (maxWidth / maxHeight) {
+		// Image is wider relative to container - constrain by width
+		scaledWidth = maxWidth
+		scaledHeight = maxWidth / aspectRatio
+	} else {
+		// Image is taller relative to container - constrain by height
+		scaledHeight = maxHeight
+		scaledWidth = maxHeight * aspectRatio
+	}
+	
+	return scaledWidth, scaledHeight
+}
+
+// wrapText breaks text into lines that fit within the specified width
+func wrapText(pdf *gofpdf.Fpdf, text string, maxWidth float64) []string {
+	words := strings.Fields(text)
+	if len(words) == 0 {
+		return []string{""}
+	}
+	
+	var lines []string
+	currentLine := ""
+	
+	for _, word := range words {
+		testLine := currentLine
+		if testLine != "" {
+			testLine += " "
+		}
+		testLine += word
+		
+		// Check if this line fits
+		lineWidth := pdf.GetStringWidth(testLine)
+		if lineWidth <= maxWidth {
+			currentLine = testLine
+		} else {
+			// Line too long, save current line and start new one
+			if currentLine != "" {
+				lines = append(lines, currentLine)
+			}
+			currentLine = word
+			
+			// If even single word is too long, truncate it
+			if pdf.GetStringWidth(currentLine) > maxWidth {
+				// Try to fit as much as possible
+				for len(currentLine) > 0 {
+					if pdf.GetStringWidth(currentLine+"...") <= maxWidth {
+						currentLine += "..."
+						break
+					}
+					currentLine = currentLine[:len(currentLine)-1]
+				}
+			}
+		}
+	}
+	
+	// Add the last line
+	if currentLine != "" {
+		lines = append(lines, currentLine)
+	}
+	
+	if len(lines) == 0 {
+		return []string{""}
+	}
+	
+	return lines
 }

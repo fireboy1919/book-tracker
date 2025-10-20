@@ -182,3 +182,236 @@ func findISBNWithCover(originalData OpenLibraryResponse) (OpenLibraryResponse, s
 	// No ISBN with cover found
 	return OpenLibraryResponse{}, "", false
 }
+
+// OpenLibrarySearchResponse represents the search response from Open Library API
+type OpenLibrarySearchResponse struct {
+	NumFound int `json:"num_found"`
+	Start    int `json:"start"`
+	Docs     []struct {
+		Key               string   `json:"key"`
+		Title             string   `json:"title"`
+		AuthorName        []string `json:"author_name"`
+		FirstPublishYear  int      `json:"first_publish_year"`
+		ISBN              []string `json:"isbn"`
+		CoverI            int      `json:"cover_i"`
+		HasFulltext       bool     `json:"has_fulltext"`
+		PublishYear       []int    `json:"publish_year"`
+		AuthorKey         []string `json:"author_key"`
+		Subject           []string `json:"subject"`
+		Publisher         []string `json:"publisher"`
+		Language          []string `json:"language"`
+	} `json:"docs"`
+}
+
+// BookSearchRequest represents a request to search for books
+type BookSearchRequest struct {
+	Title  string `json:"title,omitempty"`
+	Author string `json:"author,omitempty"`
+	Query  string `json:"query,omitempty"`
+}
+
+// BookSearchResult represents a single book search result
+type BookSearchResult struct {
+	Title            string   `json:"title"`
+	Author           string   `json:"author"`
+	AuthorNames      []string `json:"authorNames"`
+	FirstPublishYear int      `json:"firstPublishYear"`
+	ISBN             string   `json:"isbn,omitempty"`
+	CoverURL         string   `json:"coverUrl,omitempty"`
+	OpenLibraryKey   string   `json:"openLibraryKey"`
+}
+
+// BookSearchResponse represents the response from book search
+type BookSearchResponse struct {
+	Results   []BookSearchResult `json:"results"`
+	Total     int               `json:"total"`
+	Page      int               `json:"page"`
+	PerPage   int               `json:"perPage"`
+}
+
+// SearchBooks handles searching for books by title and/or author
+func SearchBooks(c *gin.Context) {
+	var req BookSearchRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, models.ErrorResponse{
+			Message: "Invalid request data: " + err.Error(),
+		})
+		return
+	}
+
+	// Validate that at least one search parameter is provided
+	if req.Title == "" && req.Author == "" && req.Query == "" {
+		c.JSON(http.StatusBadRequest, models.ErrorResponse{
+			Message: "At least one of title, author, or query must be provided",
+		})
+		return
+	}
+
+	// Build search URL
+	url := "https://openlibrary.org/search.json?"
+	params := []string{}
+	
+	if req.Query != "" {
+		params = append(params, fmt.Sprintf("q=%s", strings.ReplaceAll(req.Query, " ", "+")))
+	} else {
+		if req.Title != "" {
+			params = append(params, fmt.Sprintf("title=%s", strings.ReplaceAll(req.Title, " ", "+")))
+		}
+		if req.Author != "" {
+			params = append(params, fmt.Sprintf("author=%s", strings.ReplaceAll(req.Author, " ", "+")))
+		}
+	}
+	
+	// Add pagination and limit
+	params = append(params, "limit=20")
+	url += strings.Join(params, "&")
+
+	// Make API request
+	resp, err := http.Get(url)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
+			Message: "Failed to search books: " + err.Error(),
+		})
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
+			Message: "Open Library API returned an error",
+		})
+		return
+	}
+
+	var searchResponse OpenLibrarySearchResponse
+	if err := json.NewDecoder(resp.Body).Decode(&searchResponse); err != nil {
+		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
+			Message: "Failed to parse search response: " + err.Error(),
+		})
+		return
+	}
+
+	// Convert to our response format
+	results := make([]BookSearchResult, 0, len(searchResponse.Docs))
+	for _, doc := range searchResponse.Docs {
+		// Get primary author
+		author := ""
+		if len(doc.AuthorName) > 0 {
+			author = doc.AuthorName[0]
+		}
+
+		// Get primary ISBN
+		isbn := ""
+		if len(doc.ISBN) > 0 {
+			// Prefer ISBN-13, then ISBN-10
+			for _, isbnCandidate := range doc.ISBN {
+				cleanISBN := strings.ReplaceAll(strings.ReplaceAll(isbnCandidate, "-", ""), " ", "")
+				if len(cleanISBN) == 13 && (strings.HasPrefix(cleanISBN, "978") || strings.HasPrefix(cleanISBN, "979")) {
+					isbn = cleanISBN
+					break
+				} else if len(cleanISBN) == 10 && isbn == "" {
+					isbn = cleanISBN
+				}
+			}
+		}
+
+		// Generate cover URL
+		coverURL := ""
+		if doc.CoverI > 0 {
+			coverURL = fmt.Sprintf("https://covers.openlibrary.org/b/id/%d-M.jpg", doc.CoverI)
+		}
+
+		result := BookSearchResult{
+			Title:            doc.Title,
+			Author:           author,
+			AuthorNames:      doc.AuthorName,
+			FirstPublishYear: doc.FirstPublishYear,
+			ISBN:             isbn,
+			CoverURL:         coverURL,
+			OpenLibraryKey:   doc.Key,
+		}
+
+		results = append(results, result)
+	}
+
+	response := BookSearchResponse{
+		Results: results,
+		Total:   searchResponse.NumFound,
+		Page:    1,
+		PerPage: 20,
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
+// CreateBookFromSearchRequest represents a request to create a SharedBook from search result
+type CreateBookFromSearchRequest struct {
+	Title            string `json:"title" binding:"required"`
+	Author           string `json:"author" binding:"required"`
+	ISBN             string `json:"isbn,omitempty"`
+	CoverURL         string `json:"coverUrl,omitempty"`
+	FirstPublishYear int    `json:"firstPublishYear,omitempty"`
+	OpenLibraryKey   string `json:"openLibraryKey,omitempty"`
+}
+
+// CreateBookFromSearch creates a SharedBook from search result and returns BookInfoResponse
+func CreateBookFromSearch(c *gin.Context) {
+	var req CreateBookFromSearchRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, models.ErrorResponse{
+			Message: "Invalid request data: " + err.Error(),
+		})
+		return
+	}
+
+	// Check if this book already exists in our database
+	var existingSharedBook models.SharedBook
+	var sharedBookID *uint
+
+	// First try to find by ISBN if provided
+	if req.ISBN != "" {
+		if err := services.GetDB().Where("isbn = ?", req.ISBN).First(&existingSharedBook).Error; err == nil {
+			sharedBookID = &existingSharedBook.ID
+		}
+	}
+
+	// If not found by ISBN, try to find by title and author
+	if sharedBookID == nil {
+		if err := services.GetDB().Where("title = ? AND author = ?", req.Title, req.Author).First(&existingSharedBook).Error; err == nil {
+			sharedBookID = &existingSharedBook.ID
+		}
+	}
+
+	// If still not found, create a new SharedBook
+	if sharedBookID == nil {
+		newSharedBook := models.SharedBook{
+			ISBN:     req.ISBN,
+			Title:    req.Title,
+			Author:   req.Author,
+			CoverURL: req.CoverURL,
+			Source:   "openlibrary",
+		}
+
+		if err := services.GetDB().Create(&newSharedBook).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, models.ErrorResponse{
+				Message: "Failed to create shared book: " + err.Error(),
+			})
+			return
+		}
+
+		sharedBookID = &newSharedBook.ID
+		existingSharedBook = newSharedBook
+	}
+
+	// Return in BookInfoResponse format for compatibility with frontend
+	bookInfo := models.BookInfoResponse{
+		ISBN:         existingSharedBook.ISBN,
+		Title:        existingSharedBook.Title,
+		Author:       existingSharedBook.Author,
+		CoverURL:     existingSharedBook.CoverURL,
+		Found:        true,
+		SharedBookID: sharedBookID,
+	}
+
+	c.JSON(http.StatusOK, bookInfo)
+}

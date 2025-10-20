@@ -25,6 +25,11 @@ export default function AddBookModal({ child, onClose, onBookAdded }) {
   const [scannerError, setScannerError] = useState('')
   const scannerRef = useRef(null)
   const html5QrcodeScannerRef = useRef(null)
+  const [showSearch, setShowSearch] = useState(false)
+  const [searchResults, setSearchResults] = useState([])
+  const [searchLoading, setSearchLoading] = useState(false)
+  const [searchError, setSearchError] = useState('')
+  const [searchQuery, setSearchQuery] = useState({ title: '', author: '' })
 
   useEffect(() => {
     fetchExistingBooks()
@@ -263,6 +268,76 @@ export default function AddBookModal({ child, onClose, onBookAdded }) {
     setScannerError('')
   }
 
+  const handleSearchInputChange = (e) => {
+    const { name, value } = e.target
+    setSearchQuery(prev => ({
+      ...prev,
+      [name]: value
+    }))
+  }
+
+  const searchBooks = async () => {
+    if (!searchQuery.title.trim() && !searchQuery.author.trim()) {
+      setSearchError('Please enter a title or author to search')
+      return
+    }
+
+    setSearchLoading(true)
+    setSearchError('')
+    setSearchResults([])
+
+    try {
+      const response = await api.post('/books/search', {
+        title: searchQuery.title.trim(),
+        author: searchQuery.author.trim()
+      })
+      setSearchResults(response.data.results || [])
+      if (response.data.results.length === 0) {
+        setSearchError('No books found. Try different search terms.')
+      }
+    } catch (error) {
+      console.error('Search error:', error)
+      setSearchError(error.response?.data?.message || 'Failed to search books')
+    } finally {
+      setSearchLoading(false)
+    }
+  }
+
+  const selectSearchResult = async (result) => {
+    setSearchLoading(true)
+    try {
+      // Create SharedBook from search result
+      const response = await api.post('/books/create-from-search', {
+        title: result.title,
+        author: result.author,
+        isbn: result.isbn,
+        coverUrl: result.coverUrl,
+        firstPublishYear: result.firstPublishYear,
+        openLibraryKey: result.openLibraryKey
+      })
+
+      // Update form with selected book
+      setFormData(prev => ({
+        ...prev,
+        isbn: result.isbn || '',
+        title: result.title,
+        author: result.author,
+        coverUrl: result.coverUrl || '',
+        sharedBookId: response.data.sharedBookId
+      }))
+
+      // Close search
+      setShowSearch(false)
+      setSearchResults([])
+      setSearchQuery({ title: '', author: '' })
+    } catch (error) {
+      console.error('Error selecting search result:', error)
+      setSearchError(error.response?.data?.message || 'Failed to select book')
+    } finally {
+      setSearchLoading(false)
+    }
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     
@@ -353,14 +428,13 @@ export default function AddBookModal({ child, onClose, onBookAdded }) {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700">
-              ISBN
+              ISBN (optional)
             </label>
             <div className="flex space-x-2">
               <input
                 type="text"
                 name="isbn"
-                required
-                placeholder="978-0-123456-78-9"
+                placeholder="978-0-123456-78-9 (optional)"
                 className="mt-1 block flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                 value={formData.isbn}
                 onChange={handleChange}
@@ -388,6 +462,104 @@ export default function AddBookModal({ child, onClose, onBookAdded }) {
             )}
             {scannerError && (
               <div className="text-red-600 text-sm mt-1">{scannerError}</div>
+            )}
+          </div>
+
+          {/* Book Search Section */}
+          <div>
+            <div className="flex justify-between items-center mb-2">
+              <label className="block text-sm font-medium text-gray-700">
+                Search for Books
+              </label>
+              <button
+                type="button"
+                onClick={() => setShowSearch(!showSearch)}
+                className="text-sm text-indigo-600 hover:text-indigo-800"
+              >
+                {showSearch ? 'Hide Search' : 'Search Open Library'}
+              </button>
+            </div>
+
+            {showSearch && (
+              <div className="border rounded-lg p-4 bg-gray-50 space-y-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <input
+                    type="text"
+                    name="title"
+                    placeholder="Book title"
+                    className="px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                    value={searchQuery.title}
+                    onChange={handleSearchInputChange}
+                  />
+                  <input
+                    type="text"
+                    name="author"
+                    placeholder="Author name"
+                    className="px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                    value={searchQuery.author}
+                    onChange={handleSearchInputChange}
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={searchBooks}
+                  disabled={searchLoading}
+                  className="w-full px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {searchLoading ? 'Searching...' : 'Search Books'}
+                </button>
+                
+                {searchError && (
+                  <div className="text-red-600 text-sm">{searchError}</div>
+                )}
+
+                {/* Search Results */}
+                {searchResults.length > 0 && (
+                  <div className="space-y-2 max-h-60 overflow-y-auto">
+                    <h4 className="text-sm font-medium text-gray-700">Select a book:</h4>
+                    {searchResults.map((result, index) => (
+                      <div
+                        key={index}
+                        onClick={() => selectSearchResult(result)}
+                        className="flex items-start space-x-3 p-3 border rounded-lg cursor-pointer hover:bg-white hover:shadow-sm transition-colors"
+                      >
+                        <div className="flex-shrink-0 w-12 h-16 bg-gray-200 rounded border border-gray-300 flex items-center justify-center">
+                          {result.coverUrl ? (
+                            <img
+                              src={result.coverUrl}
+                              alt="Book cover"
+                              className="w-full h-full object-cover rounded"
+                              onError={(e) => {
+                                e.target.style.display = 'none'
+                              }}
+                            />
+                          ) : (
+                            <div className="text-xs text-gray-400 text-center p-1">No Cover</div>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h5 className="text-sm font-semibold text-gray-900 truncate">
+                            {result.title}
+                          </h5>
+                          <p className="text-xs text-gray-600 truncate">
+                            by {result.author}
+                          </p>
+                          {result.firstPublishYear && (
+                            <p className="text-xs text-gray-500">
+                              Published: {result.firstPublishYear}
+                            </p>
+                          )}
+                          {result.isbn && (
+                            <p className="text-xs text-gray-500">
+                              ISBN: {result.isbn}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             )}
           </div>
 

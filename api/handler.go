@@ -67,6 +67,7 @@ func initRouter() {
 			
 			// Google OAuth routes
 			auth.GET("/google", handlers.GoogleLogin)
+			auth.GET("/google/login", handlers.GoogleLogin)  // Add explicit /login route for frontend
 			auth.GET("/google/callback", handlers.GoogleCallback)
 		}
 
@@ -122,6 +123,12 @@ func initRouter() {
 				
 				// ISBN lookup route
 				books.POST("/lookup-isbn", handlers.LookupISBN)
+				
+				// Book search route
+				books.POST("/search", handlers.SearchBooks)
+				
+				// Create book from search result
+				books.POST("/create-from-search", handlers.CreateBookFromSearch)
 			}
 
 			// Reports routes

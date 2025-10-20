@@ -17,6 +17,17 @@ export function AuthProvider({ children }) {
     }
     
     setLoading(false)
+
+    // Listen for automatic logout events from API interceptor
+    const handleAutoLogout = () => {
+      setUser(null)
+    }
+
+    window.addEventListener('auth:logout', handleAutoLogout)
+    
+    return () => {
+      window.removeEventListener('auth:logout', handleAutoLogout)
+    }
   }, [])
 
   const login = async (email, password) => {

@@ -84,18 +84,29 @@ func GetBooksByChild(childID uint) ([]models.Book, error) {
 func GetBooksForUser(userID uint) ([]models.Book, error) {
 	var books []models.Book
 	
-	// Get books for children owned by user or children user has permissions for
-	result := config.DB.Preload("SharedBook").Raw(`
-		SELECT DISTINCT b.* FROM books b 
-		JOIN children c ON b.child_id = c.id 
-		LEFT JOIN permissions p ON c.id = p.child_id 
-		WHERE c.owner_id = ? OR p.user_id = ?
-		ORDER BY b.date_read DESC
-	`, userID, userID).Find(&books)
+	// First get books without preloading to avoid issues with bad SharedBook references
+	result := config.DB.Joins("JOIN children c ON books.child_id = c.id").
+		Joins("LEFT JOIN permissions p ON c.id = p.child_id").
+		Where("c.owner_id = ? OR p.user_id = ?", userID, userID).
+		Order("books.date_read DESC").
+		Find(&books)
 	
 	if result.Error != nil {
 		return nil, result.Error
 	}
+	
+	// Manually load SharedBook data for books that have shared_book_id
+	// This approach is more resilient to data integrity issues
+	for i := range books {
+		if books[i].SharedBookID != nil {
+			var sharedBook models.SharedBook
+			if err := config.DB.First(&sharedBook, *books[i].SharedBookID).Error; err == nil {
+				books[i].SharedBook = &sharedBook
+			}
+			// If error loading SharedBook, just leave it nil - book will still show as custom
+		}
+	}
+	
 	return books, nil
 }
 

@@ -121,6 +121,12 @@ func main() {
 				
 				// ISBN lookup route
 				books.POST("/lookup-isbn", handlers.LookupISBN)
+				
+				// Book search route
+				books.POST("/search", handlers.SearchBooks)
+				
+				// Create book from search result
+				books.POST("/create-from-search", handlers.CreateBookFromSearch)
 			}
 
 			// Reports routes
@@ -132,7 +138,7 @@ func main() {
 		}
 
 		// Test routes setup (build tag controlled)
-		setupTestRoutes(api)
+		// setupTestRoutes(api) // Temporarily commented out for development
 	}
 
 	// Get port from environment or default to 8080
