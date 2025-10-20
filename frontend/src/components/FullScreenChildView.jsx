@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { XMarkIcon, ChevronLeftIcon, ChevronRightIcon, PlusIcon, PencilIcon, TrashIcon, DocumentArrowDownIcon } from '@heroicons/react/24/outline'
+import { XMarkIcon, ChevronLeftIcon, ChevronRightIcon, PlusIcon, PencilIcon, TrashIcon, DocumentArrowDownIcon, BookOpenIcon } from '@heroicons/react/24/outline'
 import api from '../services/api'
 import EditBookModal from './EditBookModal'
 import EditChildModal from './EditChildModal'
