@@ -420,6 +420,14 @@ func CreateBookFromSearch(c *gin.Context) {
 	// First try to find by ISBN if provided
 	if req.ISBN != "" {
 		if err := services.GetDB().Where("isbn = ?", req.ISBN).First(&existingSharedBook).Error; err == nil {
+			// Update existing book with new information (especially cover URL)
+			existingSharedBook.Title = req.Title
+			existingSharedBook.Author = req.Author
+			if req.CoverURL != "" {
+				existingSharedBook.CoverURL = req.CoverURL
+			}
+			existingSharedBook.Source = "openlibrary"
+			services.GetDB().Save(&existingSharedBook)
 			sharedBookID = &existingSharedBook.ID
 		}
 	}
@@ -427,6 +435,15 @@ func CreateBookFromSearch(c *gin.Context) {
 	// If not found by ISBN, try to find by title and author
 	if sharedBookID == nil {
 		if err := services.GetDB().Where("title = ? AND author = ?", req.Title, req.Author).First(&existingSharedBook).Error; err == nil {
+			// Update existing book with new information (especially ISBN and cover URL)
+			if req.ISBN != "" {
+				existingSharedBook.ISBN = req.ISBN
+			}
+			if req.CoverURL != "" {
+				existingSharedBook.CoverURL = req.CoverURL
+			}
+			existingSharedBook.Source = "openlibrary"
+			services.GetDB().Save(&existingSharedBook)
 			sharedBookID = &existingSharedBook.ID
 		}
 	}
