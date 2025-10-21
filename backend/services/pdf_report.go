@@ -25,6 +25,7 @@ type BookForPDF struct {
 	IsPartial     bool
 	PartialComment string
 	CoverImagePath string // Local path to downloaded cover
+	ReadByParent   bool    // Whether book was read by parent vs child
 }
 
 // GenerateMonthlyBooksPDF creates a PDF report for a child's books in a specific month
@@ -95,6 +96,7 @@ func getBooksForMonth(childID uint, year int, month int) ([]*BookForPDF, error) 
 			IsPartial:      book.IsPartial,
 			PartialComment: book.PartialComment,
 			LexileLevel:    book.LexileLevel,
+			ReadByParent:   book.ReadByParent,
 		}
 
 		// Get book details from SharedBook or custom fields
@@ -176,7 +178,40 @@ func createPDF(child *models.Child, books []*BookForPDF, year int, month int) (s
 	monthName := time.Month(month).String()
 	header := fmt.Sprintf("%s %s - %s %d", child.FirstName, child.LastName, monthName, year)
 	pdf.Cell(0, 10, header)
-	pdf.Ln(15)
+	pdf.Ln(10)
+
+	// Calculate reading statistics
+	totalBooks := len(books)
+	booksReadByChild := 0
+	booksReadByParent := 0
+	
+	for _, book := range books {
+		if book.ReadByParent {
+			booksReadByParent++
+		} else {
+			booksReadByChild++
+		}
+	}
+
+	// Display reading statistics
+	pdf.SetFont("Arial", "", 12)
+	// Split the text to color the asterisk separately
+	beforeStar := fmt.Sprintf("Total books: %d  |  ", totalBooks)
+	afterStar := fmt.Sprintf(" Read by %s: %d  |  Read by other: %d", child.FirstName, booksReadByChild, booksReadByParent)
+	
+	// Print text before star
+	pdf.Cell(pdf.GetStringWidth(beforeStar), 8, beforeStar)
+	// Print star image
+	currentX, currentYPos := pdf.GetXY()
+	starSize := 3.0 // 3mm star size
+	pdf.ImageOptions("backend/assets/star.png", currentX, currentYPos+1, starSize, starSize,
+		false, gofpdf.ImageOptions{ImageType: "PNG", ReadDpi: false}, 0, "")
+	// Move cursor past the star
+	pdf.SetXY(currentX+starSize+0.5, currentYPos)
+	// Print remaining text
+	pdf.Cell(0, 8, afterStar)
+	pdf.Ln(1) // Add line break
+	pdf.Ln(14) // Add spacing
 
 	// Page dimensions
 	pageWidth, pageHeight := pdf.GetPageSize()
@@ -189,7 +224,7 @@ func createPDF(child *models.Child, books []*BookForPDF, year int, month int) (s
 	columnWidth := (usableWidth - (columnSpacing * float64(columnsPerRow-1))) / float64(columnsPerRow)
 	
 	// Start drawing books
-	currentY := topMargin + 25 // Start after header
+	currentY := topMargin + 40 // Start after header and statistics
 	
 	// Process books in groups of 4 (one row at a time)
 	for i := 0; i < len(books); i += columnsPerRow {
@@ -213,8 +248,28 @@ func createPDF(child *models.Child, books []*BookForPDF, year int, month int) (s
 			pdf.AddPage()
 			pdf.SetFont("Arial", "B", 16)
 			pdf.Cell(0, 10, header)
-			pdf.Ln(15)
-			currentY = topMargin + 25
+			pdf.Ln(10)
+			
+			// Add statistics on new page as well
+			pdf.SetFont("Arial", "", 12)
+			// Split the text to color the asterisk separately
+			beforeStar := fmt.Sprintf("Total books: %d  |  ", totalBooks)
+			afterStar := fmt.Sprintf(" Read by %s: %d  |  Read by other: %d", child.FirstName, booksReadByChild, booksReadByParent)
+			
+			// Print text before star
+			pdf.Cell(pdf.GetStringWidth(beforeStar), 8, beforeStar)
+			// Print star image
+			currentX, currentYPos := pdf.GetXY()
+			starSize := 3.0 // 3mm star size
+			pdf.ImageOptions("backend/assets/star.png", currentX, currentYPos+1, starSize, starSize,
+				false, gofpdf.ImageOptions{ImageType: "PNG", ReadDpi: false}, 0, "")
+			// Move cursor past the star
+			pdf.SetXY(currentX+starSize+0.5, currentYPos)
+			// Print remaining text
+			pdf.Cell(0, 8, afterStar)
+			pdf.Ln(1) // Add line break
+			pdf.Ln(14) // Add spacing
+			currentY = topMargin + 40
 		}
 		
 		// Draw all books in this row using the same height
@@ -310,14 +365,27 @@ func drawBookColumn(pdf *gofpdf.Fpdf, book *BookForPDF, x, y, width, height floa
 		textWidth = width - margin*2
 	}
 	
-	// Date and partial status
+	// Date and status indicators
 	pdf.SetXY(textX, currentY)
 	pdf.SetFont("Arial", "", 7)
 	dateStr := book.DateRead.Format("Jan 2")
 	if book.IsPartial {
 		dateStr = "PARTIAL - " + dateStr
 	}
-	pdf.CellFormat(textWidth, 3, dateStr, "0", 1, "L", false, 0, "")
+	
+	// Add star for child-read books on the right side
+	if book.ReadByParent {
+		pdf.CellFormat(textWidth, 3, dateStr, "0", 1, "L", false, 0, "")
+	} else {
+		// Calculate position for star on far right
+		starSize := 2.5 // Smaller star for individual books
+		starX := textX + textWidth - starSize - 1 // Position star near right edge
+		pdf.CellFormat(textWidth-starSize-1, 3, dateStr, "0", 0, "L", false, 0, "")
+		// Draw star image
+		pdf.ImageOptions("backend/assets/star.png", starX, currentY-0.5, starSize, starSize,
+			false, gofpdf.ImageOptions{ImageType: "PNG", ReadDpi: false}, 0, "")
+		pdf.Ln(3) // Move to next line
+	}
 	currentY += 4
 	
 	// Title with text wrapping

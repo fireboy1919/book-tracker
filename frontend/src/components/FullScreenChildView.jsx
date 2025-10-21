@@ -289,13 +289,11 @@ export default function FullScreenChildView({ child, onClose, onAddBook }) {
                           Partial
                         </span>
                       )}
-                      {book.readByParent && (
-                        <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2 py-1 rounded-full">
-                          Read by Parent
-                        </span>
-                      )}
-                      <span className="text-xs text-gray-500">
+                      <span className="text-xs text-gray-500 flex items-center gap-1">
                         {formatDateRead(book.dateRead)}
+                        {!book.readByParent && (
+                          <span className="text-yellow-500">⭐</span>
+                        )}
                       </span>
                     </div>
                     <h5 className="text-sm font-semibold text-gray-900 mb-1 truncate">

@@ -181,7 +181,7 @@ export default function EditBookModal({ book, onClose, onBookUpdated }) {
                 onChange={handleInputChange}
                 className="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
               />
-              <span className="ml-2 text-sm text-gray-700">This book was read by the parent (not the child)</span>
+              <span className="ml-2 text-sm text-gray-700">This book was read by other (not the child)</span>
             </label>
           </div>
 

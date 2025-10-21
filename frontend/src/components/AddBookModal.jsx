@@ -803,7 +803,7 @@ export default function AddBookModal({ child, onClose, onBookAdded }) {
               className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
             />
             <label htmlFor="readByParent" className="ml-2 block text-sm text-gray-900">
-              This book was read by the parent (not the child)
+              This book was read by other (not the child)
             </label>
           </div>
 
