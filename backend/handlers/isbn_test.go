@@ -224,6 +224,59 @@ func (suite *ISBNTestSuite) TestLookupISBN_MalformedJSON() {
 	assert.Contains(suite.T(), response.Message, "Invalid request data")
 }
 
+func (suite *ISBNTestSuite) TestLookupISBN_DuplicateISBN() {
+	// Test that looking up the same ISBN twice doesn't cause unique constraint error
+	// This test ensures the upsert pattern works correctly
+	
+	reqBody := models.ISBNLookupRequest{
+		ISBN: "9780743273565", // The Great Gatsby
+	}
+
+	jsonBody, err := json.Marshal(reqBody)
+	assert.NoError(suite.T(), err)
+
+	// First lookup - should create SharedBook entry
+	req1, err := http.NewRequest("POST", "/books/lookup-isbn", bytes.NewBuffer(jsonBody))
+	assert.NoError(suite.T(), err)
+	req1.Header.Set("Content-Type", "application/json")
+
+	w1 := httptest.NewRecorder()
+	suite.router.ServeHTTP(w1, req1)
+
+	assert.Equal(suite.T(), http.StatusOK, w1.Code)
+
+	var response1 models.BookInfoResponse
+	err = json.Unmarshal(w1.Body.Bytes(), &response1)
+	assert.NoError(suite.T(), err)
+	assert.True(suite.T(), response1.Found)
+	assert.NotNil(suite.T(), response1.SharedBookID)
+
+	// Second lookup - should NOT fail with unique constraint error
+	// Instead, it should update the existing SharedBook entry or return the existing one
+	req2, err := http.NewRequest("POST", "/books/lookup-isbn", bytes.NewBuffer(jsonBody))
+	assert.NoError(suite.T(), err)
+	req2.Header.Set("Content-Type", "application/json")
+
+	w2 := httptest.NewRecorder()
+	suite.router.ServeHTTP(w2, req2)
+
+	assert.Equal(suite.T(), http.StatusOK, w2.Code)
+
+	var response2 models.BookInfoResponse
+	err = json.Unmarshal(w2.Body.Bytes(), &response2)
+	assert.NoError(suite.T(), err)
+	assert.True(suite.T(), response2.Found)
+	assert.NotNil(suite.T(), response2.SharedBookID)
+
+	// Both responses should have the same SharedBookID since it's the same book
+	assert.Equal(suite.T(), response1.SharedBookID, response2.SharedBookID)
+	
+	// Verify the book information is consistent
+	assert.Equal(suite.T(), response1.ISBN, response2.ISBN)
+	assert.Equal(suite.T(), response1.Title, response2.Title)
+	assert.Equal(suite.T(), response1.Author, response2.Author)
+}
+
 func TestISBNTestSuite(t *testing.T) {
 	suite.Run(t, new(ISBNTestSuite))
 }

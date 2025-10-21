@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { XMarkIcon, CameraIcon } from '@heroicons/react/24/outline'
+import { XMarkIcon, CameraIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline'
 import { Html5QrcodeScanner, Html5QrcodeScanType } from 'html5-qrcode'
 import api from '../services/api'
 
@@ -25,7 +25,8 @@ export default function AddBookModal({ child, onClose, onBookAdded }) {
   const [scannerError, setScannerError] = useState('')
   const scannerRef = useRef(null)
   const html5QrcodeScannerRef = useRef(null)
-  const [showSearch, setShowSearch] = useState(false)
+  const [showSearch, setShowSearch] = useState(true)
+  const [showCustomForm, setShowCustomForm] = useState(false)
   const [searchResults, setSearchResults] = useState([])
   const [searchLoading, setSearchLoading] = useState(false)
   const [searchError, setSearchError] = useState('')
@@ -467,100 +468,134 @@ export default function AddBookModal({ child, onClose, onBookAdded }) {
 
           {/* Book Search Section */}
           <div>
-            <div className="flex justify-between items-center mb-2">
-              <label className="block text-sm font-medium text-gray-700">
-                Search for Books
-              </label>
-              <button
-                type="button"
-                onClick={() => setShowSearch(!showSearch)}
-                className="text-sm text-indigo-600 hover:text-indigo-800"
-              >
-                {showSearch ? 'Hide Search' : 'Search Open Library'}
-              </button>
-            </div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Search for Books
+            </label>
 
-            {showSearch && (
-              <div className="border rounded-lg p-4 bg-gray-50 space-y-3">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <input
-                    type="text"
-                    name="title"
-                    placeholder="Book title"
-                    className="px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                    value={searchQuery.title}
-                    onChange={handleSearchInputChange}
-                  />
-                  <input
-                    type="text"
-                    name="author"
-                    placeholder="Author name"
-                    className="px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                    value={searchQuery.author}
-                    onChange={handleSearchInputChange}
-                  />
-                </div>
+            <div className="border rounded-lg p-4 bg-gray-50 space-y-3">
+              <div className="flex space-x-2">
+                <input
+                  type="text"
+                  name="title"
+                  placeholder="Book title"
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                  value={searchQuery.title}
+                  onChange={handleSearchInputChange}
+                />
+                <input
+                  type="text"
+                  name="author"
+                  placeholder="Author name"
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                  value={searchQuery.author}
+                  onChange={handleSearchInputChange}
+                />
                 <button
                   type="button"
                   onClick={searchBooks}
                   disabled={searchLoading}
-                  className="w-full px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-3 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="Search for books"
                 >
-                  {searchLoading ? 'Searching...' : 'Search Books'}
+                  <MagnifyingGlassIcon className="h-4 w-4" />
                 </button>
+              </div>
                 
                 {searchError && (
                   <div className="text-red-600 text-sm">{searchError}</div>
                 )}
 
-                {/* Search Results */}
-                {searchResults.length > 0 && (
-                  <div className="space-y-2 max-h-60 overflow-y-auto">
-                    <h4 className="text-sm font-medium text-gray-700">Select a book:</h4>
-                    {searchResults.map((result, index) => (
-                      <div
-                        key={index}
-                        onClick={() => selectSearchResult(result)}
-                        className="flex items-start space-x-3 p-3 border rounded-lg cursor-pointer hover:bg-white hover:shadow-sm transition-colors"
-                      >
-                        <div className="flex-shrink-0 w-12 h-16 bg-gray-200 rounded border border-gray-300 flex items-center justify-center">
-                          {result.coverUrl ? (
-                            <img
-                              src={result.coverUrl}
-                              alt="Book cover"
-                              className="w-full h-full object-cover rounded"
-                              onError={(e) => {
-                                e.target.style.display = 'none'
-                              }}
-                            />
-                          ) : (
-                            <div className="text-xs text-gray-400 text-center p-1">No Cover</div>
-                          )}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <h5 className="text-sm font-semibold text-gray-900 truncate">
-                            {result.title}
-                          </h5>
-                          <p className="text-xs text-gray-600 truncate">
-                            by {result.author}
-                          </p>
-                          {result.firstPublishYear && (
-                            <p className="text-xs text-gray-500">
-                              Published: {result.firstPublishYear}
-                            </p>
-                          )}
-                          {result.isbn && (
-                            <p className="text-xs text-gray-500">
-                              ISBN: {result.isbn}
-                            </p>
-                          )}
-                        </div>
+              {/* Search Results */}
+              {searchResults.length > 0 && (
+                <div className="space-y-2 max-h-60 overflow-y-auto">
+                  <h4 className="text-sm font-medium text-gray-700">Select a book:</h4>
+                  {searchResults.map((result, index) => (
+                    <div
+                      key={index}
+                      onClick={() => selectSearchResult(result)}
+                      className="flex items-start space-x-3 p-3 border rounded-lg cursor-pointer hover:bg-white hover:shadow-sm transition-colors"
+                    >
+                      <div className="flex-shrink-0 w-12 h-16 bg-gray-200 rounded border border-gray-300 flex items-center justify-center">
+                        {result.coverUrl ? (
+                          <img
+                            src={result.coverUrl}
+                            alt="Book cover"
+                            className="w-full h-full object-cover rounded"
+                            onError={(e) => {
+                              e.target.style.display = 'none'
+                            }}
+                          />
+                        ) : (
+                          <div className="text-xs text-gray-400 text-center p-1">No Cover</div>
+                        )}
                       </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
+                      <div className="flex-1 min-w-0">
+                        <h5 className="text-sm font-semibold text-gray-900 truncate">
+                          {result.title}
+                        </h5>
+                        <p className="text-xs text-gray-600 truncate">
+                          by {result.author}
+                        </p>
+                        {result.firstPublishYear && (
+                          <p className="text-xs text-gray-500">
+                            Published: {result.firstPublishYear}
+                          </p>
+                        )}
+                        {result.isbn && (
+                          <p className="text-xs text-gray-500">
+                            ISBN: {result.isbn}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                  
+                  {/* Add Custom Book Button */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowCustomForm(true)
+                      setShowSearch(false)
+                      // Pre-fill form with search criteria
+                      setFormData(prev => ({
+                        ...prev,
+                        title: searchQuery.title,
+                        author: searchQuery.author,
+                        isbn: '',
+                        sharedBookId: null
+                      }))
+                    }}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+                  >
+                    Add Custom Book Instead
+                  </button>
+                </div>
+              )}
+              
+              {/* Show Add Custom button if no search results but have search criteria */}
+              {searchResults.length === 0 && (searchQuery.title || searchQuery.author) && !searchLoading && (
+                <div className="pt-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowCustomForm(true)
+                      setShowSearch(false)
+                      // Pre-fill form with search criteria
+                      setFormData(prev => ({
+                        ...prev,
+                        title: searchQuery.title,
+                        author: searchQuery.author,
+                        isbn: '',
+                        sharedBookId: null
+                      }))
+                    }}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+                  >
+                    Add "{searchQuery.title}" by {searchQuery.author} as Custom Book
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Barcode Scanner */}
@@ -587,94 +622,115 @@ export default function AddBookModal({ child, onClose, onBookAdded }) {
             </div>
           )}
 
-          {/* Book Display Section */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Book Information
-            </label>
-            <div 
-              className={`border-2 rounded-lg p-4 transition-colors ${
-                formData.title || formData.author ? 'border-indigo-200 bg-indigo-50' : 'border-gray-300 bg-gray-50'
-              }`}
-              onClick={() => {
-                // Allow editing if no ISBN lookup data or if it's a custom book
-                if (!formData.isbn || (!formData.title && !formData.author)) {
-                  document.querySelector('input[name="title"]')?.focus()
-                }
-              }}
-              style={{ cursor: (!formData.isbn || (!formData.title && !formData.author)) ? 'pointer' : 'default' }}
-            >
-              <div className="flex items-start space-x-4">
-                {/* Book Cover Placeholder */}
-                <div className="flex-shrink-0 w-16 h-20 bg-gray-200 rounded border border-gray-300 flex items-center justify-center">
-                  {formData.coverUrl ? (
-                    <img
-                      src={formData.coverUrl}
-                      alt="Book cover"
-                      className="w-full h-full object-cover rounded"
-                      onError={(e) => {
-                        e.target.style.display = 'none'
-                      }}
-                    />
-                  ) : (
-                    <div className="text-xs text-gray-400 text-center p-1">No Cover</div>
-                  )}
-                </div>
-                
-                {/* Book Details */}
-                <div className="flex-1 min-w-0">
-                  {formData.title || formData.author ? (
-                    <>
-                      <h4 className="text-base font-semibold text-gray-900 truncate">
-                        {formData.title || 'Untitled'}
-                      </h4>
-                      <p className="text-sm text-gray-600 truncate">
-                        by {formData.author || 'Unknown Author'}
+          {/* Custom Book Form */}
+          {showCustomForm && (
+            <div>
+              <div className="flex justify-between items-center mb-2">
+                <label className="block text-sm font-medium text-gray-700">
+                  Custom Book Information
+                </label>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowCustomForm(false)
+                    setShowSearch(true)
+                    // Clear custom form data
+                    setFormData(prev => ({
+                      ...prev,
+                      title: '',
+                      author: '',
+                      isbn: '',
+                      sharedBookId: null
+                    }))
+                  }}
+                  className="text-sm text-indigo-600 hover:text-indigo-800"
+                >
+                  Back to Search
+                </button>
+              </div>
+              <div className="border rounded-lg p-4 bg-gray-50 space-y-3">
+                <input
+                  type="text"
+                  name="title"
+                  placeholder="Enter book title"
+                  className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                  value={formData.title}
+                  onChange={handleChange}
+                  required
+                />
+                <input
+                  type="text"
+                  name="author"
+                  placeholder="Enter author name"
+                  className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                  value={formData.author}
+                  onChange={handleChange}
+                  required
+                />
+                <input
+                  type="text"
+                  name="isbn"
+                  placeholder="ISBN (optional)"
+                  className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                  value={formData.isbn}
+                  onChange={handleChange}
+                />
+              </div>
+            </div>
+          )}
+          
+          {/* Book Display Section - only show when book is selected */}
+          {(formData.title || formData.author) && !showCustomForm && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Selected Book
+              </label>
+              <div className={`border-2 rounded-lg p-4 transition-colors border-indigo-200 bg-indigo-50`}>
+                <div className="flex items-start space-x-4">
+                  {/* Book Cover Placeholder */}
+                  <div className="flex-shrink-0 w-16 h-20 bg-gray-200 rounded border border-gray-300 flex items-center justify-center">
+                    {formData.coverUrl ? (
+                      <img
+                        src={formData.coverUrl}
+                        alt="Book cover"
+                        className="w-full h-full object-cover rounded"
+                        onError={(e) => {
+                          e.target.style.display = 'none'
+                        }}
+                      />
+                    ) : (
+                      <div className="text-xs text-gray-400 text-center p-1">No Cover</div>
+                    )}
+                  </div>
+                  
+                  {/* Book Details */}
+                  <div className="flex-1 min-w-0">
+                    <h4 className="text-base font-semibold text-gray-900 truncate">
+                      {formData.title || 'Untitled'}
+                    </h4>
+                    <p className="text-sm text-gray-600 truncate">
+                      by {formData.author || 'Unknown Author'}
+                    </p>
+                    {formData.isbn && (
+                      <p className="text-xs text-gray-500 mt-1">
+                        {formData.isbn.startsWith('978') || formData.isbn.startsWith('979') ? 'ISBN-13: ' : 'ISBN-10: '}{formData.isbn}
                       </p>
-                      {formData.isbn && (
-                        <p className="text-xs text-gray-500 mt-1">
-                          {formData.isbn.startsWith('978') || formData.isbn.startsWith('979') ? 'ISBN-13: ' : 'ISBN-10: '}{formData.isbn}
-                        </p>
-                      )}
-                    </>
-                  ) : (
-                    <div className="text-gray-500">
-                      <p className="text-sm font-medium">Click to add book details</p>
-                      <p className="text-xs">Or use ISBN lookup above</p>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
               </div>
               
-              {/* Editable fields (hidden by default, shown when clicked or no data) */}
-              {(!formData.isbn || !formData.title || !formData.author) && (
-                <div className="mt-3 space-y-2 border-t pt-3">
-                  <input
-                    type="text"
-                    name="title"
-                    placeholder="Enter book title"
-                    className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                    value={formData.title}
-                    onChange={handleChange}
-                  />
-                  <input
-                    type="text"
-                    name="author"
-                    placeholder="Enter author name"
-                    className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                    value={formData.author}
-                    onChange={handleChange}
-                  />
-                </div>
+              {formData.sharedBookId ? (
+                <p className="text-xs text-gray-500 mt-1">
+                  This will be added as a shared book from our library.
+                </p>
+              ) : (
+                <p className="text-xs text-gray-500 mt-1">
+                  This will be added as a custom book.
+                </p>
               )}
             </div>
-            
-            {formData.isbn && formData.title && formData.author && (
-              <p className="text-xs text-gray-500 mt-1">
-                Book details populated from ISBN lookup. This will be a shared book.
-              </p>
-            )}
-          </div>
+          )}
 
           <div>
             <label className="block text-sm font-medium text-gray-700">

@@ -98,7 +98,7 @@ func LookupISBN(c *gin.Context) {
 		coverURL = bookData.Cover.Small
 	}
 
-	// Create new SharedBook entry since we didn't find it in database
+	// Create or update SharedBook entry (upsert pattern)
 	newSharedBook := models.SharedBook{
 		ISBN:     isbn,
 		Title:    bookData.Title,
@@ -106,9 +106,26 @@ func LookupISBN(c *gin.Context) {
 		CoverURL: coverURL,
 		Source:   "openlibrary",
 	}
+	
+	// Try to find existing book by ISBN first
+	var existingBook models.SharedBook
 	var sharedBookID *uint
-	if err := services.GetDB().Create(&newSharedBook).Error; err == nil {
-		sharedBookID = &newSharedBook.ID
+	if err := services.GetDB().Where("isbn = ?", isbn).First(&existingBook).Error; err == nil {
+		// Book exists, update it with new information
+		existingBook.Title = bookData.Title
+		existingBook.Author = author
+		existingBook.CoverURL = coverURL
+		existingBook.Source = "openlibrary"
+		
+		if err := services.GetDB().Save(&existingBook).Error; err == nil {
+			sharedBookID = &existingBook.ID
+			newSharedBook = existingBook
+		}
+	} else {
+		// Book doesn't exist, create new one
+		if err := services.GetDB().Create(&newSharedBook).Error; err == nil {
+			sharedBookID = &newSharedBook.ID
+		}
 	}
 
 	bookInfo := models.BookInfoResponse{
@@ -382,7 +399,7 @@ func CreateBookFromSearch(c *gin.Context) {
 		}
 	}
 
-	// If still not found, create a new SharedBook
+	// If still not found, create a new SharedBook (or update existing by ISBN)
 	if sharedBookID == nil {
 		newSharedBook := models.SharedBook{
 			ISBN:     req.ISBN,
@@ -392,15 +409,44 @@ func CreateBookFromSearch(c *gin.Context) {
 			Source:   "openlibrary",
 		}
 
-		if err := services.GetDB().Create(&newSharedBook).Error; err != nil {
-			c.JSON(http.StatusInternalServerError, models.ErrorResponse{
-				Message: "Failed to create shared book: " + err.Error(),
-			})
-			return
+		// Try one more time by ISBN only (in case we missed it due to different title/author)
+		if req.ISBN != "" {
+			if err := services.GetDB().Where("isbn = ?", req.ISBN).First(&existingSharedBook).Error; err == nil {
+				// Found by ISBN, update it
+				existingSharedBook.Title = req.Title
+				existingSharedBook.Author = req.Author
+				existingSharedBook.CoverURL = req.CoverURL
+				existingSharedBook.Source = "openlibrary"
+				
+				if err := services.GetDB().Save(&existingSharedBook).Error; err != nil {
+					c.JSON(http.StatusInternalServerError, models.ErrorResponse{
+						Message: "Failed to update shared book: " + err.Error(),
+					})
+					return
+				}
+				sharedBookID = &existingSharedBook.ID
+			} else {
+				// Create new book
+				if err := services.GetDB().Create(&newSharedBook).Error; err != nil {
+					c.JSON(http.StatusInternalServerError, models.ErrorResponse{
+						Message: "Failed to create shared book: " + err.Error(),
+					})
+					return
+				}
+				sharedBookID = &newSharedBook.ID
+				existingSharedBook = newSharedBook
+			}
+		} else {
+			// No ISBN, just create new book
+			if err := services.GetDB().Create(&newSharedBook).Error; err != nil {
+				c.JSON(http.StatusInternalServerError, models.ErrorResponse{
+					Message: "Failed to create shared book: " + err.Error(),
+				})
+				return
+			}
+			sharedBookID = &newSharedBook.ID
+			existingSharedBook = newSharedBook
 		}
-
-		sharedBookID = &newSharedBook.ID
-		existingSharedBook = newSharedBook
 	}
 
 	// Return in BookInfoResponse format for compatibility with frontend
