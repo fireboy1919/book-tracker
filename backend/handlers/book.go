@@ -518,6 +518,7 @@ func convertBooksToResponses(books []models.Book) []models.BookResponse {
 			LexileLevel:    book.LexileLevel,
 			IsPartial:      book.IsPartial,
 			PartialComment: book.PartialComment,
+			ReadByParent:   book.ReadByParent,
 			CreatedAt:      book.CreatedAt,
 		}
 		
@@ -553,6 +554,7 @@ func convertBookToResponse(book *models.Book) models.BookResponse {
 		LexileLevel:    book.LexileLevel,
 		IsPartial:      book.IsPartial,
 		PartialComment: book.PartialComment,
+		ReadByParent:   book.ReadByParent,
 		CreatedAt:      book.CreatedAt,
 	}
 	

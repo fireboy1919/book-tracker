@@ -40,6 +40,7 @@ func CreateBook(req models.CreateBookRequest) (*models.Book, error) {
 		LexileLevel:    req.LexileLevel,
 		IsPartial:      req.IsPartial,
 		PartialComment: req.PartialComment,
+		ReadByParent:   req.ReadByParent,
 	}
 	
 	// Set custom book fields if this is a custom book
@@ -121,11 +122,12 @@ func UpdateBook(id uint, req models.UpdateBookRequest) (*models.Book, error) {
 		return nil, result.Error
 	}
 
-	// Allow updating date read, lexile level, and partial info
+	// Allow updating date read, lexile level, partial info, and reader
 	book.DateRead = req.DateRead
 	book.LexileLevel = req.LexileLevel
 	book.IsPartial = req.IsPartial
 	book.PartialComment = req.PartialComment
+	book.ReadByParent = req.ReadByParent
 	
 	// If this is a custom book, allow updating the book details
 	if book.SharedBookID == nil {
@@ -230,6 +232,7 @@ func CreateCustomBook(req models.CreateCustomBookRequest) (*models.Book, error) 
 		LexileLevel:    req.LexileLevel,
 		IsPartial:      req.IsPartial,
 		PartialComment: req.PartialComment,
+		ReadByParent:   req.ReadByParent,
 	}
 
 	result := config.DB.Create(&book)

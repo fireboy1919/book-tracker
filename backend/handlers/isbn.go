@@ -329,7 +329,7 @@ func SearchBooks(c *gin.Context) {
 		isbnMap = batchFetchISBNs(workKeys)
 	}
 	
-	for i, doc := range searchResponse.Docs {
+	for _, doc := range searchResponse.Docs {
 		// Get primary author
 		author := ""
 		if len(doc.AuthorName) > 0 {

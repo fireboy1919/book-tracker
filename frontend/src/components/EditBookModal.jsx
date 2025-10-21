@@ -10,7 +10,8 @@ export default function EditBookModal({ book, onClose, onBookUpdated }) {
     lexileLevel: '',
     dateRead: '',
     isPartial: false,
-    partialComment: ''
+    partialComment: '',
+    readByParent: false
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -24,7 +25,8 @@ export default function EditBookModal({ book, onClose, onBookUpdated }) {
         lexileLevel: book.lexileLevel || '',
         dateRead: book.dateRead || '',
         isPartial: book.isPartial || false,
-        partialComment: book.partialComment || ''
+        partialComment: book.partialComment || '',
+        readByParent: book.readByParent || false
       })
     }
   }, [book])
@@ -167,6 +169,19 @@ export default function EditBookModal({ book, onClose, onBookUpdated }) {
                 className="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
               />
               <span className="ml-2 text-sm text-gray-700">This is a partial reading</span>
+            </label>
+          </div>
+
+          <div className="mb-4">
+            <label className="flex items-center">
+              <input
+                type="checkbox"
+                name="readByParent"
+                checked={formData.readByParent}
+                onChange={handleInputChange}
+                className="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+              />
+              <span className="ml-2 text-sm text-gray-700">This book was read by the parent (not the child)</span>
             </label>
           </div>
 

@@ -12,6 +12,7 @@ export default function AddBookModal({ child, onClose, onBookAdded }) {
     dateRead: new Date().toISOString().split('T')[0],
     isPartial: false,
     partialComment: '',
+    readByParent: false,
     coverUrl: '',
     sharedBookId: null
   })
@@ -354,7 +355,8 @@ export default function AddBookModal({ child, onClose, onBookAdded }) {
         childId: child.id,
         lexileLevel: formData.lexileLevel,
         isPartial: formData.isPartial,
-        partialComment: formData.partialComment
+        partialComment: formData.partialComment,
+        readByParent: formData.readByParent
       }
 
       // If we have a sharedBookId from ISBN lookup, use that
@@ -388,7 +390,8 @@ export default function AddBookModal({ child, onClose, onBookAdded }) {
         childId: child.id,
         lexileLevel: formData.lexileLevel,
         isPartial: formData.isPartial,
-        partialComment: formData.partialComment
+        partialComment: formData.partialComment,
+        readByParent: formData.readByParent
       }
 
       // If we have a sharedBookId from ISBN lookup, use that
@@ -513,7 +516,8 @@ export default function AddBookModal({ child, onClose, onBookAdded }) {
                     <div
                       key={index}
                       onClick={() => selectSearchResult(result)}
-                      className="flex items-start space-x-3 p-3 border rounded-lg cursor-pointer hover:bg-white hover:shadow-sm transition-colors"
+                      className="flex items-start space-x-3 p-3 border rounded-lg cursor-pointer hover:bg-white hover:shadow-sm transition-colors select-none"
+                      style={{ cursor: 'pointer' }}
                     >
                       <div className="flex-shrink-0 w-12 h-16 bg-gray-200 rounded border border-gray-300 flex items-center justify-center">
                         {result.coverUrl ? (
@@ -785,6 +789,21 @@ export default function AddBookModal({ child, onClose, onBookAdded }) {
             />
             <label htmlFor="isPartial" className="ml-2 block text-sm text-gray-900">
               This is a partial reading (e.g., only read some chapters)
+            </label>
+          </div>
+
+          {/* Read By Parent Checkbox */}
+          <div className="flex items-center">
+            <input
+              type="checkbox"
+              id="readByParent"
+              name="readByParent"
+              checked={formData.readByParent}
+              onChange={handleChange}
+              className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+            />
+            <label htmlFor="readByParent" className="ml-2 block text-sm text-gray-900">
+              This book was read by the parent (not the child)
             </label>
           </div>
 

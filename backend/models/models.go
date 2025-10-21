@@ -75,6 +75,8 @@ type Book struct {
 	// For partial books
 	IsPartial       bool   `json:"isPartial" gorm:"default:false;index:idx_book_partial"`
 	PartialComment  string `json:"partialComment,omitempty"` // Description of what portion was read
+	// Track who read the book
+	ReadByParent    bool   `json:"readByParent" gorm:"default:false;index:idx_book_reader"` // true if read by parent, false if read by child
 	CreatedAt       time.Time `json:"createdAt"`
 	UpdatedAt       time.Time `json:"updatedAt"`
 
@@ -164,6 +166,7 @@ type CreateBookRequest struct {
 	IsCustomBook bool   `json:"isCustomBook"` // true for user-specific custom books
 	IsPartial       bool   `json:"isPartial"` // true for partial book readings
 	PartialComment  string `json:"partialComment,omitempty"` // Description of what portion was read
+	ReadByParent    bool   `json:"readByParent"` // true if read by parent, false if read by child
 }
 
 type ISBNLookupRequest struct {
@@ -179,6 +182,7 @@ type CreateCustomBookRequest struct {
 	ChildID     uint   `json:"childId" binding:"required"`
 	IsPartial       bool   `json:"isPartial"` // true for partial book readings
 	PartialComment  string `json:"partialComment,omitempty"` // Description of what portion was read
+	ReadByParent    bool   `json:"readByParent"` // true if read by parent, false if read by child
 }
 
 type BookInfoResponse struct {
@@ -223,6 +227,7 @@ type UpdateBookRequest struct {
 	DateRead    string `json:"dateRead" binding:"required"`
 	IsPartial       bool   `json:"isPartial"` // true for partial book readings
 	PartialComment  string `json:"partialComment,omitempty"` // Description of what portion was read
+	ReadByParent    bool   `json:"readByParent"` // true if read by parent, false if read by child
 }
 
 type CreatePermissionRequest struct {
@@ -284,6 +289,7 @@ type BookResponse struct {
 	SharedBookID *uint     `json:"sharedBookId,omitempty"`
 	IsPartial       bool   `json:"isPartial"`
 	PartialComment  string `json:"partialComment,omitempty"`
+	ReadByParent    bool   `json:"readByParent"`
 	CreatedAt    time.Time `json:"createdAt"`
 }
 

@@ -258,80 +258,85 @@ export default function FullScreenChildView({ child, onClose, onAddBook }) {
               )}
             </div>
           ) : (
-            <div className="grid gap-4">
+            <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {filteredBooks.map((book, index) => (
                 <div key={book.id} className="bg-white border border-gray-200 rounded-lg p-3 sm:p-4 shadow-sm hover:shadow-md transition-shadow">
-                  <div className="flex items-start gap-3">
-                    {/* Book Cover - 25% width max */}
-                    <div className="flex-shrink-0 w-16 sm:w-20">
+                  {/* Book Cover - Top positioned */}
+                  <div className="flex justify-center mb-3">
+                    <div className="w-16 h-20 sm:w-20 sm:h-24">
                       {book.coverUrl ? (
                         <img
                           src={book.coverUrl}
                           alt={`Cover of ${book.title}`}
-                          className="w-full h-20 sm:h-24 object-cover rounded-md border border-gray-200"
+                          className="w-full h-full object-cover rounded-md border border-gray-200"
                           onError={(e) => {
                             e.target.style.display = 'none'
                           }}
                         />
                       ) : (
-                        <div className="w-full h-20 sm:h-24 bg-gray-100 rounded-md border border-gray-200 flex items-center justify-center">
+                        <div className="w-full h-full bg-gray-100 rounded-md border border-gray-200 flex items-center justify-center">
                           <BookOpenIcon className="h-6 w-6 text-gray-400" />
                         </div>
                       )}
                     </div>
-                    
-                    {/* Book Details - flexible width */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex flex-wrap items-center gap-2 mb-2">
-                        {book.isPartial && (
-                          <span className="bg-yellow-100 text-yellow-800 text-xs font-medium px-2 py-1 rounded-full">
-                            Partial
-                          </span>
-                        )}
-                        <span className="text-xs sm:text-sm text-gray-500">
-                          Read on {formatDateRead(book.dateRead)}
+                  </div>
+                  
+                  {/* Book Details */}
+                  <div className="text-center">
+                    <div className="flex flex-wrap justify-center items-center gap-2 mb-2">
+                      {book.isPartial && (
+                        <span className="bg-yellow-100 text-yellow-800 text-xs font-medium px-2 py-1 rounded-full">
+                          Partial
                         </span>
-                      </div>
-                      <h5 className="text-base sm:text-lg font-semibold text-gray-900 mb-1 break-words">
-                        {book.title}
-                      </h5>
-                      <p className="text-sm sm:text-base text-gray-600 mb-2 break-words">
-                        by {book.author}
-                      </p>
-                      {book.lexileLevel && (
-                        <p className="text-xs sm:text-sm text-gray-500 mb-2">
-                          Lexile Level: {book.lexileLevel}
-                        </p>
                       )}
-                      {book.isPartial && book.partialComment && (
-                        <div className="bg-yellow-50 border-l-4 border-yellow-200 p-2 mt-2">
-                          <p className="text-xs sm:text-sm text-yellow-800">
-                            <span className="font-medium">Portion read:</span> {book.partialComment}
-                          </p>
-                        </div>
+                      {book.readByParent && (
+                        <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2 py-1 rounded-full">
+                          Read by Parent
+                        </span>
                       )}
+                      <span className="text-xs text-gray-500">
+                        {formatDateRead(book.dateRead)}
+                      </span>
                     </div>
-
-                    {/* Action Buttons - fixed width on right */}
-                    {canEdit && (
-                      <div className="flex flex-col gap-2 flex-shrink-0">
-                        <button
-                          onClick={() => handleEditBook(book)}
-                          className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-full transition-colors border border-gray-200 bg-white shadow-sm"
-                          title="Edit book"
-                        >
-                          <PencilIcon className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteBook(book)}
-                          className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors border border-gray-200 bg-white shadow-sm"
-                          title="Delete book"
-                        >
-                          <TrashIcon className="h-4 w-4" />
-                        </button>
+                    <h5 className="text-sm font-semibold text-gray-900 mb-1 truncate">
+                      {book.title}
+                    </h5>
+                    <p className="text-xs text-gray-600 mb-2 truncate">
+                      by {book.author}
+                    </p>
+                    {book.lexileLevel && (
+                      <p className="text-xs text-gray-500 mb-2">
+                        Lexile: {book.lexileLevel}
+                      </p>
+                    )}
+                    {book.isPartial && book.partialComment && (
+                      <div className="bg-yellow-50 border border-yellow-200 rounded p-2 mt-2">
+                        <p className="text-xs text-yellow-800">
+                          <span className="font-medium">Portion:</span> {book.partialComment}
+                        </p>
                       </div>
                     )}
                   </div>
+
+                  {/* Action Buttons - Bottom positioned */}
+                  {canEdit && (
+                    <div className="flex justify-center gap-2 mt-3 pt-3 border-t border-gray-100">
+                      <button
+                        onClick={() => handleEditBook(book)}
+                        className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-full transition-colors border border-gray-200 bg-white shadow-sm"
+                        title="Edit book"
+                      >
+                        <PencilIcon className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteBook(book)}
+                        className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors border border-gray-200 bg-white shadow-sm"
+                        title="Delete book"
+                      >
+                        <TrashIcon className="h-4 w-4" />
+                      </button>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
