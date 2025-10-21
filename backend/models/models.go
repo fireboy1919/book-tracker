@@ -52,7 +52,7 @@ type Child struct {
 // SharedBook represents a book from Open Library that can be reused by all users
 type SharedBook struct {
 	ID        uint      `json:"id" gorm:"primaryKey"`
-	ISBN      string    `json:"isbn" gorm:"uniqueIndex;not null"`
+	ISBN      string    `json:"isbn" gorm:"uniqueIndex"`
 	Title     string    `json:"title" gorm:"not null"`
 	Author    string    `json:"author" gorm:"not null"`
 	CoverURL  string    `json:"coverUrl,omitempty"`

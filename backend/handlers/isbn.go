@@ -310,7 +310,26 @@ func SearchBooks(c *gin.Context) {
 
 	// Convert to our response format
 	results := make([]BookSearchResult, 0, len(searchResponse.Docs))
-	for _, doc := range searchResponse.Docs {
+	
+	// Batch fetch ISBNs for books that don't have them
+	resultsNeedingISBN := make([]int, 0) // Track which results need ISBN lookup
+	workKeys := make([]string, 0)        // Collect work keys for batch lookup
+	
+	for i, doc := range searchResponse.Docs {
+		if len(doc.ISBN) == 0 && doc.Key != "" {
+			resultsNeedingISBN = append(resultsNeedingISBN, i)
+			workKeys = append(workKeys, doc.Key)
+		}
+	}
+	
+	// Batch fetch ISBNs if needed
+	isbnMap := make(map[string]string) // workKey -> bestISBN
+	if len(workKeys) > 0 {
+		fmt.Printf("DEBUG: Batch fetching ISBNs for %d works\n", len(workKeys))
+		isbnMap = batchFetchISBNs(workKeys)
+	}
+	
+	for i, doc := range searchResponse.Docs {
 		// Get primary author
 		author := ""
 		if len(doc.AuthorName) > 0 {
@@ -320,15 +339,28 @@ func SearchBooks(c *gin.Context) {
 		// Get primary ISBN
 		isbn := ""
 		if len(doc.ISBN) > 0 {
+			// Debug: log what ISBNs we're getting from Open Library
+			fmt.Printf("DEBUG: Found %d ISBNs for book '%s': %+v\n", len(doc.ISBN), doc.Title, doc.ISBN)
+			
 			// Prefer ISBN-13, then ISBN-10
 			for _, isbnCandidate := range doc.ISBN {
 				cleanISBN := strings.ReplaceAll(strings.ReplaceAll(isbnCandidate, "-", ""), " ", "")
+				fmt.Printf("DEBUG: Processing ISBN candidate '%s' -> cleaned '%s'\n", isbnCandidate, cleanISBN)
+				
 				if len(cleanISBN) == 13 && (strings.HasPrefix(cleanISBN, "978") || strings.HasPrefix(cleanISBN, "979")) {
 					isbn = cleanISBN
+					fmt.Printf("DEBUG: Selected ISBN-13: %s\n", isbn)
 					break
 				} else if len(cleanISBN) == 10 && isbn == "" {
 					isbn = cleanISBN
+					fmt.Printf("DEBUG: Selected ISBN-10: %s\n", isbn)
 				}
+			}
+		} else {
+			// Check if we have ISBN from batch fetch
+			if fetchedISBN, exists := isbnMap[doc.Key]; exists {
+				isbn = fetchedISBN
+				fmt.Printf("DEBUG: Using batch-fetched ISBN for '%s': %s\n", doc.Title, isbn)
 			}
 		}
 
@@ -458,6 +490,97 @@ func CreateBookFromSearch(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, bookInfo)
+}
+
+// batchFetchISBNs fetches ISBNs for multiple works efficiently
+func batchFetchISBNs(workKeys []string) map[string]string {
+	isbnMap := make(map[string]string)
+	
+	// Use goroutines to fetch multiple editions concurrently, but limit concurrency
+	const maxConcurrent = 5
+	semaphore := make(chan struct{}, maxConcurrent)
+	
+	// Use channels to collect results
+	type result struct {
+		workKey string
+		isbn    string
+	}
+	resultChan := make(chan result, len(workKeys))
+	
+	// Launch goroutines for each work
+	for _, workKey := range workKeys {
+		go func(key string) {
+			semaphore <- struct{}{} // Acquire semaphore
+			defer func() { <-semaphore }() // Release semaphore
+			
+			isbn := fetchISBNFromEditions(key)
+			resultChan <- result{workKey: key, isbn: isbn}
+		}(workKey)
+	}
+	
+	// Collect results
+	for i := 0; i < len(workKeys); i++ {
+		res := <-resultChan
+		if res.isbn != "" {
+			isbnMap[res.workKey] = res.isbn
+		}
+	}
+	
+	fmt.Printf("DEBUG: Batch fetch completed. Found ISBNs for %d out of %d works\n", len(isbnMap), len(workKeys))
+	return isbnMap
+}
+
+// fetchISBNFromEditions tries to get ISBN from Open Library editions endpoint
+func fetchISBNFromEditions(workKey string) string {
+	if workKey == "" {
+		return ""
+	}
+	
+	editionsURL := fmt.Sprintf("https://openlibrary.org%s/editions.json", workKey)
+	resp, err := http.Get(editionsURL)
+	if err != nil {
+		fmt.Printf("DEBUG: Error fetching editions: %v\n", err)
+		return ""
+	}
+	defer resp.Body.Close()
+	
+	if resp.StatusCode != http.StatusOK {
+		fmt.Printf("DEBUG: Editions API returned status: %d\n", resp.StatusCode)
+		return ""
+	}
+	
+	var editionsResponse struct {
+		Entries []struct {
+			ISBN10 []string `json:"isbn_10"`
+			ISBN13 []string `json:"isbn_13"`
+		} `json:"entries"`
+	}
+	
+	if err := json.NewDecoder(resp.Body).Decode(&editionsResponse); err != nil {
+		fmt.Printf("DEBUG: Error parsing editions response: %v\n", err)
+		return ""
+	}
+	
+	// Look through editions to find the best ISBN
+	for _, edition := range editionsResponse.Entries {
+		// Prefer ISBN-13
+		for _, isbn13 := range edition.ISBN13 {
+			cleanISBN := strings.ReplaceAll(strings.ReplaceAll(isbn13, "-", ""), " ", "")
+			if len(cleanISBN) == 13 && (strings.HasPrefix(cleanISBN, "978") || strings.HasPrefix(cleanISBN, "979")) {
+				return cleanISBN
+			}
+		}
+		
+		// Fall back to ISBN-10
+		for _, isbn10 := range edition.ISBN10 {
+			cleanISBN := strings.ReplaceAll(strings.ReplaceAll(isbn10, "-", ""), " ", "")
+			if len(cleanISBN) == 10 {
+				return cleanISBN
+			}
+		}
+	}
+	
+	return ""
 }
 
 // createOrFindSharedBook attempts to create a new SharedBook, handling UNIQUE constraint errors
