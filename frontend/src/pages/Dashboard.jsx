@@ -98,7 +98,7 @@ export default function Dashboard() {
               className="p-1.5 md:px-3 md:py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 inline-flex items-center"
               title="Generate Report"
             >
-              <ChartBarIcon className="h-4 w-4 md:h-5 md:w-5 md:mr-2" />
+              <ChartBarIcon className="h-6 w-6 md:h-7 md:w-7 md:mr-2" />
               <span className="hidden md:inline">Generate Report</span>
             </button>
             {children.length > 0 && (
@@ -107,7 +107,7 @@ export default function Dashboard() {
                 className="p-1.5 md:px-3 md:py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 inline-flex items-center"
                 title="Share Children"
               >
-                <ShareIcon className="h-4 w-4 md:h-5 md:w-5 md:mr-2" />
+                <ShareIcon className="h-6 w-6 md:h-7 md:w-7 md:mr-2" />
                 <span className="hidden md:inline">Share Children</span>
               </button>
             )}
@@ -116,7 +116,7 @@ export default function Dashboard() {
               className="p-1.5 md:px-3 md:py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 inline-flex items-center"
               title="Add Child"
             >
-              <PlusIcon className="h-4 w-4 md:h-5 md:w-5 md:mr-2" />
+              <PlusIcon className="h-6 w-6 md:h-7 md:w-7 md:mr-2" />
               <span className="hidden md:inline">Add Child</span>
             </button>
             </div>

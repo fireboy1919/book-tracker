@@ -399,7 +399,7 @@ func CreateBookFromSearch(c *gin.Context) {
 		}
 	}
 
-	// If still not found, create a new SharedBook (or update existing by ISBN)
+	// If still not found, create a new SharedBook
 	if sharedBookID == nil {
 		newSharedBook := models.SharedBook{
 			ISBN:     req.ISBN,
@@ -426,26 +426,24 @@ func CreateBookFromSearch(c *gin.Context) {
 				}
 				sharedBookID = &existingSharedBook.ID
 			} else {
-				// Create new book
-				if err := services.GetDB().Create(&newSharedBook).Error; err != nil {
-					c.JSON(http.StatusInternalServerError, models.ErrorResponse{
-						Message: "Failed to create shared book: " + err.Error(),
-					})
-					return
+				// Create new book with ISBN
+				sharedBookID, existingSharedBook = createOrFindSharedBook(newSharedBook, req.ISBN, req.Title, req.Author, c)
+				if sharedBookID == nil {
+					return // Error already handled in createOrFindSharedBook
 				}
-				sharedBookID = &newSharedBook.ID
-				existingSharedBook = newSharedBook
 			}
 		} else {
-			// No ISBN, just create new book
-			if err := services.GetDB().Create(&newSharedBook).Error; err != nil {
-				c.JSON(http.StatusInternalServerError, models.ErrorResponse{
-					Message: "Failed to create shared book: " + err.Error(),
-				})
-				return
+			// No ISBN, check if book exists by title and author to avoid duplicates
+			if err := services.GetDB().Where("title = ? AND author = ?", req.Title, req.Author).First(&existingSharedBook).Error; err == nil {
+				// Found existing book by title/author
+				sharedBookID = &existingSharedBook.ID
+			} else {
+				// Create new book without ISBN
+				sharedBookID, existingSharedBook = createOrFindSharedBook(newSharedBook, req.ISBN, req.Title, req.Author, c)
+				if sharedBookID == nil {
+					return // Error already handled in createOrFindSharedBook
+				}
 			}
-			sharedBookID = &newSharedBook.ID
-			existingSharedBook = newSharedBook
 		}
 	}
 
@@ -460,4 +458,35 @@ func CreateBookFromSearch(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, bookInfo)
+}
+
+// createOrFindSharedBook attempts to create a new SharedBook, handling UNIQUE constraint errors
+// Returns the sharedBookID and the book record, or nil if there was an error
+func createOrFindSharedBook(newSharedBook models.SharedBook, isbn, title, author string, c *gin.Context) (*uint, models.SharedBook) {
+	if err := services.GetDB().Create(&newSharedBook).Error; err != nil {
+		// If it's a constraint error, try to find the existing book one more time
+		if strings.Contains(err.Error(), "UNIQUE constraint failed") || strings.Contains(err.Error(), "duplicate key") {
+			var existingSharedBook models.SharedBook
+			// Race condition or existing book found - try to find it
+			if isbn != "" {
+				if findErr := services.GetDB().Where("isbn = ?", isbn).First(&existingSharedBook).Error; findErr == nil {
+					return &existingSharedBook.ID, existingSharedBook
+				}
+			} else {
+				if findErr := services.GetDB().Where("title = ? AND author = ?", title, author).First(&existingSharedBook).Error; findErr == nil {
+					return &existingSharedBook.ID, existingSharedBook
+				}
+			}
+			c.JSON(http.StatusInternalServerError, models.ErrorResponse{
+				Message: "Book already exists but could not be retrieved",
+			})
+			return nil, models.SharedBook{}
+		} else {
+			c.JSON(http.StatusInternalServerError, models.ErrorResponse{
+				Message: "Failed to create shared book: " + err.Error(),
+			})
+			return nil, models.SharedBook{}
+		}
+	}
+	return &newSharedBook.ID, newSharedBook
 }
