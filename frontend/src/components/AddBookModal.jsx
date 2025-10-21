@@ -480,7 +480,7 @@ export default function AddBookModal({ child, onClose, onBookAdded }) {
             </label>
 
             <div className="border rounded-lg p-4 bg-gray-50 space-y-3">
-              <div className="flex space-x-2">
+              <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
                 <input
                   type="text"
                   name="title"

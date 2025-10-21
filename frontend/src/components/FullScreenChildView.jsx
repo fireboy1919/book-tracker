@@ -208,15 +208,26 @@ export default function FullScreenChildView({ child, onClose, onAddBook }) {
             <p className="text-sm text-gray-600">
               {filteredBooks.length} book{filteredBooks.length !== 1 ? 's' : ''} read
             </p>
-            {filteredBooks.length > 0 && (
-              <button
-                onClick={handleDownloadPDF}
-                className="mt-2 inline-flex items-center px-3 py-1 border border-transparent rounded-md shadow-sm text-xs font-medium text-indigo-600 bg-indigo-100 hover:bg-indigo-200 transition-colors"
-              >
-                <DocumentArrowDownIcon className="h-4 w-4 mr-1" />
-                Download PDF
-              </button>
-            )}
+            <div className="mt-2 flex justify-center gap-2">
+              {filteredBooks.length > 0 && (
+                <button
+                  onClick={handleDownloadPDF}
+                  className="inline-flex items-center px-3 py-1 border border-transparent rounded-md shadow-sm text-xs font-medium text-indigo-600 bg-indigo-100 hover:bg-indigo-200 transition-colors"
+                >
+                  <DocumentArrowDownIcon className="h-4 w-4 mr-1" />
+                  PDF
+                </button>
+              )}
+              {canEdit && (
+                <button
+                  onClick={handleAddBook}
+                  className="inline-flex items-center px-3 py-1 border border-transparent rounded-md shadow-sm text-xs font-medium text-indigo-600 bg-indigo-100 hover:bg-indigo-200 transition-colors"
+                >
+                  <PlusIcon className="h-4 w-4 mr-1" />
+                  Add
+                </button>
+              )}
+            </div>
           </div>
           
           <button
@@ -227,18 +238,6 @@ export default function FullScreenChildView({ child, onClose, onAddBook }) {
           </button>
         </div>
 
-        {/* Add Book Button */}
-        {canEdit && (
-          <div className="mb-6">
-            <button
-              onClick={handleAddBook}
-              className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700"
-            >
-              <PlusIcon className="h-4 w-4 mr-2" />
-              Add Book for {formatMonthYear(currentDate)}
-            </button>
-          </div>
-        )}
 
         {/* Books List */}
         <div className="space-y-4">
@@ -250,10 +249,10 @@ export default function FullScreenChildView({ child, onClose, onAddBook }) {
               {canEdit && (
                 <button
                   onClick={handleAddBook}
-                  className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700"
+                  className="inline-flex items-center px-3 py-1 border border-transparent rounded-md shadow-sm text-xs font-medium text-indigo-600 bg-indigo-100 hover:bg-indigo-200 transition-colors"
                 >
-                  <PlusIcon className="h-4 w-4 mr-2" />
-                  Add First Book
+                  <PlusIcon className="h-4 w-4 mr-1" />
+                  Add
                 </button>
               )}
             </div>
