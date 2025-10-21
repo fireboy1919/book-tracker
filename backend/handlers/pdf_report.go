@@ -101,7 +101,7 @@ func GenerateMonthlyPDFReport(c *gin.Context) {
 	filename := filepath.Base(pdfPath)
 	c.Header("Content-Description", "File Transfer")
 	c.Header("Content-Transfer-Encoding", "binary")
-	c.Header("Content-Disposition", "attachment; filename="+filename)
+	c.Header("Content-Disposition", "inline; filename="+filename)
 	c.Header("Content-Type", "application/pdf")
 	c.Header("Content-Length", strconv.FormatInt(fileInfo.Size(), 10))
 
