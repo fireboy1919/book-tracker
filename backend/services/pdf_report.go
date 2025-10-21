@@ -15,7 +15,7 @@ import (
 	"github.com/jung-kurt/gofpdf"
 )
 
-//go:embed ../assets/star.png
+//go:embed star.png
 var starImageData []byte
 
 // BookForPDF represents a book with all the data needed for PDF generation

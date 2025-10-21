@@ -318,6 +318,8 @@ export default function AddBookModal({ child, onClose, onBookAdded }) {
         openLibraryKey: result.openLibraryKey
       })
 
+      console.log('Create-from-search response:', response.data)
+
       // Update form with selected book
       setFormData(prev => ({
         ...prev,
@@ -325,7 +327,7 @@ export default function AddBookModal({ child, onClose, onBookAdded }) {
         title: result.title,
         author: result.author,
         coverUrl: result.coverUrl || '',
-        sharedBookId: response.data.sharedBookId
+        sharedBookId: response.data.sharedBookId || response.data.SharedBookID
       }))
 
       // Close search
@@ -359,15 +361,17 @@ export default function AddBookModal({ child, onClose, onBookAdded }) {
         readByParent: formData.readByParent
       }
 
-      // If we have a sharedBookId from ISBN lookup, use that
+      // If we have a sharedBookId from search or ISBN lookup, use that
       if (formData.sharedBookId) {
         requestData.sharedBookId = formData.sharedBookId
+        console.log('Creating book with sharedBookId:', formData.sharedBookId)
       } else {
         // Otherwise, this is a custom book
         requestData.isCustomBook = true
         requestData.title = formData.title
         requestData.author = formData.author
         requestData.isbn = formData.isbn
+        console.log('Creating custom book:', formData.title, 'by', formData.author)
       }
 
       await api.post(`/books/child/${child.id}`, requestData)
