@@ -8,6 +8,19 @@ export default function EditChildModal({ child, onClose, onChildUpdated }) {
     lastName: child.lastName || '',
     grade: child.grade || ''
   })
+
+  const gradeOptions = [
+    'Preschool',
+    'Kindergarten',
+    '1st Grade',
+    '2nd Grade', 
+    '3rd Grade',
+    '4th Grade',
+    '5th Grade',
+    '6th Grade',
+    '7th Grade',
+    '8th Grade'
+  ]
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -95,15 +108,20 @@ export default function EditChildModal({ child, onClose, onChildUpdated }) {
             <label className="block text-sm font-medium text-gray-700">
               Grade
             </label>
-            <input
-              type="text"
+            <select
               name="grade"
               required
               className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
               value={formData.grade}
               onChange={handleChange}
-              placeholder="e.g., 3rd Grade, Kindergarten"
-            />
+            >
+              <option value="">Select grade...</option>
+              {gradeOptions.map((grade) => (
+                <option key={grade} value={grade}>
+                  {grade}
+                </option>
+              ))}
+            </select>
           </div>
 
           {error && (

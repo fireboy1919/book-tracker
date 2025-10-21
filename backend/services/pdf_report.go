@@ -1,6 +1,7 @@
 package services
 
 import (
+	_ "embed"
 	"fmt"
 	"io"
 	"net/http"
@@ -13,6 +14,9 @@ import (
 	"github.com/booktracker/backend/models"
 	"github.com/jung-kurt/gofpdf"
 )
+
+//go:embed ../assets/star.png
+var starImageData []byte
 
 // BookForPDF represents a book with all the data needed for PDF generation
 type BookForPDF struct {
@@ -171,6 +175,10 @@ func cleanupCoverImages(books []*BookForPDF) {
 func createPDF(child *models.Child, books []*BookForPDF, year int, month int) (string, error) {
 	// Create PDF
 	pdf := gofpdf.New("P", "mm", "A4", "")
+	
+	// Register the star image once at the beginning
+	pdf.RegisterImageOptionsReader("star", gofpdf.ImageOptions{ImageType: "PNG", ReadDpi: false}, strings.NewReader(string(starImageData)))
+	
 	pdf.AddPage()
 	pdf.SetFont("Arial", "B", 16)
 
@@ -204,7 +212,7 @@ func createPDF(child *models.Child, books []*BookForPDF, year int, month int) (s
 	// Print star image
 	currentX, currentYPos := pdf.GetXY()
 	starSize := 3.0 // 3mm star size
-	pdf.ImageOptions("backend/assets/star.png", currentX, currentYPos+1, starSize, starSize,
+	pdf.ImageOptions("star", currentX, currentYPos+1, starSize, starSize,
 		false, gofpdf.ImageOptions{ImageType: "PNG", ReadDpi: false}, 0, "")
 	// Move cursor past the star
 	pdf.SetXY(currentX+starSize+0.5, currentYPos)
@@ -261,7 +269,7 @@ func createPDF(child *models.Child, books []*BookForPDF, year int, month int) (s
 			// Print star image
 			currentX, currentYPos := pdf.GetXY()
 			starSize := 3.0 // 3mm star size
-			pdf.ImageOptions("backend/assets/star.png", currentX, currentYPos+1, starSize, starSize,
+			pdf.ImageOptions("star", currentX, currentYPos+1, starSize, starSize,
 				false, gofpdf.ImageOptions{ImageType: "PNG", ReadDpi: false}, 0, "")
 			// Move cursor past the star
 			pdf.SetXY(currentX+starSize+0.5, currentYPos)
@@ -382,7 +390,7 @@ func drawBookColumn(pdf *gofpdf.Fpdf, book *BookForPDF, x, y, width, height floa
 		starX := textX + textWidth - starSize - 1 // Position star near right edge
 		pdf.CellFormat(textWidth-starSize-1, 3, dateStr, "0", 0, "L", false, 0, "")
 		// Draw star image
-		pdf.ImageOptions("backend/assets/star.png", starX, currentY-0.5, starSize, starSize,
+		pdf.ImageOptions("star", starX, currentY-0.5, starSize, starSize,
 			false, gofpdf.ImageOptions{ImageType: "PNG", ReadDpi: false}, 0, "")
 		pdf.Ln(3) // Move to next line
 	}
