@@ -133,15 +133,28 @@ export default function EditBookModal({ book, onClose, onBookUpdated }) {
             <label htmlFor="lexileLevel" className="block text-sm font-medium text-gray-700 mb-1">
               Lexile Level (optional)
             </label>
-            <input
-              type="text"
-              id="lexileLevel"
-              name="lexileLevel"
-              value={formData.lexileLevel}
-              onChange={handleInputChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-              placeholder="e.g., 450L"
-            />
+            <div className="flex gap-2">
+              <input
+                type="text"
+                id="lexileLevel"
+                name="lexileLevel"
+                value={formData.lexileLevel}
+                onChange={handleInputChange}
+                className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                placeholder="e.g., 450L"
+              />
+              {formData.isbn && (
+                <a
+                  href={`https://hub.lexile.com/find-a-book/details/${formData.isbn}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50"
+                  title={`View Lexile level for ISBN ${formData.isbn}`}
+                >
+                  Find Lexile
+                </a>
+              )}
+            </div>
           </div>
 
           <div className="mb-4">
