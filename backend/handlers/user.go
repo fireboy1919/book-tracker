@@ -119,6 +119,21 @@ func UpdateUser(c *gin.Context) {
 		}
 		req.IsAdmin = existingUser.IsAdmin
 		req.IsTeacher = existingUser.IsTeacher
+	} else if currentUser != nil && currentUser.IsAdmin && currentUser.ID == uint(id) {
+		// Prevent admins from disabling their own admin capability
+		existingUser, err := services.GetUserByID(uint(id))
+		if err != nil {
+			c.JSON(http.StatusNotFound, models.ErrorResponse{
+				Message: err.Error(),
+			})
+			return
+		}
+		if existingUser.IsAdmin && !req.IsAdmin {
+			c.JSON(http.StatusBadRequest, models.ErrorResponse{
+				Message: "You cannot remove your own admin privileges",
+			})
+			return
+		}
 	}
 
 	user, err := services.UpdateUser(uint(id), req)
@@ -177,6 +192,39 @@ func MakeUserTeacher(c *gin.Context) {
 	}
 
 	user, err := services.MakeUserTeacher(uint(id))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, models.ErrorResponse{
+			Message: err.Error(),
+		})
+		return
+	}
+
+	userResponse := models.UserResponse{
+		ID:            user.ID,
+		Email:         user.Email,
+		FirstName:     user.FirstName,
+		LastName:      user.LastName,
+		IsAdmin:       user.IsAdmin,
+		IsTeacher:     user.IsTeacher,
+		EmailVerified: user.EmailVerified,
+		CreatedAt:     user.CreatedAt,
+	}
+
+	c.JSON(http.StatusOK, userResponse)
+}
+
+// RemoveUserTeacher handles removing teacher role from a user (admin only)
+func RemoveUserTeacher(c *gin.Context) {
+	idParam := c.Param("id")
+	id, err := strconv.ParseUint(idParam, 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, models.ErrorResponse{
+			Message: "Invalid user ID",
+		})
+		return
+	}
+
+	user, err := services.RemoveUserTeacher(uint(id))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, models.ErrorResponse{
 			Message: err.Error(),

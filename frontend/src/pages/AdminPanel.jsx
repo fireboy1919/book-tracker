@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react'
 import { PencilIcon, TrashIcon, UsersIcon, PlusIcon } from '@heroicons/react/24/outline'
 import api from '../services/api'
+import { useAuth } from '../contexts/AuthContext'
 
 export default function AdminPanel() {
+  const { user: currentUser } = useAuth()
   const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -44,6 +46,12 @@ export default function AdminPanel() {
         return
       }
 
+      // Prevent admins from disabling their own admin capability
+      if (currentUser && currentUser.id === userId && currentIsAdmin) {
+        setError('You cannot remove your own admin privileges')
+        return
+      }
+
       await api.put(`/users/${userId}`, {
         email: user.email,
         firstName: user.firstName,
@@ -53,7 +61,7 @@ export default function AdminPanel() {
       })
       fetchUsers()
     } catch (error) {
-      setError('Failed to update user')
+      setError(error.response?.data?.message || 'Failed to update user')
     }
   }
 
@@ -63,6 +71,15 @@ export default function AdminPanel() {
       fetchUsers()
     } catch (error) {
       setError('Failed to make user a teacher')
+    }
+  }
+
+  const removeTeacher = async (userId) => {
+    try {
+      await api.put(`/users/${userId}/remove-teacher`)
+      fetchUsers()
+    } catch (error) {
+      setError('Failed to remove teacher role')
     }
   }
 
@@ -181,12 +198,19 @@ export default function AdminPanel() {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                           <div className="flex justify-end space-x-2">
-                            {!user.isTeacher && (
+                            {!user.isTeacher ? (
                               <button
                                 onClick={() => makeTeacher(user.id)}
                                 className="text-blue-600 hover:text-blue-900 text-xs bg-blue-50 px-2 py-1 rounded"
                               >
                                 Make Teacher
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => removeTeacher(user.id)}
+                                className="text-orange-600 hover:text-orange-900 text-xs bg-orange-50 px-2 py-1 rounded"
+                              >
+                                Remove Teacher
                               </button>
                             )}
                             <button

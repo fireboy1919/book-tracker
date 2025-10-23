@@ -134,6 +134,7 @@ func UpdateUser(id uint, req models.UpdateUserRequest) (*models.User, error) {
 	user.FirstName = req.FirstName
 	user.LastName = req.LastName
 	user.IsAdmin = req.IsAdmin
+	user.IsTeacher = req.IsTeacher
 
 	result = config.GetDB().Save(&user)
 	if result.Error != nil {
@@ -447,6 +448,25 @@ func MakeUserTeacher(userID uint) (*models.User, error) {
 
 	// Update the user to be a teacher
 	user.IsTeacher = true
+	if err := config.GetDB().Save(&user).Error; err != nil {
+		return nil, err
+	}
+
+	return &user, nil
+}
+
+// RemoveUserTeacher removes teacher role from a user
+func RemoveUserTeacher(userID uint) (*models.User, error) {
+	var user models.User
+	if err := config.GetDB().First(&user, userID).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, errors.New("user not found")
+		}
+		return nil, err
+	}
+
+	// Update the user to not be a teacher
+	user.IsTeacher = false
 	if err := config.GetDB().Save(&user).Error; err != nil {
 		return nil, err
 	}

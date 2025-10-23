@@ -86,6 +86,7 @@ func initRouter() {
 				users.PUT("/:id", handlers.UpdateUser)
 				users.DELETE("/:id", middleware.AdminMiddleware(), handlers.DeleteUser)
 				users.PUT("/:id/make-teacher", middleware.AdminMiddleware(), handlers.MakeUserTeacher)
+				users.PUT("/:id/remove-teacher", middleware.AdminMiddleware(), handlers.RemoveUserTeacher)
 			}
 
 			// Children routes
