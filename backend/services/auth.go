@@ -80,7 +80,7 @@ func ValidateToken(tokenString string) (*Claims, error) {
 // AuthenticateUser authenticates a user with email and password
 func AuthenticateUser(email, password string) (*models.User, error) {
 	var user models.User
-	result := config.DB.Where("email = ?", email).First(&user)
+	result := config.GetDB().Where("email = ?", email).First(&user)
 	if result.Error != nil {
 		return nil, errors.New("invalid credentials")
 	}

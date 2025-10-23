@@ -78,7 +78,7 @@ func CreateUser(req models.CreateUserRequest) (*models.User, error) {
 // GetUserByID gets a user by ID
 func GetUserByID(id uint) (*models.User, error) {
 	var user models.User
-	result := config.DB.First(&user, id)
+	result := config.GetDB().First(&user, id)
 	if result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 			return nil, errors.New("user not found")
