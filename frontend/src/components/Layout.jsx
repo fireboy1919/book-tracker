@@ -27,6 +27,7 @@ export default function Layout({ children }) {
 
   const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: HomeIcon, color: 'bg-blue-500 hover:bg-blue-600' },
+    ...(user?.isTeacher || user?.isAdmin ? [{ name: 'Teacher Dashboard', href: '/teacher', icon: BookOpenIcon, color: 'bg-green-500 hover:bg-green-600' }] : []),
     ...(user?.isAdmin ? [{ name: 'Admin Panel', href: '/admin', icon: UserGroupIcon, color: 'bg-purple-500 hover:bg-purple-600' }] : [])
   ]
 

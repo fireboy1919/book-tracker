@@ -14,6 +14,7 @@ type User struct {
 	FirstName              string    `json:"firstName" gorm:"not null"`
 	LastName               string    `json:"lastName" gorm:"not null"`
 	IsAdmin                bool      `json:"isAdmin" gorm:"default:false"`
+	IsTeacher              bool      `json:"isTeacher" gorm:"default:false"`
 	EmailVerified          bool      `json:"emailVerified" gorm:"default:false"`
 	EmailVerificationToken string    `json:"-" gorm:"index"`
 	TokenExpiresAt         *time.Time `json:"-"`
@@ -24,6 +25,9 @@ type User struct {
 	GoogleID       string    `json:"-" gorm:"index"` // Google OAuth user ID
 	AuthProvider   string    `json:"authProvider" gorm:"default:'local'"` // 'local', 'google'
 	ProfilePicture string    `json:"profilePicture,omitempty"` // OAuth profile picture URL
+	
+	// Teacher invitation system
+	InvitationKey  string    `json:"-" gorm:"index"` // Encrypted key for generating stateless invitation tokens
 	
 	CreatedAt      time.Time `json:"createdAt"`
 	UpdatedAt      time.Time `json:"updatedAt"`
@@ -40,11 +44,13 @@ type Child struct {
 	LastName  string    `json:"lastName" gorm:"not null"`
 	Grade     string    `json:"grade" gorm:"not null"`
 	OwnerID   uint      `json:"ownerId" gorm:"not null;index:idx_child_owner"`
+	ClassID   *uint     `json:"classId,omitempty" gorm:"index:idx_child_class"`
 	CreatedAt time.Time `json:"createdAt"`
 	UpdatedAt time.Time `json:"updatedAt"`
 
 	// Relationships
 	Owner       User         `json:"owner,omitempty" gorm:"foreignKey:OwnerID"`
+	Class       *Class       `json:"class,omitempty" gorm:"foreignKey:ClassID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`
 	Books       []Book       `json:"books,omitempty" gorm:"foreignKey:ChildID"`
 	Permissions []Permission `json:"permissions,omitempty" gorm:"foreignKey:ChildID"`
 }
@@ -114,6 +120,36 @@ type PendingInvitation struct {
 	InvitedBy User  `json:"invitedBy,omitempty" gorm:"foreignKey:InvitedByID"`
 }
 
+// Class represents a classroom with reading goals
+type Class struct {
+	ID                uint      `json:"id" gorm:"primaryKey"`
+	Name              string    `json:"name" gorm:"not null"`
+	Description       string    `json:"description,omitempty"`
+	StudentBooksGoal  int       `json:"studentBooksGoal" gorm:"default:0"`
+	OtherBooksGoal    int       `json:"otherBooksGoal" gorm:"default:0"`
+	CreatedByID       uint      `json:"createdById" gorm:"not null;index:idx_class_creator"`
+	CreatedAt         time.Time `json:"createdAt"`
+	UpdatedAt         time.Time `json:"updatedAt"`
+
+	// Relationships
+	CreatedBy   User              `json:"createdBy,omitempty" gorm:"foreignKey:CreatedByID"`
+	Members     []ClassMembership `json:"members,omitempty" gorm:"foreignKey:ClassID"`
+	Children    []Child           `json:"children,omitempty" gorm:"foreignKey:ClassID"`
+}
+
+// ClassMembership represents the relationship between users and classes
+type ClassMembership struct {
+	ID        uint      `json:"id" gorm:"primaryKey"`
+	ClassID   uint      `json:"classId" gorm:"not null;index:idx_membership_class;uniqueIndex:idx_class_user_unique"`
+	UserID    uint      `json:"userId" gorm:"not null;index:idx_membership_user;uniqueIndex:idx_class_user_unique"`
+	Role      string    `json:"role" gorm:"not null;check:role IN ('TEACHER', 'STUDENT')"`
+	CreatedAt time.Time `json:"createdAt"`
+
+	// Relationships
+	Class Class `json:"class,omitempty" gorm:"foreignKey:ClassID"`
+	User  User  `json:"user,omitempty" gorm:"foreignKey:UserID"`
+}
+
 // Request DTOs
 type CreateUserRequest struct {
 	Email     string `json:"email" binding:"required,email"`
@@ -121,6 +157,7 @@ type CreateUserRequest struct {
 	FirstName string `json:"firstName" binding:"required"`
 	LastName  string `json:"lastName" binding:"required"`
 	IsAdmin   bool   `json:"isAdmin"`
+	IsTeacher bool   `json:"isTeacher"`
 }
 
 type CreateUserWithInvitationRequest struct {
@@ -136,6 +173,7 @@ type UpdateUserRequest struct {
 	FirstName string `json:"firstName" binding:"required"`
 	LastName  string `json:"lastName" binding:"required"`
 	IsAdmin   bool   `json:"isAdmin"`
+	IsTeacher bool   `json:"isTeacher"`
 }
 
 type LoginRequest struct {
@@ -236,6 +274,42 @@ type CreatePermissionRequest struct {
 	PermissionType string `json:"permissionType" binding:"required,oneof=VIEW EDIT"`
 }
 
+// Class-related DTOs
+type CreateClassRequest struct {
+	Name             string `json:"name" binding:"required"`
+	Description      string `json:"description,omitempty"`
+	StudentBooksGoal int    `json:"studentBooksGoal" binding:"min=0"`
+	OtherBooksGoal   int    `json:"otherBooksGoal" binding:"min=0"`
+}
+
+type UpdateClassRequest struct {
+	Name             string `json:"name" binding:"required"`
+	Description      string `json:"description,omitempty"`
+	StudentBooksGoal int    `json:"studentBooksGoal" binding:"min=0"`
+	OtherBooksGoal   int    `json:"otherBooksGoal" binding:"min=0"`
+}
+
+type AddClassMemberRequest struct {
+	UserID uint   `json:"userId" binding:"required"`
+	Role   string `json:"role" binding:"required,oneof=TEACHER STUDENT"`
+}
+
+type AssignChildToClassRequest struct {
+	ChildID uint `json:"childId" binding:"required"`
+	ClassID uint `json:"classId" binding:"required"`
+}
+
+// Student invitation system requests
+type StudentInvitationPayload struct {
+	ClassID     uint   `json:"class_id"`
+	StudentName string `json:"student_name"`
+	Timestamp   int64  `json:"timestamp"`
+}
+
+type RedeemInvitationRequest struct {
+	Token string `json:"token" binding:"required"`
+}
+
 // Response DTOs
 type UserResponse struct {
 	ID            uint      `json:"id"`
@@ -243,6 +317,7 @@ type UserResponse struct {
 	FirstName     string    `json:"firstName"`
 	LastName      string    `json:"lastName"`
 	IsAdmin       bool      `json:"isAdmin"`
+	IsTeacher     bool      `json:"isTeacher"`
 	EmailVerified bool      `json:"emailVerified"`
 	CreatedAt     time.Time `json:"createdAt"`
 }
@@ -258,6 +333,7 @@ type ChildResponse struct {
 	LastName  string    `json:"lastName"`
 	Grade     string    `json:"grade"`
 	OwnerID   uint      `json:"ownerId"`
+	ClassID   *uint     `json:"classId,omitempty"`
 	CreatedAt time.Time `json:"createdAt"`
 }
 
@@ -267,6 +343,7 @@ type ChildWithBookCountResponse struct {
 	LastName  string    `json:"lastName"`
 	Grade     string    `json:"grade"`
 	OwnerID   uint      `json:"ownerId"`
+	ClassID   *uint     `json:"classId,omitempty"`
 	CreatedAt time.Time `json:"createdAt"`
 	BookCount int       `json:"bookCount"`
 }
@@ -317,6 +394,33 @@ type ReportResponse struct {
 	Children []ChildReportResponse `json:"children"`
 }
 
+type ClassResponse struct {
+	ID                uint      `json:"id"`
+	Name              string    `json:"name"`
+	Description       string    `json:"description"`
+	StudentBooksGoal  int       `json:"studentBooksGoal"`
+	OtherBooksGoal    int       `json:"otherBooksGoal"`
+	CreatedByID       uint      `json:"createdById"`
+	CreatedAt         time.Time `json:"createdAt"`
+	UpdatedAt         time.Time `json:"updatedAt"`
+}
+
+type ClassMembershipResponse struct {
+	ID        uint          `json:"id"`
+	ClassID   uint          `json:"classId"`
+	UserID    uint          `json:"userId"`
+	Role      string        `json:"role"`
+	CreatedAt time.Time     `json:"createdAt"`
+	User      *UserResponse `json:"user,omitempty"`
+	Class     *ClassResponse `json:"class,omitempty"`
+}
+
+type ClassWithMembersResponse struct {
+	ClassResponse
+	Members  []ClassMembershipResponse `json:"members"`
+	Children []ChildResponse           `json:"children"`
+}
+
 // Database migration function
 func AutoMigrate(db *gorm.DB) error {
 	// Skip the destructive migration - it's already been applied
@@ -326,7 +430,34 @@ func AutoMigrate(db *gorm.DB) error {
 	// 	return err
 	// }
 	
-	return db.AutoMigrate(&User{}, &Child{}, &SharedBook{}, &Book{}, &Permission{}, &PendingInvitation{})
+	// Step 1: Migrate existing tables first
+	if err := db.AutoMigrate(&User{}, &SharedBook{}, &Book{}, &Permission{}, &PendingInvitation{}); err != nil {
+		return err
+	}
+	
+	// Step 2: Create new tables without foreign key constraints
+	if err := db.AutoMigrate(&Class{}, &ClassMembership{}); err != nil {
+		return err
+	}
+	
+	// Step 3: Add the class_id column to children table (this is safe - just adds a nullable column)
+	if err := addClassIDToChildren(db); err != nil {
+		return err
+	}
+	
+	// Step 4: Migrate the Child table structure (this should now work safely)
+	return db.AutoMigrate(&Child{})
+}
+
+// addClassIDToChildren safely adds the class_id column to children table
+func addClassIDToChildren(db *gorm.DB) error {
+	// Check if class_id column already exists
+	if db.Migrator().HasColumn(&Child{}, "class_id") {
+		return nil // Column already exists, skip
+	}
+	
+	// Add the column without foreign key constraint first
+	return db.Exec("ALTER TABLE children ADD COLUMN class_id INTEGER").Error
 }
 
 // migrateChildrenTable - REMOVED to prevent data deletion

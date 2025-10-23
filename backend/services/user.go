@@ -434,3 +434,22 @@ func LinkGoogleAccount(userID uint, googleID, profilePicture string) error {
 
 	return nil
 }
+
+// MakeUserTeacher promotes a user to teacher role
+func MakeUserTeacher(userID uint) (*models.User, error) {
+	var user models.User
+	if err := config.DB.First(&user, userID).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, errors.New("user not found")
+		}
+		return nil, err
+	}
+
+	// Update the user to be a teacher
+	user.IsTeacher = true
+	if err := config.DB.Save(&user).Error; err != nil {
+		return nil, err
+	}
+
+	return &user, nil
+}

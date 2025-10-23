@@ -291,6 +291,39 @@ func (suite *UserServiceTestSuite) TestDeleteUserNotFound() {
 	assert.Equal(suite.T(), "user not found", err.Error())
 }
 
+func (suite *UserServiceTestSuite) TestMakeUserTeacher_Success() {
+	// Create a user first
+	req := models.CreateUserRequest{
+		Email:     "teacher@example.com",
+		Password:  "password123",
+		FirstName: "Future",
+		LastName:  "Teacher",
+		IsAdmin:   false,
+		IsTeacher: false,
+	}
+
+	createdUser, err := CreateUser(req)
+	assert.NoError(suite.T(), err)
+	assert.False(suite.T(), createdUser.IsTeacher)
+
+	// Make user a teacher
+	updatedUser, err := MakeUserTeacher(createdUser.ID)
+
+	assert.NoError(suite.T(), err)
+	assert.NotNil(suite.T(), updatedUser)
+	assert.True(suite.T(), updatedUser.IsTeacher)
+	assert.Equal(suite.T(), createdUser.ID, updatedUser.ID)
+	assert.Equal(suite.T(), "teacher@example.com", updatedUser.Email)
+}
+
+func (suite *UserServiceTestSuite) TestMakeUserTeacher_UserNotFound() {
+	user, err := MakeUserTeacher(999)
+
+	assert.Error(suite.T(), err)
+	assert.Nil(suite.T(), user)
+	assert.Equal(suite.T(), "user not found", err.Error())
+}
+
 func TestUserServiceTestSuite(t *testing.T) {
 	suite.Run(t, new(UserServiceTestSuite))
 }

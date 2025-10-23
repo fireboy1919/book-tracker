@@ -2,13 +2,18 @@ import { useState, useEffect } from 'react'
 import { BookOpenIcon, PlusIcon, EyeIcon, PencilIcon } from '@heroicons/react/24/outline'
 import api from '../services/api'
 
-export default function ChildCard({ child, onAddBook, onViewDetails, onEditChild, currentMonth }) {
+export default function ChildCard({ child, onAddBook, onViewDetails, onEditChild, currentMonth, onChildUpdate, currentUser }) {
   const [books, setBooks] = useState([])
   const [loading, setLoading] = useState(true)
   const [currentMonthBooks, setCurrentMonthBooks] = useState([])
+  const [availableClasses, setAvailableClasses] = useState([])
+  const [assigningClass, setAssigningClass] = useState(false)
+  const [currentClass, setCurrentClass] = useState(null)
 
   useEffect(() => {
     fetchBooks()
+    fetchAvailableClasses()
+    fetchCurrentClass()
   }, [child.id])
 
   useEffect(() => {
@@ -24,6 +29,58 @@ export default function ChildCard({ child, onAddBook, onViewDetails, onEditChild
       setBooks([])
     } finally {
       setLoading(false)
+    }
+  }
+
+  const fetchAvailableClasses = async () => {
+    try {
+      const response = await api.get('/classes/available')
+      setAvailableClasses(response.data || [])
+    } catch (error) {
+      console.error('Failed to fetch available classes:', error)
+    }
+  }
+
+  const fetchCurrentClass = async () => {
+    if (child.classId) {
+      try {
+        const response = await api.get(`/classes/${child.classId}`)
+        setCurrentClass(response.data)
+      } catch (error) {
+        console.error('Failed to fetch current class:', error)
+      }
+    } else {
+      setCurrentClass(null)
+    }
+  }
+
+  const assignToClass = async (classId) => {
+    setAssigningClass(true)
+    try {
+      if (classId === '') {
+        // Remove from class (set to null)
+        await api.post('/classes/assign-child', {
+          childId: child.id,
+          classId: null
+        })
+      } else {
+        // Assign to new class
+        await api.post('/classes/assign-child', {
+          childId: child.id,
+          classId: parseInt(classId)
+        })
+      }
+      
+      // Refresh data
+      fetchCurrentClass()
+      if (onChildUpdate) {
+        onChildUpdate()
+      }
+    } catch (error) {
+      console.error('Failed to assign child to class:', error)
+      alert(error.response?.data?.message || 'Failed to assign to class. Please try again.')
+    } finally {
+      setAssigningClass(false)
     }
   }
 
@@ -61,6 +118,43 @@ export default function ChildCard({ child, onAddBook, onViewDetails, onEditChild
                 </dt>
                 <dd className="text-base sm:text-lg font-medium text-gray-900">
                   {child.grade}
+                </dd>
+                {/* Class assignment section */}
+                <dd className="mt-2">
+                  {child.classId && currentClass ? (
+                    <div className="text-xs">
+                      <span className="text-gray-600">Class: </span>
+                      <span className="font-medium text-indigo-600">{currentClass.name}</span>
+                      {currentUser && (currentUser.isTeacher || currentUser.isAdmin) && (
+                        <button
+                          onClick={() => {
+                            if (window.confirm('Remove child from this class?')) {
+                              assignToClass('')
+                            }
+                          }}
+                          className="ml-2 text-red-500 hover:text-red-700 text-xs"
+                        >
+                          ✕
+                        </button>
+                      )}
+                    </div>
+                  ) : (
+                    availableClasses.length > 0 && (
+                      <select
+                        onChange={(e) => assignToClass(e.target.value)}
+                        disabled={assigningClass}
+                        className="text-xs border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                        defaultValue=""
+                      >
+                        <option value="">Assign to class...</option>
+                        {availableClasses.map(classItem => (
+                          <option key={classItem.id} value={classItem.id}>
+                            {classItem.name}
+                          </option>
+                        ))}
+                      </select>
+                    )
+                  )}
                 </dd>
               </dl>
             </div>

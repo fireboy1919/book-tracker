@@ -1,9 +1,18 @@
 package services
 
 import (
+	"crypto/aes"
+	"crypto/cipher"
 	"crypto/rand"
+	"crypto/sha256"
+	"encoding/base64"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
+	"fmt"
+	"io"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/booktracker/backend/config"
@@ -251,4 +260,402 @@ func GetPendingInvitationsByToken(token string) ([]models.PendingInvitation, err
 		return nil, err
 	}
 	return invitations, nil
+}
+
+// ========== STATELESS STUDENT INVITATION SYSTEM ==========
+
+type StudentInvitationService struct {
+	DB *gorm.DB
+}
+
+func NewStudentInvitationService(db *gorm.DB) *StudentInvitationService {
+	return &StudentInvitationService{DB: db}
+}
+
+// GetClassEncryptionKey returns a class-specific encryption key
+func (s *StudentInvitationService) GetClassEncryptionKey(classID uint) ([]byte, error) {
+	// Generate class-specific key to prevent cross-class token generation
+	keyString := fmt.Sprintf("booktracker-class-%d-invitation-key-v1", classID)
+	hash := sha256.Sum256([]byte(keyString))
+	return hash[:], nil
+}
+
+// EncryptInvitationData encrypts student invitation data into a compact string token
+func (s *StudentInvitationService) EncryptInvitationData(payload models.StudentInvitationPayload) (string, error) {
+	// Convert payload to compact pipe-delimited format: "classId|studentName|timestamp"
+	compactData := fmt.Sprintf("%d|%s|%d", payload.ClassID, payload.StudentName, payload.Timestamp)
+
+	// Use class-specific encryption key
+	key, err := s.GetClassEncryptionKey(payload.ClassID)
+	if err != nil {
+		return "", err
+	}
+
+	// Create AES cipher
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		return "", err
+	}
+
+	// Create GCM mode
+	gcm, err := cipher.NewGCM(block)
+	if err != nil {
+		return "", err
+	}
+
+	// Create nonce
+	nonce := make([]byte, gcm.NonceSize())
+	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
+		return "", err
+	}
+
+	// Encrypt the compact data
+	ciphertext := gcm.Seal(nonce, nonce, []byte(compactData), nil)
+	
+	// Base64 encode the result
+	return base64.URLEncoding.EncodeToString(ciphertext), nil
+}
+
+// DecryptInvitationToken decrypts and validates an invitation token
+func (s *StudentInvitationService) DecryptInvitationToken(token string) (*models.StudentInvitationPayload, error) {
+	// Decode the token
+	ciphertext, err := base64.URLEncoding.DecodeString(token)
+	if err != nil {
+		return nil, errors.New("invalid token format")
+	}
+
+	// Get all classes to try their keys
+	var classes []models.Class
+	if err := s.DB.Find(&classes).Error; err != nil {
+		return nil, err
+	}
+
+	for _, class := range classes {
+		// Try GCM first (Go backend generated)
+		if payload, err := s.tryDecryptWithClassKey(ciphertext, class.ID); err == nil {
+			// Validate class ID matches
+			if payload.ClassID != class.ID {
+				continue // Skip if class ID doesn't match
+			}
+			// Validate timestamp (token expires after 30 days)
+			if time.Now().Unix()-payload.Timestamp > 30*24*3600 {
+				return nil, errors.New("invitation token has expired")
+			}
+			return payload, nil
+		}
+		
+		// Try CBC fallback (CryptoJS generated from Google Sheets)
+		if payload, err := s.tryDecryptWithClassKeyCBC(ciphertext, class.ID); err == nil {
+			// Validate class ID matches
+			if payload.ClassID != class.ID {
+				continue // Skip if class ID doesn't match
+			}
+			// Validate timestamp (token expires after 30 days)
+			if time.Now().Unix()-payload.Timestamp > 30*24*3600 {
+				return nil, errors.New("invitation token has expired")
+			}
+			return payload, nil
+		}
+	}
+
+	return nil, errors.New("invalid or expired invitation token")
+}
+
+// Helper function to decrypt with a specific class key (GCM mode)
+func (s *StudentInvitationService) tryDecryptWithClassKey(ciphertext []byte, classID uint) (*models.StudentInvitationPayload, error) {
+	// Get class-specific key
+	key, err := s.GetClassEncryptionKey(classID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Create AES cipher
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		return nil, err
+	}
+
+	// Create GCM mode
+	gcm, err := cipher.NewGCM(block)
+	if err != nil {
+		return nil, err
+	}
+
+	// Check minimum length
+	nonceSize := gcm.NonceSize()
+	if len(ciphertext) < nonceSize {
+		return nil, errors.New("ciphertext too short")
+	}
+
+	// Extract nonce and ciphertext
+	nonce, ciphertext := ciphertext[:nonceSize], ciphertext[nonceSize:]
+
+	// Decrypt
+	plaintext, err := gcm.Open(nil, nonce, ciphertext, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	// Parse compact format: "classId|studentName|timestamp"
+	payload, err := s.parseCompactFormat(string(plaintext))
+	if err != nil {
+		return nil, err
+	}
+
+	return payload, nil
+}
+
+// tryDecryptWithKeyCBC - fallback method to decrypt CryptoJS CBC encrypted tokens
+func (s *StudentInvitationService) tryDecryptWithKeyCBC(ciphertext []byte, teacherKey string) (*models.StudentInvitationPayload, error) {
+	// Decode the teacher's key
+	key, err := base64.URLEncoding.DecodeString(teacherKey)
+	if err != nil {
+		return nil, err
+	}
+
+	// For CBC, we need 16-byte IV + ciphertext
+	if len(ciphertext) < 16 {
+		return nil, errors.New("ciphertext too short for CBC")
+	}
+
+	// Extract IV and ciphertext
+	iv := ciphertext[:16]
+	encryptedData := ciphertext[16:]
+
+	// Create AES cipher
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		return nil, err
+	}
+
+	// Create CBC mode
+	if len(encryptedData)%aes.BlockSize != 0 {
+		return nil, errors.New("ciphertext is not a multiple of the block size")
+	}
+
+	mode := cipher.NewCBCDecrypter(block, iv)
+	plaintext := make([]byte, len(encryptedData))
+	mode.CryptBlocks(plaintext, encryptedData)
+
+	// Remove PKCS7 padding
+	plaintext, err = removePKCS7Padding(plaintext)
+	if err != nil {
+		return nil, err
+	}
+
+	// Parse JSON
+	var payload models.StudentInvitationPayload
+	if err := json.Unmarshal(plaintext, &payload); err != nil {
+		return nil, err
+	}
+
+	return &payload, nil
+}
+
+// removePKCS7Padding removes PKCS7 padding from decrypted data
+func removePKCS7Padding(data []byte) ([]byte, error) {
+	length := len(data)
+	if length == 0 {
+		return nil, errors.New("invalid padding")
+	}
+
+	padLength := int(data[length-1])
+	if padLength > length || padLength == 0 {
+		return nil, errors.New("invalid padding")
+	}
+
+	// Check that all padding bytes are the same
+	for i := length - padLength; i < length; i++ {
+		if data[i] != byte(padLength) {
+			return nil, errors.New("invalid padding")
+		}
+	}
+
+	return data[:length-padLength], nil
+}
+
+// tryDecryptWithClassKeyCBC - class-specific CBC decryption for Google Sheets compatibility
+func (s *StudentInvitationService) tryDecryptWithClassKeyCBC(ciphertext []byte, classID uint) (*models.StudentInvitationPayload, error) {
+	// Get class-specific key
+	key, err := s.GetClassEncryptionKey(classID)
+	if err != nil {
+		return nil, err
+	}
+
+	// For CBC, we need 16-byte IV + ciphertext
+	if len(ciphertext) < 16 {
+		return nil, errors.New("ciphertext too short for CBC")
+	}
+
+	// Extract IV and ciphertext
+	iv := ciphertext[:16]
+	encryptedData := ciphertext[16:]
+
+	// Create AES cipher
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		return nil, err
+	}
+
+	// Create CBC mode
+	if len(encryptedData)%aes.BlockSize != 0 {
+		return nil, errors.New("ciphertext is not a multiple of the block size")
+	}
+
+	mode := cipher.NewCBCDecrypter(block, iv)
+	plaintext := make([]byte, len(encryptedData))
+	mode.CryptBlocks(plaintext, encryptedData)
+
+	// Remove PKCS7 padding
+	plaintext, err = removePKCS7Padding(plaintext)
+	if err != nil {
+		return nil, err
+	}
+
+	// Parse compact format: "classId|studentName|timestamp"
+	payload, err := s.parseCompactFormat(string(plaintext))
+	if err != nil {
+		return nil, err
+	}
+
+	return payload, nil
+}
+
+// parseCompactFormat parses the pipe-delimited compact format: "classId|studentName|timestamp"
+func (s *StudentInvitationService) parseCompactFormat(compactData string) (*models.StudentInvitationPayload, error) {
+	parts := strings.Split(compactData, "|")
+	if len(parts) != 3 {
+		return nil, errors.New("invalid compact format")
+	}
+
+	classID, err := strconv.ParseUint(parts[0], 10, 32)
+	if err != nil {
+		return nil, errors.New("invalid class ID")
+	}
+
+	timestamp, err := strconv.ParseInt(parts[2], 10, 64)
+	if err != nil {
+		return nil, errors.New("invalid timestamp")
+	}
+
+	return &models.StudentInvitationPayload{
+		ClassID:     uint(classID),
+		StudentName: parts[1],
+		Timestamp:   timestamp,
+	}, nil
+}
+
+// RedeemInvitation processes an invitation token and creates/assigns a child
+func (s *StudentInvitationService) RedeemInvitation(token string, parentUserID uint) (*models.ChildResponse, error) {
+	// Decrypt and validate the token
+	payload, err := s.DecryptInvitationToken(token)
+	if err != nil {
+		return nil, err
+	}
+
+	// Verify the class still exists
+	var class models.Class
+	if err := s.DB.First(&class, payload.ClassID).Error; err != nil {
+		return nil, errors.New("class not found")
+	}
+
+	// Check if parent already has a child with this name (without grade matching since we eliminated it)
+	var existingChild models.Child
+	err = s.DB.Where("owner_id = ? AND first_name || ' ' || last_name = ?", 
+		parentUserID, payload.StudentName).First(&existingChild).Error
+	
+	if err == nil {
+		// Child exists, assign to class if not already assigned
+		if existingChild.ClassID == nil || *existingChild.ClassID != payload.ClassID {
+			existingChild.ClassID = &payload.ClassID
+			if err := s.DB.Save(&existingChild).Error; err != nil {
+				return nil, err
+			}
+		}
+		
+		return &models.ChildResponse{
+			ID:        existingChild.ID,
+			FirstName: existingChild.FirstName,
+			LastName:  existingChild.LastName,
+			Grade:     existingChild.Grade,
+			OwnerID:   existingChild.OwnerID,
+			ClassID:   existingChild.ClassID,
+			CreatedAt: existingChild.CreatedAt,
+		}, nil
+	}
+
+	// Child doesn't exist, create new one - we need a default grade since it's required
+	names := parseFullName(payload.StudentName)
+	newChild := models.Child{
+		FirstName: names.FirstName,
+		LastName:  names.LastName,
+		Grade:     class.Name, // Use class name as default grade since we don't have grade in payload
+		OwnerID:   parentUserID,
+		ClassID:   &payload.ClassID,
+	}
+
+	if err := s.DB.Create(&newChild).Error; err != nil {
+		return nil, err
+	}
+
+	return &models.ChildResponse{
+		ID:        newChild.ID,
+		FirstName: newChild.FirstName,
+		LastName:  newChild.LastName,
+		Grade:     newChild.Grade,
+		OwnerID:   newChild.OwnerID,
+		ClassID:   newChild.ClassID,
+		CreatedAt: newChild.CreatedAt,
+	}, nil
+}
+
+// Helper to parse full name into first/last name
+type ParsedName struct {
+	FirstName string
+	LastName  string
+}
+
+func parseFullName(fullName string) ParsedName {
+	// Simple parsing - can be enhanced later
+	parts := strings.Fields(fullName)
+	if len(parts) == 0 {
+		return ParsedName{FirstName: "Unknown", LastName: "Student"}
+	} else if len(parts) == 1 {
+		return ParsedName{FirstName: parts[0], LastName: ""}
+	} else {
+		firstName := parts[0]
+		lastName := strings.Join(parts[1:], " ")
+		return ParsedName{FirstName: firstName, LastName: lastName}
+	}
+}
+
+// GenerateTeacherInvitationData creates the data needed for Google Sheets
+func (s *StudentInvitationService) GenerateTeacherInvitationData(teacherID uint, classID uint) (*TeacherInvitationData, error) {
+	// Get class-specific encryption key
+	key, err := s.GetClassEncryptionKey(classID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Get class information
+	var class models.Class
+	if err := s.DB.First(&class, classID).Error; err != nil {
+		return nil, err
+	}
+
+	return &TeacherInvitationData{
+		TeacherID:     teacherID,
+		ClassID:       classID,
+		ClassName:     class.Name,
+		InvitationKey: hex.EncodeToString(key), // Convert bytes to hex string
+		BaseURL:       "https://booktracker.app/invite/",
+	}, nil
+}
+
+type TeacherInvitationData struct {
+	TeacherID     uint   `json:"teacher_id"`
+	ClassID       uint   `json:"class_id"`
+	ClassName     string `json:"class_name"`
+	InvitationKey string `json:"invitation_key"`
+	BaseURL       string `json:"base_url"`
 }

@@ -10,6 +10,7 @@ import ForgotPassword from './pages/ForgotPassword'
 import ResetPassword from './pages/ResetPassword'
 import Dashboard from './pages/Dashboard'
 import AdminPanel from './pages/AdminPanel'
+import TeacherDashboard from './pages/TeacherDashboard'
 import Layout from './components/Layout'
 import BackendStatus from './components/BackendStatus'
 
@@ -42,6 +43,16 @@ function AdminRoute({ children }) {
   return user?.isAdmin ? children : <Navigate to="/dashboard" />
 }
 
+function TeacherRoute({ children }) {
+  const { user, loading } = useAuth()
+  
+  if (loading) {
+    return <div>Loading...</div>
+  }
+  
+  return (user?.isTeacher || user?.isAdmin) ? children : <Navigate to="/dashboard" />
+}
+
 function App() {
   return (
     <AuthProvider>
@@ -63,6 +74,18 @@ function App() {
                 <Layout>
                   <Dashboard />
                 </Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/teacher"
+            element={
+              <ProtectedRoute>
+                <TeacherRoute>
+                  <Layout>
+                    <TeacherDashboard />
+                  </Layout>
+                </TeacherRoute>
               </ProtectedRoute>
             }
           />

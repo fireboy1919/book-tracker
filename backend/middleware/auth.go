@@ -53,7 +53,9 @@ func AuthMiddleware() gin.HandlerFunc {
 
 		// Set user in context
 		c.Set("user", user)
-		c.Set("userId", user.ID)
+		c.Set("userID", user.ID)
+		c.Set("isAdmin", user.IsAdmin)
+		c.Set("isTeacher", user.IsTeacher)
 		c.Next()
 	}
 }
@@ -74,6 +76,31 @@ func AdminMiddleware() gin.HandlerFunc {
 		if !ok || !currentUser.IsAdmin {
 			c.JSON(http.StatusForbidden, models.ErrorResponse{
 				Message: "Admin access required",
+			})
+			c.Abort()
+			return
+		}
+
+		c.Next()
+	}
+}
+
+// TeacherMiddleware ensures user is a teacher or admin
+func TeacherMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		user, exists := c.Get("user")
+		if !exists {
+			c.JSON(http.StatusUnauthorized, models.ErrorResponse{
+				Message: "User not found in context",
+			})
+			c.Abort()
+			return
+		}
+
+		currentUser, ok := user.(*models.User)
+		if !ok || (!currentUser.IsTeacher && !currentUser.IsAdmin) {
+			c.JSON(http.StatusForbidden, models.ErrorResponse{
+				Message: "Teacher or admin access required",
 			})
 			c.Abort()
 			return

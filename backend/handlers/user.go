@@ -28,6 +28,7 @@ func GetAllUsers(c *gin.Context) {
 			FirstName:     user.FirstName,
 			LastName:      user.LastName,
 			IsAdmin:       user.IsAdmin,
+			IsTeacher:     user.IsTeacher,
 			EmailVerified: user.EmailVerified,
 			CreatedAt:     user.CreatedAt,
 		})
@@ -70,6 +71,7 @@ func GetUserByID(c *gin.Context) {
 		FirstName:     user.FirstName,
 		LastName:      user.LastName,
 		IsAdmin:       user.IsAdmin,
+		IsTeacher:     user.IsTeacher,
 		EmailVerified: user.EmailVerified,
 		CreatedAt:     user.CreatedAt,
 	}
@@ -105,9 +107,9 @@ func UpdateUser(c *gin.Context) {
 		return
 	}
 
-	// Non-admin users cannot change admin status
+	// Non-admin users cannot change admin or teacher status
 	if currentUser != nil && !currentUser.IsAdmin {
-		// Get current user data to preserve admin status
+		// Get current user data to preserve admin and teacher status
 		existingUser, err := services.GetUserByID(uint(id))
 		if err != nil {
 			c.JSON(http.StatusNotFound, models.ErrorResponse{
@@ -116,6 +118,7 @@ func UpdateUser(c *gin.Context) {
 			return
 		}
 		req.IsAdmin = existingUser.IsAdmin
+		req.IsTeacher = existingUser.IsTeacher
 	}
 
 	user, err := services.UpdateUser(uint(id), req)
@@ -132,6 +135,7 @@ func UpdateUser(c *gin.Context) {
 		FirstName:     user.FirstName,
 		LastName:      user.LastName,
 		IsAdmin:       user.IsAdmin,
+		IsTeacher:     user.IsTeacher,
 		EmailVerified: user.EmailVerified,
 		CreatedAt:     user.CreatedAt,
 	}
@@ -159,4 +163,37 @@ func DeleteUser(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusNoContent, nil)
+}
+
+// MakeUserTeacher handles promoting a user to teacher role (admin only)
+func MakeUserTeacher(c *gin.Context) {
+	idParam := c.Param("id")
+	id, err := strconv.ParseUint(idParam, 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, models.ErrorResponse{
+			Message: "Invalid user ID",
+		})
+		return
+	}
+
+	user, err := services.MakeUserTeacher(uint(id))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, models.ErrorResponse{
+			Message: err.Error(),
+		})
+		return
+	}
+
+	userResponse := models.UserResponse{
+		ID:            user.ID,
+		Email:         user.Email,
+		FirstName:     user.FirstName,
+		LastName:      user.LastName,
+		IsAdmin:       user.IsAdmin,
+		IsTeacher:     user.IsTeacher,
+		EmailVerified: user.EmailVerified,
+		CreatedAt:     user.CreatedAt,
+	}
+
+	c.JSON(http.StatusOK, userResponse)
 }

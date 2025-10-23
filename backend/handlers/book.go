@@ -485,6 +485,7 @@ func GetMyBooksReport(c *gin.Context) {
 				LastName:  child.LastName,
 				Grade:     child.Grade,
 				OwnerID:   child.OwnerID,
+				ClassID:   child.ClassID,
 				CreatedAt: child.CreatedAt,
 			},
 			Books:      bookResponses,

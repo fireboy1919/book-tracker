@@ -90,12 +90,8 @@ export default function FullScreenChildView({ child, onClose, onAddBook }) {
   }
 
   const handleAddBook = () => {
-    // Close this modal first, then open the AddBookModal
-    onClose()
-    // Use setTimeout to ensure the modal closes before opening the new one
-    setTimeout(() => {
-      onAddBook(child)
-    }, 100)
+    // Open the AddBookModal above this modal (don't close this one)
+    onAddBook(child)
   }
 
   const handleEditBook = (book) => {

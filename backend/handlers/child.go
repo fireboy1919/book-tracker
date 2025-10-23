@@ -42,6 +42,7 @@ func CreateChild(c *gin.Context) {
 		LastName:  child.LastName,
 		Grade:     child.Grade,
 		OwnerID:   child.OwnerID,
+		ClassID:   child.ClassID,
 		CreatedAt: child.CreatedAt,
 	}
 
@@ -74,6 +75,7 @@ func GetChildren(c *gin.Context) {
 			LastName:  child.LastName,
 			Grade:     child.Grade,
 			OwnerID:   child.OwnerID,
+			ClassID:   child.ClassID,
 			CreatedAt: child.CreatedAt,
 		})
 	}
@@ -129,6 +131,7 @@ func GetChildByID(c *gin.Context) {
 		LastName:  child.LastName,
 		Grade:     child.Grade,
 		OwnerID:   child.OwnerID,
+		ClassID:   child.ClassID,
 		CreatedAt: child.CreatedAt,
 	}
 
@@ -191,6 +194,7 @@ func UpdateChild(c *gin.Context) {
 		LastName:  child.LastName,
 		Grade:     child.Grade,
 		OwnerID:   child.OwnerID,
+		ClassID:   child.ClassID,
 		CreatedAt: child.CreatedAt,
 	}
 

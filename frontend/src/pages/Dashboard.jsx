@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { PlusIcon, ChartBarIcon, ShareIcon, ChevronLeftIcon, ChevronRightIcon, PencilIcon } from '@heroicons/react/24/outline'
 import api from '../services/api'
+import { useAuth } from '../contexts/AuthContext'
 import ChildCard from '../components/ChildCard'
 import AddChildModal from '../components/AddChildModal'
 import AddBookModal from '../components/AddBookModal'
@@ -10,6 +11,7 @@ import FullScreenChildView from '../components/FullScreenChildView'
 import ReportModal from '../components/ReportModal'
 
 export default function Dashboard() {
+  const { user: currentUser } = useAuth()
   const [children, setChildren] = useState([])
   const [loading, setLoading] = useState(true)
   const [showAddChild, setShowAddChild] = useState(false)
@@ -163,9 +165,11 @@ export default function Dashboard() {
                   key={`${child.id}-${refreshTrigger}`}
                   child={child}
                   currentMonth={currentMonth}
+                  currentUser={currentUser}
                   onAddBook={() => handleAddBook(child)}
                   onViewDetails={() => handleViewChild(child)}
                   onEditChild={() => handleManageChild(child)}
+                  onChildUpdate={fetchChildren}
                 />
               ))}
             </div>
