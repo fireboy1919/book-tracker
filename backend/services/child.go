@@ -18,7 +18,7 @@ func CreateChild(req models.CreateChildRequest, ownerID uint) (*models.Child, er
 		OwnerID:   ownerID,
 	}
 
-	result := config.DB.Create(&child)
+	result := config.GetDB().Create(&child)
 	if result.Error != nil {
 		return nil, result.Error
 	}
@@ -29,7 +29,7 @@ func CreateChild(req models.CreateChildRequest, ownerID uint) (*models.Child, er
 // GetChildByID gets a child by ID
 func GetChildByID(id uint) (*models.Child, error) {
 	var child models.Child
-	result := config.DB.Preload("Owner").First(&child, id)
+	result := config.GetDB().Preload("Owner").First(&child, id)
 	if result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 			return nil, errors.New("child not found")
@@ -42,7 +42,7 @@ func GetChildByID(id uint) (*models.Child, error) {
 // GetChildrenByOwner gets all children owned by a user
 func GetChildrenByOwner(ownerID uint) ([]models.Child, error) {
 	var children []models.Child
-	result := config.DB.Where("owner_id = ?", ownerID).Find(&children)
+	result := config.GetDB().Where("owner_id = ?", ownerID).Find(&children)
 	if result.Error != nil {
 		return nil, result.Error
 	}
@@ -54,7 +54,7 @@ func GetChildrenWithPermission(userID uint) ([]models.Child, error) {
 	var children []models.Child
 	
 	// Get children owned by user or children user has permissions for
-	result := config.DB.Raw(`
+	result := config.GetDB().Raw(`
 		SELECT DISTINCT c.* FROM children c 
 		LEFT JOIN permissions p ON c.id = p.child_id 
 		WHERE c.owner_id = ? OR p.user_id = ?
@@ -69,7 +69,7 @@ func GetChildrenWithPermission(userID uint) ([]models.Child, error) {
 // UpdateChild updates a child
 func UpdateChild(id uint, req models.UpdateChildRequest) (*models.Child, error) {
 	var child models.Child
-	result := config.DB.First(&child, id)
+	result := config.GetDB().First(&child, id)
 	if result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 			return nil, errors.New("child not found")
@@ -81,7 +81,7 @@ func UpdateChild(id uint, req models.UpdateChildRequest) (*models.Child, error) 
 	child.LastName = req.LastName
 	child.Grade = req.Grade
 
-	result = config.DB.Save(&child)
+	result = config.GetDB().Save(&child)
 	if result.Error != nil {
 		return nil, result.Error
 	}
@@ -91,7 +91,7 @@ func UpdateChild(id uint, req models.UpdateChildRequest) (*models.Child, error) 
 
 // DeleteChild deletes a child
 func DeleteChild(id uint) error {
-	result := config.DB.Delete(&models.Child{}, id)
+	result := config.GetDB().Delete(&models.Child{}, id)
 	if result.Error != nil {
 		return result.Error
 	}
@@ -104,7 +104,7 @@ func DeleteChild(id uint) error {
 // CheckChildPermission checks if a user has permission to access a child
 func CheckChildPermission(userID, childID uint, permissionType string) (bool, error) {
 	var child models.Child
-	result := config.DB.First(&child, childID)
+	result := config.GetDB().First(&child, childID)
 	if result.Error != nil {
 		return false, result.Error
 	}
@@ -116,12 +116,12 @@ func CheckChildPermission(userID, childID uint, permissionType string) (bool, er
 
 	// Check explicit permissions
 	var permission models.Permission
-	result = config.DB.Where("user_id = ? AND child_id = ? AND permission_type = ?", userID, childID, permissionType).First(&permission)
+	result = config.GetDB().Where("user_id = ? AND child_id = ? AND permission_type = ?", userID, childID, permissionType).First(&permission)
 	if result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 			// Also check for EDIT permission which includes VIEW
 			if permissionType == "VIEW" {
-				result = config.DB.Where("user_id = ? AND child_id = ? AND permission_type = ?", userID, childID, "EDIT").First(&permission)
+				result = config.GetDB().Where("user_id = ? AND child_id = ? AND permission_type = ?", userID, childID, "EDIT").First(&permission)
 				if result.Error != nil {
 					return false, nil
 				}
@@ -156,7 +156,7 @@ func GetChildrenWithBookCounts(userID uint, year int, month int) ([]models.Child
 
 	for _, child := range children {
 		var count int64
-		config.DB.Model(&models.Book{}).Where("child_id = ? AND date_read >= ? AND date_read < ?", 
+		config.GetDB().Model(&models.Book{}).Where("child_id = ? AND date_read >= ? AND date_read < ?", 
 			child.ID, startDate, endDate).Count(&count)
 		
 		childWithCount := models.ChildWithBookCountResponse{
@@ -195,7 +195,7 @@ func GetBookCountsForUserChildren(userID uint, year int, month int) ([]models.Bo
 
 	for _, child := range children {
 		var count int64
-		config.DB.Model(&models.Book{}).Where("child_id = ? AND date_read >= ? AND date_read < ?", 
+		config.GetDB().Model(&models.Book{}).Where("child_id = ? AND date_read >= ? AND date_read < ?", 
 			child.ID, startDate, endDate).Count(&count)
 		
 		bookCount := models.BookCountResponse{

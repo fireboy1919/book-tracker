@@ -19,10 +19,10 @@ func CreateBook(req models.CreateBookRequest) (*models.Book, error) {
 		
 		if req.SharedBookID != nil {
 			// Check if child has already read this shared book (non-partial)
-			duplicateQuery = config.DB.Where("child_id = ? AND shared_book_id = ? AND is_partial = ?", req.ChildID, *req.SharedBookID, false)
+			duplicateQuery = config.GetDB().Where("child_id = ? AND shared_book_id = ? AND is_partial = ?", req.ChildID, *req.SharedBookID, false)
 		} else if req.IsCustomBook {
 			// Check if child has already read this custom book (by title + author, non-partial)
-			duplicateQuery = config.DB.Where("child_id = ? AND custom_title = ? AND custom_author = ? AND is_partial = ?", 
+			duplicateQuery = config.GetDB().Where("child_id = ? AND custom_title = ? AND custom_author = ? AND is_partial = ?", 
 				req.ChildID, req.Title, req.Author, false)
 		} else {
 			return nil, errors.New("invalid book request: must specify either shared book ID or custom book")
@@ -50,7 +50,7 @@ func CreateBook(req models.CreateBookRequest) (*models.Book, error) {
 		book.CustomISBN = req.ISBN
 	}
 
-	result := config.DB.Create(&book)
+	result := config.GetDB().Create(&book)
 	if result.Error != nil {
 		return nil, result.Error
 	}
@@ -61,7 +61,7 @@ func CreateBook(req models.CreateBookRequest) (*models.Book, error) {
 // GetBookByID gets a book by ID
 func GetBookByID(id uint) (*models.Book, error) {
 	var book models.Book
-	result := config.DB.Preload("Child").Preload("SharedBook").First(&book, id)
+	result := config.GetDB().Preload("Child").Preload("SharedBook").First(&book, id)
 	if result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 			return nil, errors.New("book not found")
@@ -74,7 +74,7 @@ func GetBookByID(id uint) (*models.Book, error) {
 // GetBooksByChild gets all books for a child
 func GetBooksByChild(childID uint) ([]models.Book, error) {
 	var books []models.Book
-	result := config.DB.Preload("SharedBook").Where("child_id = ?", childID).Order("date_read DESC").Find(&books)
+	result := config.GetDB().Preload("SharedBook").Where("child_id = ?", childID).Order("date_read DESC").Find(&books)
 	if result.Error != nil {
 		return nil, result.Error
 	}
@@ -86,7 +86,7 @@ func GetBooksForUser(userID uint) ([]models.Book, error) {
 	var books []models.Book
 	
 	// First get books without preloading to avoid issues with bad SharedBook references
-	result := config.DB.Joins("JOIN children c ON books.child_id = c.id").
+	result := config.GetDB().Joins("JOIN children c ON books.child_id = c.id").
 		Joins("LEFT JOIN permissions p ON c.id = p.child_id").
 		Where("c.owner_id = ? OR p.user_id = ?", userID, userID).
 		Order("books.date_read DESC").
@@ -101,7 +101,7 @@ func GetBooksForUser(userID uint) ([]models.Book, error) {
 	for i := range books {
 		if books[i].SharedBookID != nil {
 			var sharedBook models.SharedBook
-			if err := config.DB.First(&sharedBook, *books[i].SharedBookID).Error; err == nil {
+			if err := config.GetDB().First(&sharedBook, *books[i].SharedBookID).Error; err == nil {
 				books[i].SharedBook = &sharedBook
 			}
 			// If error loading SharedBook, just leave it nil - book will still show as custom
@@ -114,7 +114,7 @@ func GetBooksForUser(userID uint) ([]models.Book, error) {
 // UpdateBook updates a book reading record
 func UpdateBook(id uint, req models.UpdateBookRequest) (*models.Book, error) {
 	var book models.Book
-	result := config.DB.Preload("SharedBook").First(&book, id)
+	result := config.GetDB().Preload("SharedBook").First(&book, id)
 	if result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 			return nil, errors.New("book not found")
@@ -142,7 +142,7 @@ func UpdateBook(id uint, req models.UpdateBookRequest) (*models.Book, error) {
 		}
 	}
 
-	result = config.DB.Save(&book)
+	result = config.GetDB().Save(&book)
 	if result.Error != nil {
 		return nil, result.Error
 	}
@@ -152,7 +152,7 @@ func UpdateBook(id uint, req models.UpdateBookRequest) (*models.Book, error) {
 
 // DeleteBook deletes a book
 func DeleteBook(id uint) error {
-	result := config.DB.Delete(&models.Book{}, id)
+	result := config.GetDB().Delete(&models.Book{}, id)
 	if result.Error != nil {
 		return result.Error
 	}
@@ -178,7 +178,7 @@ func GetBooksByChildAndMonth(childID uint, year int, month int) ([]models.Book, 
 	}
 	endDate := fmt.Sprintf("%d-%02d-01", endYear, endMonth)
 	
-	result := config.DB.Preload("SharedBook").Where("child_id = ? AND date_read >= ? AND date_read < ?", 
+	result := config.GetDB().Preload("SharedBook").Where("child_id = ? AND date_read >= ? AND date_read < ?", 
 		childID, startDate, endDate).Order("date_read DESC").Find(&books)
 	
 	return books, result.Error
@@ -200,7 +200,7 @@ func GetBookCountByChildAndMonth(childID uint, year int, month int) (int, error)
 	}
 	endDate := fmt.Sprintf("%d-%02d-01", endYear, endMonth)
 	
-	result := config.DB.Model(&models.Book{}).Where("child_id = ? AND date_read >= ? AND date_read < ?", 
+	result := config.GetDB().Model(&models.Book{}).Where("child_id = ? AND date_read >= ? AND date_read < ?", 
 		childID, startDate, endDate).Count(&count)
 	
 	return int(count), result.Error
@@ -217,7 +217,7 @@ func CreateCustomBook(req models.CreateCustomBookRequest) (*models.Book, error) 
 	if !req.IsPartial {
 		// Check for duplicate custom book for this child (only for non-partial books)
 		var existingBook models.Book
-		if err := config.DB.Where("child_id = ? AND custom_title = ? AND custom_author = ? AND is_partial = ?", 
+		if err := config.GetDB().Where("child_id = ? AND custom_title = ? AND custom_author = ? AND is_partial = ?", 
 			req.ChildID, req.Title, req.Author, false).First(&existingBook).Error; err == nil {
 			return nil, errors.New("child has already read this book")
 		}
@@ -235,7 +235,7 @@ func CreateCustomBook(req models.CreateCustomBookRequest) (*models.Book, error) 
 		ReadByParent:   req.ReadByParent,
 	}
 
-	result := config.DB.Create(&book)
+	result := config.GetDB().Create(&book)
 	if result.Error != nil {
 		return nil, result.Error
 	}

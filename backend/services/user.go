@@ -15,7 +15,7 @@ import (
 func CreateUser(req models.CreateUserRequest) (*models.User, error) {
 	// Check if user already exists
 	var existingUser models.User
-	result := config.DB.Where("email = ?", req.Email).First(&existingUser)
+	result := config.GetDB().Where("email = ?", req.Email).First(&existingUser)
 	if result.Error == nil {
 		return nil, errors.New("user with this email already exists")
 	}
@@ -42,7 +42,7 @@ func CreateUser(req models.CreateUserRequest) (*models.User, error) {
 	} else {
 		// Check if this is the first user (should be admin)
 		var userCount int64
-		err := config.DB.Model(&models.User{}).Count(&userCount).Error
+		err := config.GetDB().Model(&models.User{}).Count(&userCount).Error
 		if err != nil {
 			return nil, err
 		}
@@ -67,7 +67,7 @@ func CreateUser(req models.CreateUserRequest) (*models.User, error) {
 		TokenExpiresAt:         &expiresAt,
 	}
 
-	result = config.DB.Create(&user)
+	result = config.GetDB().Create(&user)
 	if result.Error != nil {
 		return nil, result.Error
 	}
@@ -91,7 +91,7 @@ func GetUserByID(id uint) (*models.User, error) {
 // GetUserByEmail gets a user by email
 func GetUserByEmail(email string) (*models.User, error) {
 	var user models.User
-	result := config.DB.Where("email = ?", email).First(&user)
+	result := config.GetDB().Where("email = ?", email).First(&user)
 	if result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 			return nil, errors.New("user not found")
@@ -104,7 +104,7 @@ func GetUserByEmail(email string) (*models.User, error) {
 // GetAllUsers gets all users (admin only)
 func GetAllUsers() ([]models.User, error) {
 	var users []models.User
-	result := config.DB.Find(&users)
+	result := config.GetDB().Find(&users)
 	if result.Error != nil {
 		return nil, result.Error
 	}
@@ -114,7 +114,7 @@ func GetAllUsers() ([]models.User, error) {
 // UpdateUser updates a user
 func UpdateUser(id uint, req models.UpdateUserRequest) (*models.User, error) {
 	var user models.User
-	result := config.DB.First(&user, id)
+	result := config.GetDB().First(&user, id)
 	if result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 			return nil, errors.New("user not found")
@@ -124,7 +124,7 @@ func UpdateUser(id uint, req models.UpdateUserRequest) (*models.User, error) {
 
 	// Check if email is already taken by another user
 	var existingUser models.User
-	result = config.DB.Where("email = ? AND id != ?", req.Email, id).First(&existingUser)
+	result = config.GetDB().Where("email = ? AND id != ?", req.Email, id).First(&existingUser)
 	if result.Error == nil {
 		return nil, errors.New("email already taken by another user")
 	}
@@ -135,7 +135,7 @@ func UpdateUser(id uint, req models.UpdateUserRequest) (*models.User, error) {
 	user.LastName = req.LastName
 	user.IsAdmin = req.IsAdmin
 
-	result = config.DB.Save(&user)
+	result = config.GetDB().Save(&user)
 	if result.Error != nil {
 		return nil, result.Error
 	}
@@ -145,7 +145,7 @@ func UpdateUser(id uint, req models.UpdateUserRequest) (*models.User, error) {
 
 // DeleteUser deletes a user
 func DeleteUser(id uint) error {
-	result := config.DB.Delete(&models.User{}, id)
+	result := config.GetDB().Delete(&models.User{}, id)
 	if result.Error != nil {
 		return result.Error
 	}
@@ -158,12 +158,12 @@ func DeleteUser(id uint) error {
 // VerifyEmail verifies a user's email address using the verification token
 func VerifyEmail(token string) (*models.User, error) {
 	var user models.User
-	result := config.DB.Where("email_verification_token = ?", token).First(&user)
+	result := config.GetDB().Where("email_verification_token = ?", token).First(&user)
 	if result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 			// Check if this might be a user who is already verified
 			var verifiedUser models.User
-			emailResult := config.DB.Where("email_verified = ? AND email_verification_token = ''", true).First(&verifiedUser)
+			emailResult := config.GetDB().Where("email_verified = ? AND email_verification_token = ''", true).First(&verifiedUser)
 			if emailResult.Error == nil {
 				return nil, errors.New("email address is already verified")
 			}
@@ -187,7 +187,7 @@ func VerifyEmail(token string) (*models.User, error) {
 	user.EmailVerificationToken = ""
 	user.TokenExpiresAt = nil
 
-	result = config.DB.Save(&user)
+	result = config.GetDB().Save(&user)
 	if result.Error != nil {
 		return nil, result.Error
 	}
@@ -198,7 +198,7 @@ func VerifyEmail(token string) (*models.User, error) {
 // ResendVerificationEmail generates a new verification token for a user
 func ResendVerificationEmail(email string) (*models.User, error) {
 	var user models.User
-	result := config.DB.Where("email = ?", email).First(&user)
+	result := config.GetDB().Where("email = ?", email).First(&user)
 	if result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 			return nil, errors.New("user not found")
@@ -221,7 +221,7 @@ func ResendVerificationEmail(email string) (*models.User, error) {
 	user.EmailVerificationToken = token
 	user.TokenExpiresAt = &expiresAt
 
-	result = config.DB.Save(&user)
+	result = config.GetDB().Save(&user)
 	if result.Error != nil {
 		return nil, result.Error
 	}
@@ -232,7 +232,7 @@ func ResendVerificationEmail(email string) (*models.User, error) {
 // GetUserByVerificationToken gets a user by their verification token
 func GetUserByVerificationToken(token string) (*models.User, error) {
 	var user models.User
-	result := config.DB.Where("email_verification_token = ?", token).First(&user)
+	result := config.GetDB().Where("email_verification_token = ?", token).First(&user)
 	if result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 			return nil, errors.New("invalid verification token")
@@ -245,7 +245,7 @@ func GetUserByVerificationToken(token string) (*models.User, error) {
 // RequestPasswordReset generates a password reset token for a user
 func RequestPasswordReset(email string) (*models.User, error) {
 	var user models.User
-	result := config.DB.Where("email = ?", email).First(&user)
+	result := config.GetDB().Where("email = ?", email).First(&user)
 	if result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 			return nil, errors.New("user not found")
@@ -264,7 +264,7 @@ func RequestPasswordReset(email string) (*models.User, error) {
 	user.PasswordResetToken = token
 	user.PasswordResetExpiresAt = &expiresAt
 
-	result = config.DB.Save(&user)
+	result = config.GetDB().Save(&user)
 	if result.Error != nil {
 		return nil, result.Error
 	}
@@ -275,7 +275,7 @@ func RequestPasswordReset(email string) (*models.User, error) {
 // ResetPassword resets a user's password using the reset token
 func ResetPassword(token, newPassword string) (*models.User, error) {
 	var user models.User
-	result := config.DB.Where("password_reset_token = ?", token).First(&user)
+	result := config.GetDB().Where("password_reset_token = ?", token).First(&user)
 	if result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 			return nil, errors.New("invalid reset token")
@@ -299,7 +299,7 @@ func ResetPassword(token, newPassword string) (*models.User, error) {
 	user.PasswordResetToken = ""
 	user.PasswordResetExpiresAt = nil
 
-	result = config.DB.Save(&user)
+	result = config.GetDB().Save(&user)
 	if result.Error != nil {
 		return nil, result.Error
 	}
@@ -311,14 +311,14 @@ func ResetPassword(token, newPassword string) (*models.User, error) {
 func CreateGoogleUser(userInfo *GoogleUserInfo) (*models.User, error) {
 	// Check if user already exists
 	var existingUser models.User
-	result := config.DB.Where("email = ?", userInfo.Email).First(&existingUser)
+	result := config.GetDB().Where("email = ?", userInfo.Email).First(&existingUser)
 	if result.Error == nil {
 		return nil, errors.New("user with this email already exists")
 	}
 
 	// Determine admin status
 	var userCount int64
-	err := config.DB.Model(&models.User{}).Count(&userCount).Error
+	err := config.GetDB().Model(&models.User{}).Count(&userCount).Error
 	if err != nil {
 		return nil, err
 	}
@@ -337,7 +337,7 @@ func CreateGoogleUser(userInfo *GoogleUserInfo) (*models.User, error) {
 		ProfilePicture: userInfo.Picture,
 	}
 
-	result = config.DB.Create(&user)
+	result = config.GetDB().Create(&user)
 	if result.Error != nil {
 		return nil, result.Error
 	}
@@ -375,7 +375,7 @@ func CreateGoogleUserWithInvitation(userInfo *GoogleUserInfo, invitationToken st
 	}
 
 	// Start transaction
-	tx := config.DB.Begin()
+	tx := config.GetDB().Begin()
 	defer func() {
 		if r := recover(); r != nil {
 			tx.Rollback()
@@ -418,7 +418,7 @@ func CreateGoogleUserWithInvitation(userInfo *GoogleUserInfo, invitationToken st
 
 // LinkGoogleAccount links a Google account to an existing user
 func LinkGoogleAccount(userID uint, googleID, profilePicture string) error {
-	result := config.DB.Model(&models.User{}).Where("id = ?", userID).Updates(map[string]interface{}{
+	result := config.GetDB().Model(&models.User{}).Where("id = ?", userID).Updates(map[string]interface{}{
 		"google_id":       googleID,
 		"auth_provider":   "google",
 		"profile_picture": profilePicture,
@@ -438,7 +438,7 @@ func LinkGoogleAccount(userID uint, googleID, profilePicture string) error {
 // MakeUserTeacher promotes a user to teacher role
 func MakeUserTeacher(userID uint) (*models.User, error) {
 	var user models.User
-	if err := config.DB.First(&user, userID).Error; err != nil {
+	if err := config.GetDB().First(&user, userID).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, errors.New("user not found")
 		}
@@ -447,7 +447,7 @@ func MakeUserTeacher(userID uint) (*models.User, error) {
 
 	// Update the user to be a teacher
 	user.IsTeacher = true
-	if err := config.DB.Save(&user).Error; err != nil {
+	if err := config.GetDB().Save(&user).Error; err != nil {
 		return nil, err
 	}
 

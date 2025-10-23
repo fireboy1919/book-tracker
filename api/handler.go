@@ -85,6 +85,7 @@ func initRouter() {
 				users.GET("/:id", handlers.GetUserByID)
 				users.PUT("/:id", handlers.UpdateUser)
 				users.DELETE("/:id", middleware.AdminMiddleware(), handlers.DeleteUser)
+				users.PUT("/:id/make-teacher", middleware.AdminMiddleware(), handlers.MakeUserTeacher)
 			}
 
 			// Children routes
@@ -137,7 +138,39 @@ func initRouter() {
 				reports.GET("/my-books", handlers.GetMyBooksReport)
 				reports.GET("/child/:childId/monthly-pdf", handlers.GenerateMonthlyPDFReport)
 			}
+
+			// Class routes
+			classes := protected.Group("/classes")
+			{
+				classes.POST("", middleware.TeacherMiddleware(), handlers.CreateClass)
+				classes.GET("", handlers.GetClasses)
+				classes.GET("/available", handlers.GetAvailableClasses)
+				classes.GET("/:id", handlers.GetClass)
+				classes.PUT("/:id", middleware.TeacherMiddleware(), handlers.UpdateClass)
+				classes.DELETE("/:id", middleware.AdminMiddleware(), handlers.DeleteClass)
+				classes.POST("/:id/members", middleware.TeacherMiddleware(), handlers.AddClassMember)
+				classes.DELETE("/:id/members/:userId", middleware.TeacherMiddleware(), handlers.RemoveClassMember)
+				classes.GET("/:id/students", handlers.GetClassStudents)
+				classes.GET("/:id/teachers", handlers.GetClassTeachers)
+				classes.POST("/assign-child", handlers.AssignChildToClass)
+				
+				// Student invitation routes
+				classes.GET("/:id/invitation-data", middleware.TeacherMiddleware(), handlers.GetTeacherInvitationData)
+				classes.GET("/:id/google-sheets", middleware.TeacherMiddleware(), handlers.CreatePersonalizedGoogleSheet)
+			}
+			
+			// Student invitation routes (some need to be public)
+			invitations := protected.Group("/invitations")
+			{
+				invitations.POST("/generate-token", handlers.GenerateInvitationToken)
+				invitations.GET("/pending", handlers.CheckPendingInvitation)
+				invitations.POST("/redeem-pending", handlers.RedeemPendingInvitation)
+			}
 		}
+
+		// Public student invitation routes (no auth required)
+		api.GET("/invite/:token", handlers.GetStudentInvitationDetails)
+		api.POST("/invite/:token/redeem", handlers.RedeemStudentInvitation)
 	}
 }
 

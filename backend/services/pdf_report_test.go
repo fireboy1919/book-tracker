@@ -3,6 +3,7 @@ package services
 import (
 	"fmt"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -235,6 +236,10 @@ func TestCreateTestPDF(t *testing.T) {
 // Helper function to create test PDF without database dependencies
 func createTestPDF(childName, title string, books []*BookForPDF) *gofpdf.Fpdf {
 	pdf := gofpdf.New("P", "mm", "A4", "")
+	
+	// Register the star image (needed for drawBookColumn)
+	pdf.RegisterImageOptionsReader("star", gofpdf.ImageOptions{ImageType: "PNG", ReadDpi: false}, strings.NewReader(string(starImageData)))
+	
 	pdf.AddPage()
 	pdf.SetFont("Arial", "B", 16)
 	

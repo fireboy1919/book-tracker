@@ -36,7 +36,7 @@ depends = ["backend:build"]
 env = { DATABASE_URL = "file:./booktracker.db", JWT_SECRET = "dev-secret-key-change-in-production", PORT = "8080" }
 run = [
     "echo '🚀 Starting Go backend...'",
-    "cd api && ./book-tracker-go"
+    "cd backend && ./book-tracker-go"
 ]
 
 
@@ -44,7 +44,7 @@ run = [
 description = "Build backend application"
 run = [
     "echo '🔨 Building Go backend...'",
-    "cd api && go build -o book-tracker-go ."
+    "cd backend && go build -o book-tracker-go cmd/main.go"
 ]
 
 
@@ -220,3 +220,11 @@ run = [
     "echo '🔨 Building for Vercel...'",
     "vercel build"
 ]
+
+[tasks.restart]
+description = "Kill running instances and restart development servers"
+run = "./restart.sh"
+
+[tasks."restart:vercel"]
+description = "Kill running instances and restart with Vercel dev server"
+run = "./restart.sh vercel"
