@@ -1,6 +1,7 @@
 package models
 
 import (
+	"fmt"
 	"log"
 	"time"
 
@@ -51,7 +52,7 @@ type Child struct {
 
 	// Relationships
 	Owner       User         `json:"owner,omitempty" gorm:"foreignKey:OwnerID"`
-	Class       *Class       `json:"class,omitempty" gorm:"foreignKey:ClassID"`
+	Class       *Class       `json:"class,omitempty" gorm:"foreignKey:ClassID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`
 	Books       []Book       `json:"books,omitempty" gorm:"foreignKey:ChildID"`
 	Permissions []Permission `json:"permissions,omitempty" gorm:"foreignKey:ChildID"`
 }
@@ -424,35 +425,329 @@ type ClassWithMembersResponse struct {
 
 // Database migration function
 func AutoMigrate(db *gorm.DB) error {
-	// Skip the destructive migration - it's already been applied
-	// TODO: Remove migrateChildrenTable function once stable
-	// err := migrateChildrenTable(db)
-	// if err != nil {
-	// 	return err
-	// }
+	log.Printf("=== Running normal GORM AutoMigrate ===")
 	
-	// Step 1: Migrate existing tables first
-	if err := db.AutoMigrate(&User{}, &SharedBook{}, &Book{}, &Permission{}, &PendingInvitation{}); err != nil {
+	// Normal GORM AutoMigrate should work now that schema is properly set up
+	return db.AutoMigrate(&User{}, &SharedBook{}, &Class{}, &ClassMembership{}, &Child{}, &Book{}, &Permission{}, &PendingInvitation{})
+}
+
+// backupDataToTempTables creates temporary tables and backs up data
+func backupDataToTempTables(db *gorm.DB) error {
+	log.Printf("=== Starting data backup ===")
+	
+	// Create temporary table for children
+	err := db.Exec(`
+		CREATE TABLE IF NOT EXISTS children_backup AS 
+		SELECT * FROM children
+	`).Error
+	if err != nil {
+		return fmt.Errorf("failed to backup children: %v", err)
+	}
+	
+	// Create temporary table for books
+	err = db.Exec(`
+		CREATE TABLE IF NOT EXISTS books_backup AS 
+		SELECT * FROM books
+	`).Error
+	if err != nil {
+		return fmt.Errorf("failed to backup books: %v", err)
+	}
+	
+	// Create temporary table for permissions
+	err = db.Exec(`
+		CREATE TABLE IF NOT EXISTS permissions_backup AS 
+		SELECT * FROM permissions
+	`).Error
+	if err != nil {
+		return fmt.Errorf("failed to backup permissions: %v", err)
+	}
+	
+	// Create temporary table for pending_invitations if it exists
+	if db.Migrator().HasTable("pending_invitations") {
+		err = db.Exec(`
+			CREATE TABLE IF NOT EXISTS pending_invitations_backup AS 
+			SELECT * FROM pending_invitations
+		`).Error
+		if err != nil {
+			return fmt.Errorf("failed to backup pending_invitations: %v", err)
+		}
+	}
+	
+	var childCount, bookCount, permissionCount int
+	db.Raw("SELECT COUNT(*) FROM children_backup").Scan(&childCount)
+	db.Raw("SELECT COUNT(*) FROM books_backup").Scan(&bookCount)
+	db.Raw("SELECT COUNT(*) FROM permissions_backup").Scan(&permissionCount)
+	
+	log.Printf("Backed up %d children, %d books, %d permissions", childCount, bookCount, permissionCount)
+	return nil
+}
+
+// clearProblematicTables drops tables and indexes that have foreign key issues
+func clearProblematicTables(db *gorm.DB) error {
+	log.Printf("=== Dropping problematic tables and indexes ===")
+	
+	// First drop any problematic indexes
+	indexes := []string{"idx_child_class", "idx_child_owner"}
+	for _, index := range indexes {
+		err := db.Exec(fmt.Sprintf("DROP INDEX IF EXISTS %s", index)).Error
+		if err != nil {
+			log.Printf("Warning: failed to drop index %s: %v", index, err)
+		} else {
+			log.Printf("Dropped index: %s", index)
+		}
+	}
+	
+	// Drop in reverse dependency order
+	tables := []string{"pending_invitations", "permissions", "books", "children"}
+	
+	for _, table := range tables {
+		if db.Migrator().HasTable(table) {
+			err := db.Exec(fmt.Sprintf("DROP TABLE %s", table)).Error
+			if err != nil {
+				return fmt.Errorf("failed to drop table %s: %v", table, err)
+			}
+			log.Printf("Dropped table: %s", table)
+		}
+	}
+	
+	return nil
+}
+
+// restoreDataFromTempTables restores data back to the main tables
+func restoreDataFromTempTables(db *gorm.DB) error {
+	log.Printf("=== Restoring data ===")
+	
+	// Restore children first (no dependencies)
+	err := db.Exec(`
+		INSERT INTO children (id, first_name, last_name, grade, owner_id, class_id, created_at, updated_at)
+		SELECT id, first_name, last_name, grade, owner_id, class_id, created_at, updated_at 
+		FROM children_backup
+	`).Error
+	if err != nil {
+		return fmt.Errorf("failed to restore children: %v", err)
+	}
+	
+	// Restore books (depends on children)
+	err = db.Exec(`
+		INSERT INTO books (id, date_read, child_id, shared_book_id, custom_title, custom_author, custom_isbn, lexile_level, is_partial, partial_comment, read_by_parent, created_at, updated_at)
+		SELECT id, date_read, child_id, shared_book_id, custom_title, custom_author, custom_isbn, lexile_level, is_partial, partial_comment, read_by_parent, created_at, updated_at 
+		FROM books_backup
+	`).Error
+	if err != nil {
+		return fmt.Errorf("failed to restore books: %v", err)
+	}
+	
+	// Restore permissions (depends on children)
+	err = db.Exec(`
+		INSERT INTO permissions (id, user_id, child_id, permission_type, created_at)
+		SELECT id, user_id, child_id, permission_type, created_at 
+		FROM permissions_backup
+	`).Error
+	if err != nil {
+		return fmt.Errorf("failed to restore permissions: %v", err)
+	}
+	
+	// Restore pending_invitations if backup exists
+	var pendingInvitationsBackupExists int
+	db.Raw("SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='pending_invitations_backup'").Scan(&pendingInvitationsBackupExists)
+	
+	if pendingInvitationsBackupExists > 0 {
+		err = db.Exec(`
+			INSERT INTO pending_invitations (id, email, child_id, permission_type, invited_by_id, token, expires_at, created_at)
+			SELECT id, email, child_id, permission_type, invited_by_id, token, expires_at, created_at 
+			FROM pending_invitations_backup
+		`).Error
+		if err != nil {
+			return fmt.Errorf("failed to restore pending_invitations: %v", err)
+		}
+	}
+	
+	var childCount, bookCount, permissionCount int
+	db.Raw("SELECT COUNT(*) FROM children").Scan(&childCount)
+	db.Raw("SELECT COUNT(*) FROM books").Scan(&bookCount)
+	db.Raw("SELECT COUNT(*) FROM permissions").Scan(&permissionCount)
+	
+	log.Printf("Restored %d children, %d books, %d permissions", childCount, bookCount, permissionCount)
+	return nil
+}
+
+// cleanupTempTables removes the temporary backup tables
+func cleanupTempTables(db *gorm.DB) error {
+	log.Printf("=== Cleaning up temporary tables ===")
+	
+	tempTables := []string{"children_backup", "books_backup", "permissions_backup", "pending_invitations_backup"}
+	
+	for _, table := range tempTables {
+		var tableExists int
+		db.Raw("SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name=?", table).Scan(&tableExists)
+		
+		if tableExists > 0 {
+			err := db.Exec(fmt.Sprintf("DROP TABLE %s", table)).Error
+			if err != nil {
+				log.Printf("Warning: failed to drop temp table %s: %v", table, err)
+			} else {
+				log.Printf("Dropped temp table: %s", table)
+			}
+		}
+	}
+	
+	return nil
+}
+
+// cleanAllDataForMigration cleans up data that would cause foreign key failures
+func cleanAllDataForMigration(db *gorm.DB) error {
+	log.Printf("=== Starting cleanAllDataForMigration ===")
+	
+	// Clean children data if table exists
+	if db.Migrator().HasTable(&Child{}) {
+		// Fix invalid class_id references  
+		result1 := db.Exec("UPDATE children SET class_id = NULL WHERE class_id IS NOT NULL AND class_id NOT IN (SELECT id FROM classes)")
+		if result1.RowsAffected > 0 {
+			log.Printf("Fixed %d invalid class_id references", result1.RowsAffected)
+		}
+		
+		// Fix invalid owner_id references (delete orphaned children)
+		result2 := db.Exec("DELETE FROM children WHERE owner_id NOT IN (SELECT id FROM users)")
+		if result2.RowsAffected > 0 {
+			log.Printf("Deleted %d children with invalid owner_id references", result2.RowsAffected)
+		}
+	}
+	
+	// Clean book data if table exists
+	if db.Migrator().HasTable("books") {
+		// Fix invalid child_id references (delete orphaned books)
+		result3 := db.Exec("DELETE FROM books WHERE child_id NOT IN (SELECT id FROM children)")
+		if result3.RowsAffected > 0 {
+			log.Printf("Deleted %d books with invalid child_id references", result3.RowsAffected)
+		}
+		
+		// Fix invalid shared_book_id references
+		result4 := db.Exec("UPDATE books SET shared_book_id = NULL WHERE shared_book_id IS NOT NULL AND shared_book_id NOT IN (SELECT id FROM shared_books)")
+		if result4.RowsAffected > 0 {
+			log.Printf("Fixed %d invalid shared_book_id references", result4.RowsAffected)
+		}
+	}
+	
+	// Clean permission data if table exists
+	if db.Migrator().HasTable("permissions") {
+		// Fix invalid user_id references
+		result5 := db.Exec("DELETE FROM permissions WHERE user_id NOT IN (SELECT id FROM users)")
+		if result5.RowsAffected > 0 {
+			log.Printf("Deleted %d permissions with invalid user_id references", result5.RowsAffected)
+		}
+		
+		// Fix invalid child_id references
+		result6 := db.Exec("DELETE FROM permissions WHERE child_id NOT IN (SELECT id FROM children)")
+		if result6.RowsAffected > 0 {
+			log.Printf("Deleted %d permissions with invalid child_id references", result6.RowsAffected)
+		}
+	}
+	
+	log.Printf("All data cleanup completed")
+	return nil
+}
+
+// ChildForMigration is a temporary struct for safe migration without foreign key constraints
+type ChildForMigration struct {
+	ID        uint      `json:"id" gorm:"primaryKey"`
+	FirstName string    `json:"firstName" gorm:"not null"`
+	LastName  string    `json:"lastName" gorm:"not null"`
+	Grade     string    `json:"grade" gorm:"not null"`
+	OwnerID   uint      `json:"ownerId" gorm:"not null"`
+	ClassID   *uint     `json:"classId,omitempty"`
+	CreatedAt time.Time `json:"createdAt"`
+	UpdatedAt time.Time `json:"updatedAt"`
+	
+	// No relationships or indexes defined - this prevents GORM from adding constraints or conflicting indexes
+}
+
+// TableName ensures this struct uses the same table as Child
+func (ChildForMigration) TableName() string {
+	return "children"
+}
+
+// migrateChildWithoutConstraints migrates Child model without foreign key constraints
+func migrateChildWithoutConstraints(db *gorm.DB) error {
+	log.Printf("=== Starting migrateChildWithoutConstraints ===")
+	
+	// Migrate using the constraint-free struct with explicit table name
+	if err := db.AutoMigrate(&ChildForMigration{}); err != nil {
 		return err
 	}
 	
-	// Step 2: Create new tables without foreign key constraints
-	if err := db.AutoMigrate(&Class{}, &ClassMembership{}); err != nil {
+	log.Printf("Child model migrated successfully without constraints")
+	return nil
+}
+
+// Book model without foreign key constraints for migration
+type BookForMigration struct {
+	ID              uint      `json:"id" gorm:"primaryKey"`
+	DateRead        string    `json:"dateRead" gorm:"not null"`
+	ChildID         uint      `json:"childId" gorm:"not null"`
+	SharedBookID    *uint     `json:"sharedBookId,omitempty"`
+	CustomTitle     string    `json:"customTitle,omitempty"`
+	CustomAuthor    string    `json:"customAuthor,omitempty"`
+	CustomISBN      string    `json:"customIsbn,omitempty"`
+	LexileLevel     string    `json:"lexileLevel,omitempty"`
+	IsPartial       bool      `json:"isPartial" gorm:"default:false"`
+	PartialComment  string    `json:"partialComment,omitempty"`
+	ReadByParent    bool      `json:"readByParent" gorm:"default:false"`
+	CreatedAt       time.Time `json:"createdAt"`
+	UpdatedAt       time.Time `json:"updatedAt"`
+}
+
+func (BookForMigration) TableName() string {
+	return "books"
+}
+
+// Permission model without foreign key constraints for migration
+type PermissionForMigration struct {
+	ID             uint      `json:"id" gorm:"primaryKey"`
+	UserID         uint      `json:"userId" gorm:"not null"`
+	ChildID        uint      `json:"childId" gorm:"not null"`
+	PermissionType string    `json:"permissionType" gorm:"not null;check:permission_type IN ('VIEW', 'EDIT')"`
+	CreatedAt      time.Time `json:"createdAt"`
+}
+
+func (PermissionForMigration) TableName() string {
+	return "permissions"
+}
+
+// PendingInvitation model without foreign key constraints for migration
+type PendingInvitationForMigration struct {
+	ID             uint      `json:"id" gorm:"primaryKey"`
+	Email          string    `json:"email" gorm:"not null"`
+	ChildID        uint      `json:"childId" gorm:"not null"`
+	PermissionType string    `json:"permissionType" gorm:"not null;check:permission_type IN ('VIEW', 'EDIT')"`
+	InvitedByID    uint      `json:"invitedById" gorm:"not null"`
+	Token          string    `json:"token" gorm:"uniqueIndex;not null"`
+	ExpiresAt      time.Time `json:"expiresAt" gorm:"not null"`
+	CreatedAt      time.Time `json:"createdAt"`
+}
+
+func (PendingInvitationForMigration) TableName() string {
+	return "pending_invitations"
+}
+
+// migrateOtherModelsWithoutConstraints migrates remaining models without foreign key constraints
+func migrateOtherModelsWithoutConstraints(db *gorm.DB) error {
+	log.Printf("=== Starting migrateOtherModelsWithoutConstraints ===")
+	
+	// Migrate all models without foreign key constraints
+	if err := db.AutoMigrate(&BookForMigration{}); err != nil {
 		return err
 	}
 	
-	// Step 3: Add the class_id column to children table (this is safe - just adds a nullable column)
-	if err := addClassIDToChildren(db); err != nil {
+	if err := db.AutoMigrate(&PermissionForMigration{}); err != nil {
 		return err
 	}
 	
-	// Step 4: Add the foreign key constraint safely using manual SQL
-	if err := addForeignKeyConstraintToChildren(db); err != nil {
+	if err := db.AutoMigrate(&PendingInvitationForMigration{}); err != nil {
 		return err
 	}
 	
-	// Step 5: Now do the AutoMigrate for Child (should be safe since constraint is handled manually)
-	return db.AutoMigrate(&Child{})
+	log.Printf("All models migrated successfully without constraints")
+	return nil
 }
 
 // addClassIDToChildren safely adds the class_id column to children table
@@ -463,7 +758,25 @@ func addClassIDToChildren(db *gorm.DB) error {
 	}
 	
 	// Add the column without foreign key constraint first
-	return db.Exec("ALTER TABLE children ADD COLUMN class_id INTEGER").Error
+	if err := db.Exec("ALTER TABLE children ADD COLUMN class_id INTEGER").Error; err != nil {
+		return err
+	}
+	
+	// Add index for class_id if it doesn't exist
+	var indexExists int
+	err := db.Raw("SELECT COUNT(*) FROM sqlite_master WHERE type = 'index' AND name = 'idx_child_class'").Scan(&indexExists).Error
+	if err != nil {
+		return err
+	}
+	
+	if indexExists == 0 {
+		if err := db.Exec("CREATE INDEX idx_child_class ON children(class_id)").Error; err != nil {
+			log.Printf("Could not create index idx_child_class: %v", err)
+			// Don't return error - index is not critical
+		}
+	}
+	
+	return nil
 }
 
 // addForeignKeyConstraintToChildren safely adds the foreign key constraint
