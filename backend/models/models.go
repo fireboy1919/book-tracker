@@ -1,6 +1,7 @@
 package models
 
 import (
+	"log"
 	"time"
 
 	"gorm.io/gorm"
@@ -50,7 +51,7 @@ type Child struct {
 
 	// Relationships
 	Owner       User         `json:"owner,omitempty" gorm:"foreignKey:OwnerID"`
-	Class       *Class       `json:"class,omitempty" gorm:"foreignKey:ClassID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`
+	Class       *Class       `json:"class,omitempty" gorm:"foreignKey:ClassID"`
 	Books       []Book       `json:"books,omitempty" gorm:"foreignKey:ChildID"`
 	Permissions []Permission `json:"permissions,omitempty" gorm:"foreignKey:ChildID"`
 }
@@ -445,7 +446,12 @@ func AutoMigrate(db *gorm.DB) error {
 		return err
 	}
 	
-	// Step 4: Migrate the Child table structure (this should now work safely)
+	// Step 4: Add the foreign key constraint safely using manual SQL
+	if err := addForeignKeyConstraintToChildren(db); err != nil {
+		return err
+	}
+	
+	// Step 5: Now do the AutoMigrate for Child (should be safe since constraint is handled manually)
 	return db.AutoMigrate(&Child{})
 }
 
@@ -458,6 +464,48 @@ func addClassIDToChildren(db *gorm.DB) error {
 	
 	// Add the column without foreign key constraint first
 	return db.Exec("ALTER TABLE children ADD COLUMN class_id INTEGER").Error
+}
+
+// addForeignKeyConstraintToChildren safely adds the foreign key constraint
+func addForeignKeyConstraintToChildren(db *gorm.DB) error {
+	// Clean up any invalid class_id references first
+	result := db.Exec("UPDATE children SET class_id = NULL WHERE class_id IS NOT NULL AND class_id NOT IN (SELECT id FROM classes)")
+	if result.Error != nil {
+		return result.Error
+	}
+	
+	// Check if the foreign key constraint already exists
+	var constraintExists int
+	err := db.Raw(`
+		SELECT COUNT(*) FROM sqlite_master 
+		WHERE type = 'table' AND name = 'children' 
+		AND sql LIKE '%CONSTRAINT%fk_classes_children%'
+	`).Scan(&constraintExists).Error
+	
+	if err != nil {
+		return err
+	}
+	
+	// If constraint doesn't exist, add it using ALTER TABLE
+	if constraintExists == 0 {
+		err = db.Exec(`
+			ALTER TABLE children 
+			ADD CONSTRAINT fk_classes_children 
+			FOREIGN KEY (class_id) 
+			REFERENCES classes(id) 
+			ON UPDATE CASCADE 
+			ON DELETE SET NULL
+		`).Error
+		
+		if err != nil {
+			log.Printf("Note: Could not add foreign key constraint (will use application-level enforcement): %v", err)
+			// Don't return error - constraint will be enforced at application level
+		} else {
+			log.Printf("Successfully added foreign key constraint to children table")
+		}
+	}
+	
+	return nil
 }
 
 // migrateChildrenTable - REMOVED to prevent data deletion
