@@ -15,3 +15,6 @@ frontend/test-output/
 frontend/package-lock.json
 package-lock.json
 go.sum
+.env.local
+.env.*.local
+.mise.toml
