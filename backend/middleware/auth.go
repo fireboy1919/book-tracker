@@ -127,7 +127,7 @@ func GetCurrentUser(c *gin.Context) (*models.User, error) {
 
 // GetCurrentUserID helper function to get current user ID from context
 func GetCurrentUserID(c *gin.Context) (uint, bool) {
-	userID, exists := c.Get("userId")
+	userID, exists := c.Get("userID")
 	if !exists {
 		return 0, false
 	}

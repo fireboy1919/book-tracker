@@ -18,14 +18,12 @@ type Claims struct {
 	jwt.RegisteredClaims
 }
 
-var jwtSecret = []byte(getJWTSecret())
-
-func getJWTSecret() string {
+func getJWTSecret() []byte {
 	secret := os.Getenv("JWT_SECRET")
 	if secret == "" {
-		return "dev-secret-key-change-in-production"
+		return []byte("dev-secret-key-change-in-production")
 	}
-	return secret
+	return []byte(secret)
 }
 
 // HashPassword hashes a password using bcrypt
@@ -54,7 +52,7 @@ func GenerateToken(user *models.User) (string, error) {
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString(jwtSecret)
+	return token.SignedString(getJWTSecret())
 }
 
 // ValidateToken validates a JWT token and returns the claims
@@ -63,7 +61,7 @@ func ValidateToken(tokenString string) (*Claims, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
-		return jwtSecret, nil
+		return getJWTSecret(), nil
 	})
 
 	if err != nil {
@@ -138,5 +136,5 @@ func GenerateJWT(userID uint, email string) (string, error) {
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString(jwtSecret)
+	return token.SignedString(getJWTSecret())
 }
