@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { PlusIcon, UsersIcon, BookOpenIcon, UserPlusIcon, TrashIcon } from '@heroicons/react/24/outline'
+import { PlusIcon, UsersIcon, BookOpenIcon, UserPlusIcon, TrashIcon, ClipboardDocumentIcon } from '@heroicons/react/24/outline'
 import api from '../services/api'
 import CreateClassModal from '../components/CreateClassModal'
 
@@ -17,6 +17,9 @@ export default function TeacherDashboard() {
   const [invitationData, setInvitationData] = useState(null)
   const [isEditingClassName, setIsEditingClassName] = useState(false)
   const [editingClassName, setEditingClassName] = useState('')
+  const [copySuccess, setCopySuccess] = useState(false)
+  const [assigningUser, setAssigningUser] = useState(false)
+  const [successMessage, setSuccessMessage] = useState('')
 
   useEffect(() => {
     fetchClasses()
@@ -73,12 +76,14 @@ export default function TeacherDashboard() {
 
   const fetchAvailableUsers = async (userType) => {
     try {
+      console.log(`Fetching available ${userType}s`)
       if (userType === 'teacher') {
         const response = await api.get('/users')
         // Filter teachers and exclude already assigned ones
         const availableTeachers = response.data.filter(user => 
           user.isTeacher && !(classTeachers || []).some(teacher => teacher.id === user.id)
         )
+        console.log('Available teachers:', availableTeachers)
         setAvailableUsers(availableTeachers)
       } else {
         // For students, fetch children instead of users
@@ -87,9 +92,11 @@ export default function TeacherDashboard() {
         const availableChildren = response.data.filter(child => 
           !(classStudents || []).some(student => student.id === child.id)
         )
+        console.log('Available children:', availableChildren)
         setAvailableUsers(availableChildren)
       }
     } catch (error) {
+      console.error(`Error fetching available ${userType}s:`, error)
       setError(`Failed to fetch available ${userType === 'teacher' ? 'teachers' : 'children'}`)
     }
   }
@@ -105,7 +112,12 @@ export default function TeacherDashboard() {
   }
 
   const assignUserToClass = async (userId) => {
+    if (assigningUser) return // Prevent double-clicks
+    
+    setAssigningUser(true)
     try {
+      console.log(`Assigning ${assignModalType} with ID ${userId} to class ${selectedClass.id}`)
+      
       if (assignModalType === 'teacher') {
         await api.post(`/classes/${selectedClass.id}/members`, {
           userId: userId,
@@ -113,20 +125,28 @@ export default function TeacherDashboard() {
         })
       } else {
         // For students (children), use the assign-child endpoint
-        await api.post('/classes/assign-child', {
+        const response = await api.post('/classes/assign-child', {
           childId: userId,
           classId: selectedClass.id
         })
+        console.log('Assign child response:', response)
       }
       setShowAssignModal(false)
       setError('')
+      setSuccessMessage(`Successfully added ${assignModalType === 'teacher' ? 'teacher' : 'student'} to class!`)
+      setTimeout(() => setSuccessMessage(''), 3000)
       // Refresh students and teachers list if we're looking at this class
       if (selectedClass) {
-        fetchClassStudents(selectedClass.id)
-        fetchClassTeachers(selectedClass.id)
+        await fetchClassStudents(selectedClass.id)
+        await fetchClassTeachers(selectedClass.id)
       }
+      console.log(`Successfully assigned ${assignModalType} to class`)
     } catch (error) {
-      setError(`Failed to assign ${assignModalType === 'teacher' ? 'teacher' : 'child'} to class`)
+      console.error('Error assigning user to class:', error)
+      const errorMessage = error.response?.data?.error || error.message || 'Unknown error'
+      setError(`Failed to assign ${assignModalType === 'teacher' ? 'teacher' : 'child'} to class: ${errorMessage}`)
+    } finally {
+      setAssigningUser(false)
     }
   }
 
@@ -144,6 +164,16 @@ export default function TeacherDashboard() {
       }
     } catch (error) {
       setError('Failed to remove user from class')
+    }
+  }
+
+  const copyInvitationKey = async () => {
+    try {
+      await navigator.clipboard.writeText(invitationData.invitation_key)
+      setCopySuccess(true)
+      setTimeout(() => setCopySuccess(false), 2000)
+    } catch (error) {
+      setError('Failed to copy invitation key')
     }
   }
 
@@ -220,9 +250,15 @@ export default function TeacherDashboard() {
           </div>
         )}
 
+        {successMessage && (
+          <div className="mt-4 bg-green-50 border border-green-400 text-green-700 px-4 py-3 rounded">
+            {successMessage}
+          </div>
+        )}
+
         <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-3">
           {/* Classes List */}
-          <div className="lg:col-span-1">
+          <div className="lg:col-span-1 order-1 lg:order-none">
             <div className="bg-white shadow rounded-lg">
               <div className="px-4 py-5 sm:p-6">
                 <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">
@@ -266,11 +302,11 @@ export default function TeacherDashboard() {
           </div>
 
           {/* Class Details */}
-          <div className="lg:col-span-2">
+          <div className="lg:col-span-2 order-2 lg:order-none">
             {selectedClass ? (
               <div className="bg-white shadow rounded-lg">
                 <div className="px-4 py-5 sm:p-6">
-                  <div className="flex items-center justify-between mb-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 space-y-3 sm:space-y-0">
                     {isEditingClassName ? (
                       <div className="flex items-center space-x-2">
                         <input
@@ -307,45 +343,52 @@ export default function TeacherDashboard() {
                         <span className="ml-2 text-sm text-gray-400">✏️</span>
                       </h3>
                     )}
-                    <div className="flex items-center space-x-3">
+                    <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-3">
                       <div className="flex items-center text-sm text-gray-500">
                         <UsersIcon className="h-4 w-4 mr-1" />
                         {classStudents?.length || 0} students, {classTeachers?.length || 0} teachers
                       </div>
-                      <button
-                        onClick={() => openAssignModal('teacher')}
-                        className="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-full text-blue-700 bg-blue-100 hover:bg-blue-200"
-                      >
-                        <UserPlusIcon className="h-3 w-3 mr-1" />
-                        Add Teacher
-                      </button>
-                      <button
-                        onClick={() => openAssignModal('student')}
-                        className="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-full text-green-700 bg-green-100 hover:bg-green-200"
-                      >
-                        <UserPlusIcon className="h-3 w-3 mr-1" />
-                        Add Student
-                      </button>
+                      <div className="flex space-x-2">
+                        <button
+                          onClick={() => openAssignModal('teacher')}
+                          className="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-full text-blue-700 bg-blue-100 hover:bg-blue-200"
+                        >
+                          <UserPlusIcon className="h-3 w-3 mr-1" />
+                          <span className="hidden sm:inline">Add </span>Teacher
+                        </button>
+                        <button
+                          onClick={() => openAssignModal('student')}
+                          className="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-full text-green-700 bg-green-100 hover:bg-green-200"
+                        >
+                          <UserPlusIcon className="h-3 w-3 mr-1" />
+                          <span className="hidden sm:inline">Add </span>Student
+                        </button>
+                      </div>
                     </div>
                   </div>
 
                   {/* Invitation Key Section */}
                   {invitationData && (
                     <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                      <div className="flex items-center justify-between">
-                        <div>
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-3 sm:space-y-0">
+                        <div className="flex-1">
                           <h4 className="text-sm font-medium text-blue-900 mb-1">Class Invitation Key</h4>
                           <p className="text-xs text-blue-700 mb-2">Use this key for Gmail mail merge to invite students</p>
-                          <code className="text-xs bg-white px-2 py-1 rounded border text-gray-800 select-all">
+                          <code className="text-xs bg-white px-2 py-1 rounded border text-gray-800 select-all break-all">
                             {invitationData.invitation_key}
                           </code>
                         </div>
-                        <div className="flex flex-col space-y-2">
+                        <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
                           <button
-                            onClick={() => navigator.clipboard.writeText(invitationData.invitation_key)}
-                            className="text-xs px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700"
+                            onClick={copyInvitationKey}
+                            className={`text-xs px-3 py-1 rounded transition-colors flex items-center space-x-1 ${
+                              copySuccess 
+                                ? 'bg-green-600 text-white' 
+                                : 'bg-blue-600 text-white hover:bg-blue-700'
+                            }`}
                           >
-                            Copy Key
+                            <ClipboardDocumentIcon className="h-3 w-3" />
+                            <span>{copySuccess ? 'Copied!' : 'Copy Key'}</span>
                           </button>
                           <a
                             href="/help/mail-merge"
@@ -387,7 +430,7 @@ export default function TeacherDashboard() {
                         </p>
                       </div>
                     ) : (
-                      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
                         {classStudents.map((student) => (
                           <div key={student.id} className="border border-gray-200 rounded-lg p-4">
                             <div className="flex items-center justify-between">
@@ -438,7 +481,7 @@ export default function TeacherDashboard() {
                         </p>
                       </div>
                     ) : (
-                      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
                         {classTeachers.map((teacher) => (
                           <div key={teacher.id} className="border border-blue-200 rounded-lg p-4 bg-blue-50">
                             <div className="flex items-center justify-between">
@@ -507,7 +550,7 @@ export default function TeacherDashboard() {
       {/* User Assignment Modal */}
       {showAssignModal && selectedClass && (
         <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-          <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+          <div className="relative top-20 mx-auto p-5 border max-w-md w-full mx-4 shadow-lg rounded-md bg-white">
             <div className="mt-3">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-medium text-gray-900">
@@ -539,10 +582,20 @@ export default function TeacherDashboard() {
                       <button
                         key={user.id}
                         onClick={() => assignUserToClass(user.id)}
-                        className="w-full text-left p-3 border border-gray-200 rounded-lg hover:border-indigo-300 hover:bg-indigo-50 transition-colors"
+                        disabled={assigningUser}
+                        className={`w-full text-left p-3 border border-gray-200 rounded-lg transition-colors ${
+                          assigningUser 
+                            ? 'opacity-50 cursor-not-allowed' 
+                            : 'hover:border-indigo-300 hover:bg-indigo-50'
+                        }`}
                       >
-                        <div className="font-medium text-gray-900">
-                          {user.firstName} {user.lastName}
+                        <div className="flex items-center justify-between">
+                          <div className="font-medium text-gray-900">
+                            {user.firstName} {user.lastName}
+                          </div>
+                          {assigningUser && (
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-indigo-600"></div>
+                          )}
                         </div>
                         {assignModalType === 'teacher' ? (
                           <>

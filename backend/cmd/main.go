@@ -79,12 +79,14 @@ func main() {
 			// User routes
 			users := protected.Group("/users")
 			{
+				users.POST("", middleware.AdminMiddleware(), handlers.CreateUser)
 				users.GET("", middleware.AdminMiddleware(), handlers.GetAllUsers)
 				users.GET("/:id", handlers.GetUserByID)
 				users.PUT("/:id", handlers.UpdateUser)
 				users.DELETE("/:id", middleware.AdminMiddleware(), handlers.DeleteUser)
 				users.PUT("/:id/make-teacher", middleware.AdminMiddleware(), handlers.MakeUserTeacher)
 				users.PUT("/:id/remove-teacher", middleware.AdminMiddleware(), handlers.RemoveUserTeacher)
+				users.POST("/:id/resend-verification", middleware.AdminMiddleware(), handlers.ResendUserVerificationEmail)
 			}
 
 			// Children routes

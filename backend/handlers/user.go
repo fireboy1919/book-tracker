@@ -245,3 +245,97 @@ func RemoveUserTeacher(c *gin.Context) {
 
 	c.JSON(http.StatusOK, userResponse)
 }
+
+// CreateUser handles creating a new user (admin only)
+func CreateUser(c *gin.Context) {
+	var req models.CreateUserRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, models.ErrorResponse{
+			Message: "Invalid request data: " + err.Error(),
+		})
+		return
+	}
+
+	user, err := services.CreateUser(req)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, models.ErrorResponse{
+			Message: err.Error(),
+		})
+		return
+	}
+
+	// Send verification email if user needs to verify
+	if !user.EmailVerified {
+		emailService := services.NewEmailService()
+		err = emailService.SendVerificationEmail(user.Email, user.FirstName, user.EmailVerificationToken)
+		if err != nil {
+			// Don't fail user creation if email fails, but add a warning header
+			c.Header("X-Email-Warning", "Verification email failed to send")
+		}
+	}
+
+	userResponse := models.UserResponse{
+		ID:            user.ID,
+		Email:         user.Email,
+		FirstName:     user.FirstName,
+		LastName:      user.LastName,
+		IsAdmin:       user.IsAdmin,
+		IsTeacher:     user.IsTeacher,
+		EmailVerified: user.EmailVerified,
+		CreatedAt:     user.CreatedAt,
+	}
+
+	c.JSON(http.StatusCreated, userResponse)
+}
+
+// ResendUserVerificationEmail handles resending verification email for a specific user (admin only)
+func ResendUserVerificationEmail(c *gin.Context) {
+	idParam := c.Param("id")
+	id, err := strconv.ParseUint(idParam, 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, models.ErrorResponse{
+			Message: "Invalid user ID",
+		})
+		return
+	}
+
+	// Get the user first to check if they need verification
+	user, err := services.GetUserByID(uint(id))
+	if err != nil {
+		c.JSON(http.StatusNotFound, models.ErrorResponse{
+			Message: "User not found",
+		})
+		return
+	}
+
+	// Check if user already verified
+	if user.EmailVerified {
+		c.JSON(http.StatusBadRequest, models.ErrorResponse{
+			Message: "User email is already verified",
+		})
+		return
+	}
+
+	// Resend verification email
+	updatedUser, err := services.ResendVerificationEmail(user.Email)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, models.ErrorResponse{
+			Message: err.Error(),
+		})
+		return
+	}
+
+	// Send the email
+	emailService := services.NewEmailService()
+	err = emailService.SendVerificationEmail(updatedUser.Email, updatedUser.FirstName, updatedUser.EmailVerificationToken)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
+			Message: "Failed to send verification email: " + err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Verification email sent successfully",
+	})
+}
