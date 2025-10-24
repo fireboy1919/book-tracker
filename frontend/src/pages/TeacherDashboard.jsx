@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { PlusIcon, UsersIcon, BookOpenIcon, UserPlusIcon } from '@heroicons/react/24/outline'
+import { PlusIcon, UsersIcon, BookOpenIcon, UserPlusIcon, TrashIcon } from '@heroicons/react/24/outline'
 import api from '../services/api'
 import CreateClassModal from '../components/CreateClassModal'
 
@@ -60,14 +60,24 @@ export default function TeacherDashboard() {
 
   const fetchAvailableUsers = async (userType) => {
     try {
-      const response = await api.get('/users')
-      // Filter based on type: teachers or non-teachers (students)
-      const filtered = response.data.filter(user => 
-        userType === 'teacher' ? user.isTeacher : !user.isTeacher
-      )
-      setAvailableUsers(filtered)
+      if (userType === 'teacher') {
+        const response = await api.get('/users')
+        // Filter teachers and exclude already assigned ones
+        const availableTeachers = response.data.filter(user => 
+          user.isTeacher && !classTeachers.some(teacher => teacher.id === user.id)
+        )
+        setAvailableUsers(availableTeachers)
+      } else {
+        // For students, fetch children instead of users
+        const response = await api.get('/children')
+        // Filter children not already assigned to this class
+        const availableChildren = response.data.filter(child => 
+          !classStudents.some(student => student.id === child.id)
+        )
+        setAvailableUsers(availableChildren)
+      }
     } catch (error) {
-      setError('Failed to fetch available users')
+      setError(`Failed to fetch available ${userType === 'teacher' ? 'teachers' : 'children'}`)
     }
   }
 
@@ -83,10 +93,18 @@ export default function TeacherDashboard() {
 
   const assignUserToClass = async (userId) => {
     try {
-      await api.post(`/classes/${selectedClass.id}/members`, {
-        userId: userId,
-        role: assignModalType === 'teacher' ? 'TEACHER' : 'STUDENT'
-      })
+      if (assignModalType === 'teacher') {
+        await api.post(`/classes/${selectedClass.id}/members`, {
+          userId: userId,
+          role: 'TEACHER'
+        })
+      } else {
+        // For students (children), use the assign-child endpoint
+        await api.post('/classes/assign-child', {
+          childId: userId,
+          classId: selectedClass.id
+        })
+      }
       setShowAssignModal(false)
       setError('')
       // Refresh students and teachers list if we're looking at this class
@@ -95,7 +113,7 @@ export default function TeacherDashboard() {
         fetchClassTeachers(selectedClass.id)
       }
     } catch (error) {
-      setError('Failed to assign user to class')
+      setError(`Failed to assign ${assignModalType === 'teacher' ? 'teacher' : 'child'} to class`)
     }
   }
 
@@ -280,9 +298,10 @@ export default function TeacherDashboard() {
                                     removeUserFromClass(student.id, 'student')
                                   }
                                 }}
-                                className="text-red-500 hover:text-red-700 text-sm"
+                                className="text-red-500 hover:text-red-700 p-1 rounded-md hover:bg-red-50 transition-colors"
+                                title={`Remove ${student.firstName} ${student.lastName} from class`}
                               >
-                                Remove
+                                <TrashIcon className="h-4 w-4" />
                               </button>
                             </div>
                           </div>
@@ -333,9 +352,10 @@ export default function TeacherDashboard() {
                                     removeUserFromClass(teacher.id, 'teacher')
                                   }
                                 }}
-                                className="text-red-500 hover:text-red-700 text-sm"
+                                className="text-red-500 hover:text-red-700 p-1 rounded-md hover:bg-red-50 transition-colors"
+                                title={`Remove ${teacher.firstName} ${teacher.lastName} from class`}
                               >
-                                Remove
+                                <TrashIcon className="h-4 w-4" />
                               </button>
                             </div>
                           </div>
@@ -390,12 +410,12 @@ export default function TeacherDashboard() {
               
               <div className="mb-4">
                 <p className="text-sm text-gray-500 mb-3">
-                  Select a {assignModalType === 'teacher' ? 'teacher' : 'user'} to assign to this class:
+                  Select a {assignModalType === 'teacher' ? 'teacher' : 'child'} to assign to this class:
                 </p>
                 
                 {(availableUsers?.length || 0) === 0 ? (
                   <p className="text-sm text-gray-500">
-                    No available {assignModalType === 'teacher' ? 'teachers' : 'users'} found
+                    No available {assignModalType === 'teacher' ? 'teachers' : 'children'} found
                   </p>
                 ) : (
                   <div className="space-y-2 max-h-60 overflow-y-auto">
@@ -408,16 +428,22 @@ export default function TeacherDashboard() {
                         <div className="font-medium text-gray-900">
                           {user.firstName} {user.lastName}
                         </div>
-                        <div className="text-sm text-gray-500">{user.email}</div>
-                        {user.isTeacher && (
-                          <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800 mt-1">
-                            Teacher
-                          </span>
-                        )}
-                        {user.isAdmin && (
-                          <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800 mt-1 ml-1">
-                            Admin
-                          </span>
+                        {assignModalType === 'teacher' ? (
+                          <>
+                            <div className="text-sm text-gray-500">{user.email}</div>
+                            {user.isTeacher && (
+                              <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800 mt-1">
+                                Teacher
+                              </span>
+                            )}
+                            {user.isAdmin && (
+                              <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800 mt-1 ml-1">
+                                Admin
+                              </span>
+                            )}
+                          </>
+                        ) : (
+                          <div className="text-sm text-gray-500">Grade: {user.grade}</div>
                         )}
                       </button>
                     ))}
