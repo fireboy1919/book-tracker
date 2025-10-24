@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { PencilIcon, TrashIcon, UsersIcon, PlusIcon } from '@heroicons/react/24/outline'
 import api from '../services/api'
 import { useAuth } from '../contexts/AuthContext'
+import CreateUserModal from '../components/CreateUserModal'
 
 export default function AdminPanel() {
   const { user: currentUser } = useAuth()
@@ -11,6 +12,8 @@ export default function AdminPanel() {
   const [classes, setClasses] = useState([])
   const [selectedUser, setSelectedUser] = useState(null)
   const [showClassModal, setShowClassModal] = useState(false)
+  const [showCreateUserModal, setShowCreateUserModal] = useState(false)
+  const [successMessage, setSuccessMessage] = useState('')
 
   useEffect(() => {
     fetchUsers()
@@ -113,6 +116,28 @@ export default function AdminPanel() {
     setShowClassModal(true)
   }
 
+  const createUser = async (userData) => {
+    try {
+      await api.post('/users', userData)
+      setShowCreateUserModal(false)
+      setSuccessMessage('User created successfully!')
+      setTimeout(() => setSuccessMessage(''), 5000)
+      fetchUsers()
+    } catch (error) {
+      setError(error.response?.data?.message || 'Failed to create user')
+    }
+  }
+
+  const resendVerificationEmail = async (userId) => {
+    try {
+      await api.post(`/users/${userId}/resend-verification`)
+      setSuccessMessage('Verification email sent successfully!')
+      setTimeout(() => setSuccessMessage(''), 5000)
+    } catch (error) {
+      setError(error.response?.data?.message || 'Failed to send verification email')
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -130,11 +155,26 @@ export default function AdminPanel() {
               User Management
             </h2>
           </div>
+          <div className="mt-4 flex md:mt-0 md:ml-4">
+            <button
+              onClick={() => setShowCreateUserModal(true)}
+              className="ml-3 inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            >
+              <PlusIcon className="-ml-1 mr-2 h-5 w-5" />
+              Create User
+            </button>
+          </div>
         </div>
 
         {error && (
           <div className="mt-4 bg-red-50 border border-red-400 text-red-700 px-4 py-3 rounded">
             {error}
+          </div>
+        )}
+
+        {successMessage && (
+          <div className="mt-4 bg-green-50 border border-green-400 text-green-700 px-4 py-3 rounded">
+            {successMessage}
           </div>
         )}
 
@@ -150,6 +190,9 @@ export default function AdminPanel() {
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Role
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Status
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Created
@@ -190,6 +233,26 @@ export default function AdminPanel() {
                               <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
                                 Teacher
                               </span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="space-y-1">
+                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                              user.emailVerified
+                                ? 'bg-green-100 text-green-800'
+                                : 'bg-yellow-100 text-yellow-800'
+                            }`}>
+                              {user.emailVerified ? 'Verified' : 'Unverified'}
+                            </span>
+                            {!user.emailVerified && (
+                              <button
+                                onClick={() => resendVerificationEmail(user.id)}
+                                className="block text-xs text-indigo-600 hover:text-indigo-900 underline"
+                                data-testid="resend-verification"
+                              >
+                                Resend Verification
+                              </button>
                             )}
                           </div>
                         </td>
@@ -297,6 +360,15 @@ export default function AdminPanel() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Create User Modal */}
+      {showCreateUserModal && (
+        <CreateUserModal
+          isOpen={showCreateUserModal}
+          onClose={() => setShowCreateUserModal(false)}
+          onCreateUser={createUser}
+        />
       )}
     </div>
   )

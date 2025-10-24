@@ -389,7 +389,7 @@ export default function TeacherDashboard() {
                           <div className="flex items-center space-x-2">
                             <button
                               onClick={copyInvitationKey}
-                              className={`p-2 rounded-full transition-colors shadow-sm ${
+                              className={`p-2 rounded transition-colors shadow-sm ${
                                 copySuccess 
                                   ? 'bg-green-600 text-white' 
                                   : 'bg-blue-600 text-white hover:bg-blue-700'
@@ -402,7 +402,7 @@ export default function TeacherDashboard() {
                               href="/help/mail-merge"
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="p-2 rounded-full bg-green-600 text-white hover:bg-green-700 transition-colors shadow-sm"
+                              className="p-2 rounded bg-green-600 text-white hover:bg-green-700 transition-colors shadow-sm"
                               title="Help Guide"
                             >
                               <QuestionMarkCircleIcon className="h-4 w-4" />
@@ -414,7 +414,7 @@ export default function TeacherDashboard() {
                           <textarea
                             readOnly
                             value={invitationData.invitation_key}
-                            className="w-full text-xs bg-white px-3 py-2 rounded border text-gray-800 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            className="w-full text-xs bg-white px-3 py-2 rounded border text-gray-900 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                             rows="3"
                             style={{ wordBreak: 'break-all' }}
                             onClick={(e) => e.target.select()}
@@ -465,10 +465,7 @@ export default function TeacherDashboard() {
                                 Read-to
                               </th>
                               <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Status
-                              </th>
-                              <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Actions
+                                Status/Actions
                               </th>
                             </tr>
                           </thead>
@@ -481,17 +478,8 @@ export default function TeacherDashboard() {
                               >
                                 <td className="px-3 py-2 whitespace-nowrap">
                                   <div className="flex items-center">
-                                    <div className="flex-shrink-0 h-6 w-6">
-                                      <div className="h-6 w-6 rounded-full bg-indigo-100 flex items-center justify-center">
-                                        <span className="text-xs font-medium text-indigo-700">
-                                          {student.firstName[0]}{student.lastName[0]}
-                                        </span>
-                                      </div>
-                                    </div>
-                                    <div className="ml-2">
-                                      <div className="text-sm font-medium text-gray-900 hover:text-indigo-600 transition-colors">
-                                        {student.firstName} {student.lastName}
-                                      </div>
+                                    <div className="text-sm font-medium text-gray-900 hover:text-indigo-600 transition-colors">
+                                      {student.firstName} {student.lastName}
                                     </div>
                                   </div>
                                 </td>
@@ -506,25 +494,25 @@ export default function TeacherDashboard() {
                                   </div>
                                 </td>
                                 <td className="px-3 py-2 whitespace-nowrap text-center">
-                                  {student.goalsReached ? (
-                                    <CheckIcon className="h-5 w-5 text-green-500 mx-auto" title="Goals completed!" />
-                                  ) : (
-                                    <span className="text-gray-400">-</span>
-                                  )}
-                                </td>
-                                <td className="px-3 py-2 whitespace-nowrap text-center">
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation() // Prevent row click
-                                      if (window.confirm(`Remove ${student.firstName} ${student.lastName} from this class?`)) {
-                                        removeUserFromClass(student.id, 'student')
-                                      }
-                                    }}
-                                    className="text-red-500 hover:text-red-700 p-1 rounded-md hover:bg-red-50 transition-colors"
-                                    title={`Remove ${student.firstName} ${student.lastName} from class`}
-                                  >
-                                    <TrashIcon className="h-4 w-4" />
-                                  </button>
+                                  <div className="flex items-center justify-center space-x-2">
+                                    {student.goalsReached ? (
+                                      <CheckIcon className="h-5 w-5 text-green-500" title="Goals completed!" />
+                                    ) : (
+                                      <span className="text-gray-400">-</span>
+                                    )}
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation() // Prevent row click
+                                        if (window.confirm(`Remove ${student.firstName} ${student.lastName} from this class?`)) {
+                                          removeUserFromClass(student.id, 'student')
+                                        }
+                                      }}
+                                      className="text-red-500 hover:text-red-700 p-1 rounded-md hover:bg-red-50 transition-colors"
+                                      title={`Remove ${student.firstName} ${student.lastName} from class`}
+                                    >
+                                      <TrashIcon className="h-4 w-4" />
+                                    </button>
+                                  </div>
                                 </td>
                               </tr>
                             ))}
