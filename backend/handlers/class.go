@@ -419,17 +419,25 @@ func SearchStudents(c *gin.Context) {
 		return
 	}
 
-	isAdmin, _ := c.Get("isAdmin")
+	isAdminVal, _ := c.Get("isAdmin")
 	query := c.Query("q")
-	fmt.Printf("SearchStudents query: %s, userID: %v, isAdmin: %v\n", query, userID, isAdmin)
+	fmt.Printf("SearchStudents query: %s, userID: %v, isAdmin: %v\n", query, userID, isAdminVal)
 	if query == "" {
 		fmt.Printf("Missing query parameter in SearchStudents\n")
 		c.JSON(http.StatusBadRequest, models.ErrorResponse{Message: "Query parameter 'q' is required"})
 		return
 	}
 
+	// Safely convert isAdmin to bool
+	isAdmin := false
+	if isAdminVal != nil {
+		if admin, ok := isAdminVal.(bool); ok {
+			isAdmin = admin
+		}
+	}
+
 	classService := services.NewClassService(config.GetDB())
-	students, err := classService.SearchStudents(query, userID.(uint), isAdmin.(bool))
+	students, err := classService.SearchStudents(query, userID.(uint), isAdmin)
 	if err != nil {
 		fmt.Printf("SearchStudents service error: %v\n", err)
 		c.JSON(http.StatusInternalServerError, models.ErrorResponse{Message: err.Error()})
