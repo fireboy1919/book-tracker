@@ -175,7 +175,7 @@ func main() {
 		api.POST("/invite/:token/redeem", handlers.RedeemStudentInvitation)
 
 		// Test routes setup (build tag controlled)
-		// setupTestRoutes(api) // Temporarily commented out for development
+		// setupTestRoutes(api) // Enable for e2e testing
 	}
 
 	// Get port from environment or default to 8080
