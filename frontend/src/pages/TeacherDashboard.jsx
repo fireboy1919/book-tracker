@@ -14,6 +14,9 @@ export default function TeacherDashboard() {
   const [showAssignModal, setShowAssignModal] = useState(false)
   const [assignModalType, setAssignModalType] = useState('') // 'teacher' or 'student'
   const [availableUsers, setAvailableUsers] = useState([])
+  const [invitationData, setInvitationData] = useState(null)
+  const [isEditingClassName, setIsEditingClassName] = useState(false)
+  const [editingClassName, setEditingClassName] = useState('')
 
   useEffect(() => {
     fetchClasses()
@@ -48,10 +51,20 @@ export default function TeacherDashboard() {
     }
   }
 
+  const fetchInvitationData = async (classId) => {
+    try {
+      const response = await api.get(`/classes/${classId}/invitation-data`)
+      setInvitationData(response.data)
+    } catch (error) {
+      console.error('Failed to fetch invitation data:', error)
+    }
+  }
+
   const handleClassClick = async (classItem) => {
     setSelectedClass(classItem)
     await fetchClassStudents(classItem.id)
     await fetchClassTeachers(classItem.id)
+    await fetchInvitationData(classItem.id)
   }
 
   const handleCreateSuccess = () => {
@@ -64,7 +77,7 @@ export default function TeacherDashboard() {
         const response = await api.get('/users')
         // Filter teachers and exclude already assigned ones
         const availableTeachers = response.data.filter(user => 
-          user.isTeacher && !classTeachers.some(teacher => teacher.id === user.id)
+          user.isTeacher && !(classTeachers || []).some(teacher => teacher.id === user.id)
         )
         setAvailableUsers(availableTeachers)
       } else {
@@ -72,7 +85,7 @@ export default function TeacherDashboard() {
         const response = await api.get('/children')
         // Filter children not already assigned to this class
         const availableChildren = response.data.filter(child => 
-          !classStudents.some(student => student.id === child.id)
+          !(classStudents || []).some(student => student.id === child.id)
         )
         setAvailableUsers(availableChildren)
       }
@@ -131,6 +144,45 @@ export default function TeacherDashboard() {
       }
     } catch (error) {
       setError('Failed to remove user from class')
+    }
+  }
+
+  const startEditingClassName = () => {
+    setEditingClassName(selectedClass.name)
+    setIsEditingClassName(true)
+  }
+
+  const cancelEditingClassName = () => {
+    setIsEditingClassName(false)
+    setEditingClassName('')
+  }
+
+  const saveClassName = async () => {
+    if (!selectedClass || !editingClassName.trim()) return
+    
+    try {
+      await api.put(`/classes/${selectedClass.id}`, {
+        ...selectedClass,
+        name: editingClassName.trim()
+      })
+      
+      // Update the selected class locally
+      setSelectedClass(prev => ({ ...prev, name: editingClassName.trim() }))
+      
+      // Update in the classes list
+      setClasses(prev => 
+        prev.map(cls => 
+          cls.id === selectedClass.id 
+            ? { ...cls, name: editingClassName.trim() }
+            : cls
+        )
+      )
+      
+      setIsEditingClassName(false)
+      setEditingClassName('')
+      setError('')
+    } catch (error) {
+      setError('Failed to update class name')
     }
   }
 
@@ -219,9 +271,42 @@ export default function TeacherDashboard() {
               <div className="bg-white shadow rounded-lg">
                 <div className="px-4 py-5 sm:p-6">
                   <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg leading-6 font-medium text-gray-900">
-                      {selectedClass.name}
-                    </h3>
+                    {isEditingClassName ? (
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="text"
+                          value={editingClassName}
+                          onChange={(e) => setEditingClassName(e.target.value)}
+                          onKeyPress={(e) => {
+                            if (e.key === 'Enter') saveClassName()
+                            if (e.key === 'Escape') cancelEditingClassName()
+                          }}
+                          className="text-lg font-medium border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                          autoFocus
+                        />
+                        <button
+                          onClick={saveClassName}
+                          className="text-green-600 hover:text-green-800"
+                        >
+                          ✓
+                        </button>
+                        <button
+                          onClick={cancelEditingClassName}
+                          className="text-red-600 hover:text-red-800"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ) : (
+                      <h3 
+                        className="text-lg leading-6 font-medium text-gray-900 cursor-pointer hover:text-indigo-600 flex items-center"
+                        onClick={startEditingClassName}
+                        title="Click to edit class name"
+                      >
+                        {selectedClass.name}
+                        <span className="ml-2 text-sm text-gray-400">✏️</span>
+                      </h3>
+                    )}
                     <div className="flex items-center space-x-3">
                       <div className="flex items-center text-sm text-gray-500">
                         <UsersIcon className="h-4 w-4 mr-1" />
@@ -243,6 +328,37 @@ export default function TeacherDashboard() {
                       </button>
                     </div>
                   </div>
+
+                  {/* Invitation Key Section */}
+                  {invitationData && (
+                    <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h4 className="text-sm font-medium text-blue-900 mb-1">Class Invitation Key</h4>
+                          <p className="text-xs text-blue-700 mb-2">Use this key for Gmail mail merge to invite students</p>
+                          <code className="text-xs bg-white px-2 py-1 rounded border text-gray-800 select-all">
+                            {invitationData.invitation_key}
+                          </code>
+                        </div>
+                        <div className="flex flex-col space-y-2">
+                          <button
+                            onClick={() => navigator.clipboard.writeText(invitationData.invitation_key)}
+                            className="text-xs px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700"
+                          >
+                            Copy Key
+                          </button>
+                          <a
+                            href="/help/mail-merge"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 text-center"
+                          >
+                            Help Guide
+                          </a>
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
                   <div className="border-b border-gray-200">
                     <nav className="-mb-px flex space-x-8">

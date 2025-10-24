@@ -11,6 +11,7 @@ import ResetPassword from './pages/ResetPassword'
 import Dashboard from './pages/Dashboard'
 import AdminPanel from './pages/AdminPanel'
 import TeacherDashboard from './pages/TeacherDashboard'
+import MailMergeHelp from './pages/MailMergeHelp'
 import Layout from './components/Layout'
 import BackendStatus from './components/BackendStatus'
 
@@ -100,6 +101,10 @@ function App() {
                 </AdminRoute>
               </ProtectedRoute>
             }
+          />
+          <Route
+            path="/help/mail-merge"
+            element={<MailMergeHelp />}
           />
         </Routes>
       </Router>

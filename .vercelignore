@@ -18,3 +18,35 @@ go.sum
 .env.local
 .env.*.local
 .mise.toml
+
+# Exclude test files from backend
+backend/**/*_test.go
+backend/**/test*.go
+backend/scripts/
+backend/data/
+backend/assets/
+
+# Exclude all backend source except what's needed for API
+backend/cmd/
+backend/main
+backend/backend
+
+# Exclude frontend debugging and testing files only
+frontend/test/
+frontend/vitest.config.js
+frontend/eslint.config.js
+frontend/playwright.config.js
+frontend/simple-test.js
+frontend/debug-admin.js
+
+# Other large files
+google-sheets-template/
+*.png
+!backend/services/star.png
+*.jpg
+*.jpeg
+*.gif
+cookies.txt
+restart.sh
+main
+dist/
