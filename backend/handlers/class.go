@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -410,15 +411,19 @@ func GetAvailableClasses(c *gin.Context) {
 
 // SearchStudents searches for students by name for teachers to add to classes
 func SearchStudents(c *gin.Context) {
+	fmt.Printf("SearchStudents handler called\n")
 	userID, exists := c.Get("userID")
 	if !exists {
+		fmt.Printf("User not authenticated in SearchStudents\n")
 		c.JSON(http.StatusUnauthorized, models.ErrorResponse{Message: "User not authenticated"})
 		return
 	}
 
 	isAdmin, _ := c.Get("isAdmin")
 	query := c.Query("q")
+	fmt.Printf("SearchStudents query: %s, userID: %v, isAdmin: %v\n", query, userID, isAdmin)
 	if query == "" {
+		fmt.Printf("Missing query parameter in SearchStudents\n")
 		c.JSON(http.StatusBadRequest, models.ErrorResponse{Message: "Query parameter 'q' is required"})
 		return
 	}
@@ -426,9 +431,11 @@ func SearchStudents(c *gin.Context) {
 	classService := services.NewClassService(config.GetDB())
 	students, err := classService.SearchStudents(query, userID.(uint), isAdmin.(bool))
 	if err != nil {
+		fmt.Printf("SearchStudents service error: %v\n", err)
 		c.JSON(http.StatusInternalServerError, models.ErrorResponse{Message: err.Error()})
 		return
 	}
 
+	fmt.Printf("SearchStudents returning %d students\n", len(students))
 	c.JSON(http.StatusOK, students)
 }
