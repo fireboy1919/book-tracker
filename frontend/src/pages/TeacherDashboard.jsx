@@ -389,27 +389,19 @@ export default function TeacherDashboard() {
                           <div className="flex items-center space-x-2">
                             <button
                               onClick={copyInvitationKey}
-                              className={`inline-flex items-center justify-center p-2 rounded transition-colors shadow-sm border-0 ${
-                                copySuccess 
-                                  ? 'bg-green-600 text-white hover:bg-green-700' 
-                                  : 'bg-blue-600 text-white hover:bg-blue-700'
-                              }`}
-                              style={{ 
-                                backgroundColor: copySuccess ? '#059669' : '#2563eb',
-                                color: '#ffffff'
-                              }}
+                              className="text-blue-600 hover:text-blue-900"
                               title={copySuccess ? 'Copied!' : 'Copy to clipboard'}
                             >
-                              <ClipboardDocumentIcon className="h-4 w-4" />
+                              <ClipboardDocumentIcon className="h-5 w-5" />
                             </button>
                             <a
                               href="/help/mail-merge"
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="p-2 rounded bg-green-600 text-white hover:bg-green-700 transition-colors shadow-sm"
+                              className="text-green-600 hover:text-green-900"
                               title="Help Guide"
                             >
-                              <QuestionMarkCircleIcon className="h-4 w-4" />
+                              <QuestionMarkCircleIcon className="h-5 w-5" />
                             </a>
                           </div>
                         </div>
@@ -551,9 +543,6 @@ export default function TeacherDashboard() {
                                 <div className="ml-4">
                                   <div className="text-sm font-medium text-gray-900">
                                     {teacher.firstName} {teacher.lastName}
-                                  </div>
-                                  <div className="text-sm text-gray-500">
-                                    {teacher.email}
                                   </div>
                                   <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
                                     Teacher

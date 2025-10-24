@@ -116,6 +116,7 @@ func Login(loginReq models.LoginRequest) (*models.LoginResponse, error) {
 		FirstName:     user.FirstName,
 		LastName:      user.LastName,
 		IsAdmin:       user.IsAdmin,
+		IsTeacher:     user.IsTeacher,
 		EmailVerified: user.EmailVerified,
 		CreatedAt:     user.CreatedAt,
 	}

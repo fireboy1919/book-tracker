@@ -50,6 +50,7 @@ func RegisterUser(c *gin.Context) {
 		FirstName:     user.FirstName,
 		LastName:      user.LastName,
 		IsAdmin:       user.IsAdmin,
+		IsTeacher:     user.IsTeacher,
 		EmailVerified: user.EmailVerified,
 		CreatedAt:     user.CreatedAt,
 	}
@@ -97,6 +98,7 @@ func RegisterUserWithInvitation(c *gin.Context) {
 			FirstName:     user.FirstName,
 			LastName:      user.LastName,
 			IsAdmin:       user.IsAdmin,
+			IsTeacher:     user.IsTeacher,
 			EmailVerified: user.EmailVerified,
 			CreatedAt:     user.CreatedAt,
 		}
@@ -132,6 +134,7 @@ func RegisterUserWithInvitation(c *gin.Context) {
 		FirstName:     user.FirstName,
 		LastName:      user.LastName,
 		IsAdmin:       user.IsAdmin,
+		IsTeacher:     user.IsTeacher,
 		EmailVerified: user.EmailVerified,
 		CreatedAt:     user.CreatedAt,
 	}
@@ -296,6 +299,7 @@ func ResetPassword(c *gin.Context) {
 		FirstName:     user.FirstName,
 		LastName:      user.LastName,
 		IsAdmin:       user.IsAdmin,
+		IsTeacher:     user.IsTeacher,
 		EmailVerified: user.EmailVerified,
 		CreatedAt:     user.CreatedAt,
 	}
@@ -502,6 +506,7 @@ func GoogleCallback(c *gin.Context) {
 				FirstName:     newUser.FirstName,
 				LastName:      newUser.LastName,
 				IsAdmin:       newUser.IsAdmin,
+				IsTeacher:     newUser.IsTeacher,
 				EmailVerified: newUser.EmailVerified,
 				CreatedAt:     newUser.CreatedAt,
 			}
@@ -546,6 +551,7 @@ func GoogleCallback(c *gin.Context) {
 			FirstName:     newUser.FirstName,
 			LastName:      newUser.LastName,
 			IsAdmin:       newUser.IsAdmin,
+			IsTeacher:     newUser.IsTeacher,
 			EmailVerified: newUser.EmailVerified,
 			CreatedAt:     newUser.CreatedAt,
 		}
@@ -592,6 +598,7 @@ func GoogleCallback(c *gin.Context) {
 		FirstName:     existingUser.FirstName,
 		LastName:      existingUser.LastName,
 		IsAdmin:       existingUser.IsAdmin,
+		IsTeacher:     existingUser.IsTeacher,
 		EmailVerified: existingUser.EmailVerified,
 		CreatedAt:     existingUser.CreatedAt,
 	}
