@@ -176,7 +176,7 @@ func main() {
 		api.POST("/invite/:token/redeem", handlers.RedeemStudentInvitation)
 
 		// Test routes setup (build tag controlled)
-		// setupTestRoutes(api) // Enable for e2e testing
+		setupTestRoutes(api) // Enable for e2e testing
 	}
 
 	// Get port from environment or default to 8080
@@ -187,4 +187,31 @@ func main() {
 
 	log.Printf("Starting server on port %s", port)
 	log.Fatal(router.Run(":" + port))
+}
+
+// setupTestRoutes adds test-only routes for e2e testing
+func setupTestRoutes(api *gin.RouterGroup) {
+	test := api.Group("/test")
+	{
+		test.DELETE("/reset-db", func(c *gin.Context) {
+			// Clear all tables for clean test state
+			db := config.GetDB()
+			
+			// Delete in reverse dependency order
+			db.Exec("DELETE FROM permissions")
+			db.Exec("DELETE FROM pending_invitations") 
+			db.Exec("DELETE FROM used_student_invitations")
+			db.Exec("DELETE FROM books")
+			db.Exec("DELETE FROM children")
+			db.Exec("DELETE FROM class_memberships")
+			db.Exec("DELETE FROM classes")
+			db.Exec("DELETE FROM users")
+			db.Exec("DELETE FROM shared_books")
+			
+			// Reset auto-increment counters
+			db.Exec("DELETE FROM sqlite_sequence WHERE name IN ('users', 'children', 'books', 'classes', 'permissions', 'pending_invitations', 'used_student_invitations', 'class_memberships', 'shared_books')")
+			
+			c.JSON(200, gin.H{"message": "Database reset successful"})
+		})
+	}
 }

@@ -148,6 +148,7 @@ func initRouter() {
 				classes.POST("", middleware.TeacherMiddleware(), handlers.CreateClass)
 				classes.GET("", handlers.GetClasses)
 				classes.GET("/available", handlers.GetAvailableClasses)
+				classes.GET("/search-students", middleware.TeacherMiddleware(), handlers.SearchStudents)
 				classes.GET("/:id", handlers.GetClass)
 				classes.PUT("/:id", middleware.TeacherMiddleware(), handlers.UpdateClass)
 				classes.DELETE("/:id", middleware.AdminMiddleware(), handlers.DeleteClass)
