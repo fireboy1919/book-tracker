@@ -332,8 +332,8 @@ func (s *ClassService) RemoveClassMember(classID, memberID, requestingUserID uin
 	return s.DB.Delete(&membershipToRemove).Error
 }
 
-// GetClassStudents returns all students in a class, sorted alphabetically
-func (s *ClassService) GetClassStudents(classID, userID uint, isAdmin bool) ([]models.UserResponse, error) {
+// GetClassStudents returns all students (children) in a class with book counts, sorted alphabetically
+func (s *ClassService) GetClassStudents(classID, userID uint, isAdmin bool) ([]models.ClassStudentResponse, error) {
 	// Check if user has access to this class
 	if !isAdmin {
 		var membership models.ClassMembership
@@ -345,30 +345,85 @@ func (s *ClassService) GetClassStudents(classID, userID uint, isAdmin bool) ([]m
 		}
 	}
 
-	// Get all students in the class, sorted alphabetically by last name, then first name
-	var students []models.User
-	if err := s.DB.Joins("JOIN class_memberships ON users.id = class_memberships.user_id").
-		Where("class_memberships.class_id = ? AND class_memberships.role = ?", classID, "STUDENT").
-		Order("users.last_name ASC, users.first_name ASC").
-		Find(&students).Error; err != nil {
+	// Get the class to access the goals
+	var class models.Class
+	if err := s.DB.First(&class, classID).Error; err != nil {
 		return nil, err
 	}
 
-	var response []models.UserResponse
-	for _, student := range students {
-		response = append(response, models.UserResponse{
-			ID:            student.ID,
-			Email:         student.Email,
-			FirstName:     student.FirstName,
-			LastName:      student.LastName,
-			IsAdmin:       student.IsAdmin,
-			IsTeacher:     student.IsTeacher,
-			EmailVerified: student.EmailVerified,
-			CreatedAt:     student.CreatedAt,
+	// Get all children assigned to this class, sorted alphabetically by last name, then first name
+	var children []models.Child
+	if err := s.DB.Preload("Owner").
+		Where("class_id = ?", classID).
+		Order("last_name ASC, first_name ASC").
+		Find(&children).Error; err != nil {
+		return nil, err
+	}
+
+	var response []models.ClassStudentResponse
+	for _, child := range children {
+		// Count books read by student (ReadByParent = false)
+		var studentBooksRead int64
+		s.DB.Model(&models.Book{}).Where("child_id = ? AND read_by_parent = ?", child.ID, false).Count(&studentBooksRead)
+
+		// Count books read to student by parent (ReadByParent = true)
+		var readToBooksRead int64
+		s.DB.Model(&models.Book{}).Where("child_id = ? AND read_by_parent = ?", child.ID, true).Count(&readToBooksRead)
+
+		// Check if both goals are met
+		goalsReached := int(studentBooksRead) >= class.StudentBooksGoal && int(readToBooksRead) >= class.OtherBooksGoal
+
+		response = append(response, models.ClassStudentResponse{
+			ID:               child.ID,
+			FirstName:        child.FirstName,
+			LastName:         child.LastName,
+			OwnerID:          child.OwnerID,
+			ClassID:          child.ClassID,
+			CreatedAt:        child.CreatedAt,
+			StudentBooksRead: int(studentBooksRead),
+			ReadToBooksRead:  int(readToBooksRead),
+			StudentGoal:      class.StudentBooksGoal,
+			ReadToGoal:       class.OtherBooksGoal,
+			GoalsReached:     goalsReached,
 		})
 	}
 
 	return response, nil
+}
+
+// RemoveChildFromClass removes a child from a class by setting their class_id to null
+func (s *ClassService) RemoveChildFromClass(childID, classID, userID uint, isAdmin bool) error {
+	// Get the child first
+	var child models.Child
+	if err := s.DB.First(&child, childID).Error; err != nil {
+		return err
+	}
+
+	// Check if child is actually in this class
+	if child.ClassID == nil || *child.ClassID != classID {
+		return errors.New("child is not in this class")
+	}
+
+	// Check permissions - only admins, teachers, or the child's owner can remove them
+	if !isAdmin {
+		var user models.User
+		if err := s.DB.First(&user, userID).Error; err != nil {
+			return err
+		}
+
+		// Check if user is the child's owner
+		if child.OwnerID != userID {
+			// Check if user is a teacher in this class
+			var membership models.ClassMembership
+			if err := s.DB.Where("class_id = ? AND user_id = ? AND role = ?", classID, userID, "TEACHER").First(&membership).Error; err != nil {
+				return errors.New("you don't have permission to remove this child from the class")
+			}
+		}
+	}
+
+	// Remove child from class by setting class_id to null
+	child.ClassID = nil
+	return s.DB.Save(&child).Error
 }
 
 // AssignChildToClass assigns a child to a class

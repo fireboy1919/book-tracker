@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { BookOpenIcon, PlusIcon, EyeIcon, PencilIcon } from '@heroicons/react/24/outline'
+import { CheckIcon } from '@heroicons/react/24/solid'
 import api from '../services/api'
 
 export default function ChildCard({ child, onAddBook, onViewDetails, onEditChild, currentMonth, onChildUpdate, currentUser }) {
@@ -103,9 +104,21 @@ export default function ChildCard({ child, onAddBook, onViewDetails, onEditChild
 
 
 
+  const handleCardClick = () => {
+    // Only allow teachers to click through to view child's books
+    if (currentUser && (currentUser.isTeacher || currentUser.isAdmin)) {
+      onViewDetails(child)
+    }
+  }
+
+  const isClickable = currentUser && (currentUser.isTeacher || currentUser.isAdmin)
+
   return (
     <div className="bg-white overflow-hidden shadow rounded-lg">
-      <div className="p-3 sm:p-5">
+      <div 
+        className={`p-3 sm:p-5 ${isClickable ? 'cursor-pointer hover:bg-gray-50 transition-colors' : ''}`}
+        onClick={isClickable ? handleCardClick : undefined}
+      >
         <div className="flex items-center justify-between">
           <div className="flex items-center flex-1 min-w-0">
             <div className="flex-shrink-0">
@@ -163,7 +176,10 @@ export default function ChildCard({ child, onAddBook, onViewDetails, onEditChild
           {/* Action buttons on the right */}
           <div className="flex-shrink-0 ml-2 sm:ml-3">
             <button
-              onClick={() => onEditChild(child)}
+              onClick={(e) => {
+                e.stopPropagation()
+                onEditChild(child)
+              }}
               className="p-1 sm:p-2 rounded hover:bg-indigo-50 hover:text-indigo-600 transition-colors"
               title="Edit child information"
             >
@@ -174,28 +190,68 @@ export default function ChildCard({ child, onAddBook, onViewDetails, onEditChild
       </div>
       <div className="bg-gray-50 px-3 sm:px-5 py-3">
         <div className="text-sm">
-          <div className="font-medium text-gray-900 mb-2">
-            {loading ? 'Loading...' : `${currentMonthBooks?.length || 0} books this month`}
-          </div>
-          {!loading && (
-            <div className="text-gray-600 text-xs sm:text-sm">
-              {currentMonth ? 
-                currentMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) :
-                'Current Month'
-              }
+          {/* Show read/read-to metrics if child has class goals */}
+          {child.classId && (child.studentGoal > 0 || child.readToGoal > 0) ? (
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <div className="text-gray-600 text-xs sm:text-sm">
+                  {currentMonth ? 
+                    currentMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) :
+                    'Current Month'
+                  }
+                </div>
+                {child.goalsReached && (
+                  <CheckIcon className="h-5 w-5 text-green-500" title="Goals completed!" />
+                )}
+              </div>
+              <div className="grid grid-cols-2 gap-4 text-center">
+                <div>
+                  <div className="font-medium text-gray-900">
+                    {child.studentBooksRead || 0}/{child.studentGoal || 0}
+                  </div>
+                  <div className="text-gray-600 text-xs">Read</div>
+                </div>
+                <div>
+                  <div className="font-medium text-gray-900">
+                    {child.readToBooksRead || 0}/{child.readToGoal || 0}
+                  </div>
+                  <div className="text-gray-600 text-xs">Read-to</div>
+                </div>
+              </div>
+            </div>
+          ) : (
+            /* Fallback to old book count display */
+            <div>
+              <div className="font-medium text-gray-900 mb-2">
+                {loading ? 'Loading...' : `${currentMonthBooks?.length || 0} books this month`}
+              </div>
+              {!loading && (
+                <div className="text-gray-600 text-xs sm:text-sm">
+                  {currentMonth ? 
+                    currentMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) :
+                    'Current Month'
+                  }
+                </div>
+              )}
             </div>
           )}
         </div>
         <div className="mt-3 flex flex-wrap gap-2">
           <button
-            onClick={() => onAddBook(child)}
+            onClick={(e) => {
+              e.stopPropagation()
+              onAddBook(child)
+            }}
             className="inline-flex items-center px-2 sm:px-3 py-1 border border-transparent text-xs font-medium rounded-full text-indigo-700 bg-indigo-100 hover:bg-indigo-200"
           >
             <PlusIcon className="h-3 w-3 mr-1" />
             Add Book
           </button>
           <button
-            onClick={() => onViewDetails(child)}
+            onClick={(e) => {
+              e.stopPropagation()
+              onViewDetails(child)
+            }}
             className="inline-flex items-center px-2 sm:px-3 py-1 border border-transparent text-xs font-medium rounded-full text-gray-700 bg-gray-100 hover:bg-gray-200"
           >
             <EyeIcon className="h-3 w-3 mr-1" />

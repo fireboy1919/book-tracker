@@ -340,14 +340,33 @@ type ChildResponse struct {
 }
 
 type ChildWithBookCountResponse struct {
-	ID        uint      `json:"id"`
-	FirstName string    `json:"firstName"`
-	LastName  string    `json:"lastName"`
-	Grade     string    `json:"grade"`
-	OwnerID   uint      `json:"ownerId"`
-	ClassID   *uint     `json:"classId,omitempty"`
-	CreatedAt time.Time `json:"createdAt"`
-	BookCount int       `json:"bookCount"`
+	ID               uint      `json:"id"`
+	FirstName        string    `json:"firstName"`
+	LastName         string    `json:"lastName"`
+	Grade            string    `json:"grade"`
+	OwnerID          uint      `json:"ownerId"`
+	ClassID          *uint     `json:"classId,omitempty"`
+	CreatedAt        time.Time `json:"createdAt"`
+	BookCount        int       `json:"bookCount"`        // Deprecated - total count for backward compatibility
+	StudentBooksRead int       `json:"studentBooksRead"` // Books read by student
+	ReadToBooksRead  int       `json:"readToBooksRead"`  // Books read to student by parent
+	StudentGoal      int       `json:"studentGoal"`      // Goal for student reading
+	ReadToGoal       int       `json:"readToGoal"`       // Goal for read-to books
+	GoalsReached     bool      `json:"goalsReached"`     // True if both goals met
+}
+
+type ClassStudentResponse struct {
+	ID               uint      `json:"id"`
+	FirstName        string    `json:"firstName"`
+	LastName         string    `json:"lastName"`
+	OwnerID          uint      `json:"ownerId"`
+	ClassID          *uint     `json:"classId,omitempty"`
+	CreatedAt        time.Time `json:"createdAt"`
+	StudentBooksRead int       `json:"studentBooksRead"`  // Books read by student
+	ReadToBooksRead  int       `json:"readToBooksRead"`   // Books read to student by parent
+	StudentGoal      int       `json:"studentGoal"`       // Goal for student reading
+	ReadToGoal       int       `json:"readToGoal"`        // Goal for read-to books
+	GoalsReached     bool      `json:"goalsReached"`      // True if both goals met
 }
 
 type BookCountResponse struct {

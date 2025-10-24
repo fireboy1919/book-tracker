@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { PlusIcon, UsersIcon, BookOpenIcon, UserPlusIcon, TrashIcon, ClipboardDocumentIcon } from '@heroicons/react/24/outline'
+import { CheckIcon } from '@heroicons/react/24/solid'
 import api from '../services/api'
 import CreateClassModal from '../components/CreateClassModal'
 
@@ -154,14 +155,15 @@ export default function TeacherDashboard() {
     if (!selectedClass) return
     
     try {
-      await api.delete(`/classes/${selectedClass.id}/members/${userId}`)
-      setError('')
-      // Refresh the appropriate list
       if (userType === 'teacher') {
+        await api.delete(`/classes/${selectedClass.id}/members/${userId}`)
         fetchClassTeachers(selectedClass.id)
       } else {
+        // For students (children), use the new endpoint to remove them from the class
+        await api.delete(`/classes/${selectedClass.id}/children/${userId}`)
         fetchClassStudents(selectedClass.id)
       }
+      setError('')
     } catch (error) {
       setError('Failed to remove user from class')
     }
@@ -370,18 +372,38 @@ export default function TeacherDashboard() {
                   {/* Invitation Key Section */}
                   {invitationData && (
                     <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-3 sm:space-y-0">
-                        <div className="flex-1">
+                      <div className="space-y-3">
+                        <div>
                           <h4 className="text-sm font-medium text-blue-900 mb-1">Class Invitation Key</h4>
                           <p className="text-xs text-blue-700 mb-2">Use this key for Gmail mail merge to invite students</p>
-                          <code className="text-xs bg-white px-2 py-1 rounded border text-gray-800 select-all break-all">
-                            {invitationData.invitation_key}
-                          </code>
                         </div>
+                        
+                        <div className="relative">
+                          <textarea
+                            readOnly
+                            value={invitationData.invitation_key}
+                            className="w-full text-xs bg-white px-3 py-2 rounded border text-gray-800 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            rows="3"
+                            style={{ wordBreak: 'break-all' }}
+                            onClick={(e) => e.target.select()}
+                          />
+                          <button
+                            onClick={copyInvitationKey}
+                            className={`absolute top-2 right-2 p-1 rounded transition-colors shadow-sm ${
+                              copySuccess 
+                                ? 'bg-green-600 text-white' 
+                                : 'bg-blue-600 text-white hover:bg-blue-700'
+                            }`}
+                            title={copySuccess ? 'Copied!' : 'Copy to clipboard'}
+                          >
+                            <ClipboardDocumentIcon className="h-4 w-4" />
+                          </button>
+                        </div>
+                        
                         <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
                           <button
                             onClick={copyInvitationKey}
-                            className={`text-xs px-3 py-1 rounded transition-colors flex items-center space-x-1 ${
+                            className={`text-xs px-3 py-1 rounded transition-colors flex items-center justify-center space-x-1 ${
                               copySuccess 
                                 ? 'bg-green-600 text-white' 
                                 : 'bg-blue-600 text-white hover:bg-blue-700'
@@ -430,39 +452,53 @@ export default function TeacherDashboard() {
                         </p>
                       </div>
                     ) : (
-                      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
+                      <div className="space-y-2">
                         {classStudents.map((student) => (
-                          <div key={student.id} className="border border-gray-200 rounded-lg p-4">
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center">
-                                <div className="flex-shrink-0">
-                                  <div className="h-10 w-10 rounded-full bg-indigo-100 flex items-center justify-center">
-                                    <span className="text-sm font-medium text-indigo-700">
-                                      {student.firstName[0]}{student.lastName[0]}
-                                    </span>
-                                  </div>
-                                </div>
-                                <div className="ml-4">
-                                  <div className="text-sm font-medium text-gray-900">
-                                    {student.firstName} {student.lastName}
-                                  </div>
-                                  <div className="text-sm text-gray-500">
-                                    {student.email}
-                                  </div>
+                          <div key={student.id} className="flex items-center justify-between p-3 border border-gray-200 rounded-lg bg-white hover:bg-gray-50 transition-colors">
+                            <div className="flex items-center space-x-3 flex-1">
+                              <div className="flex-shrink-0">
+                                <div className="h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center">
+                                  <span className="text-xs font-medium text-indigo-700">
+                                    {student.firstName[0]}{student.lastName[0]}
+                                  </span>
                                 </div>
                               </div>
-                              <button
-                                onClick={() => {
-                                  if (window.confirm(`Remove ${student.firstName} ${student.lastName} from this class?`)) {
-                                    removeUserFromClass(student.id, 'student')
-                                  }
-                                }}
-                                className="text-red-500 hover:text-red-700 p-1 rounded-md hover:bg-red-50 transition-colors"
-                                title={`Remove ${student.firstName} ${student.lastName} from class`}
-                              >
-                                <TrashIcon className="h-4 w-4" />
-                              </button>
+                              <div className="flex-1 min-w-0">
+                                <div className="text-sm font-medium text-gray-900 truncate">
+                                  {student.firstName} {student.lastName}
+                                </div>
+                              </div>
+                              <div className="flex items-center space-x-4 text-xs">
+                                <div className="text-center">
+                                  <div className="font-medium text-gray-900">
+                                    {student.studentBooksRead}/{student.studentGoal}
+                                  </div>
+                                  <div className="text-gray-500">Read</div>
+                                </div>
+                                <div className="text-center">
+                                  <div className="font-medium text-gray-900">
+                                    {student.readToBooksRead}/{student.readToGoal}
+                                  </div>
+                                  <div className="text-gray-500">Read-to</div>
+                                </div>
+                                {student.goalsReached && (
+                                  <div className="flex-shrink-0">
+                                    <CheckIcon className="h-5 w-5 text-green-500" title="Goals completed!" />
+                                  </div>
+                                )}
+                              </div>
                             </div>
+                            <button
+                              onClick={() => {
+                                if (window.confirm(`Remove ${student.firstName} ${student.lastName} from this class?`)) {
+                                  removeUserFromClass(student.id, 'student')
+                                }
+                              }}
+                              className="text-red-500 hover:text-red-700 p-1 rounded-md hover:bg-red-50 transition-colors ml-2"
+                              title={`Remove ${student.firstName} ${student.lastName} from class`}
+                            >
+                              <TrashIcon className="h-4 w-4" />
+                            </button>
                           </div>
                         ))}
                       </div>

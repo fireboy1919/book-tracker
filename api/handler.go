@@ -156,6 +156,7 @@ func initRouter() {
 				classes.GET("/:id/students", handlers.GetClassStudents)
 				classes.GET("/:id/teachers", handlers.GetClassTeachers)
 				classes.POST("/assign-child", handlers.AssignChildToClass)
+				classes.DELETE("/:id/children/:childId", middleware.TeacherMiddleware(), handlers.RemoveChildFromClass)
 				
 				// Student invitation routes
 				classes.GET("/:id/invitation-data", middleware.TeacherMiddleware(), handlers.GetTeacherInvitationData)

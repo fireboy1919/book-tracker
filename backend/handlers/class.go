@@ -289,6 +289,44 @@ func GetClassStudents(c *gin.Context) {
 	c.JSON(http.StatusOK, students)
 }
 
+// RemoveChildFromClass removes a child from a class
+func RemoveChildFromClass(c *gin.Context) {
+	classIDStr := c.Param("id")
+	classID, err := strconv.ParseUint(classIDStr, 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, models.ErrorResponse{Message: "Invalid class ID"})
+		return
+	}
+
+	childIDStr := c.Param("childId")
+	childID, err := strconv.ParseUint(childIDStr, 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, models.ErrorResponse{Message: "Invalid child ID"})
+		return
+	}
+
+	userID, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, models.ErrorResponse{Message: "User not authenticated"})
+		return
+	}
+
+	isAdmin, exists := c.Get("isAdmin")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, models.ErrorResponse{Message: "User role not found"})
+		return
+	}
+
+	classService := services.NewClassService(config.GetDB())
+	err = classService.RemoveChildFromClass(uint(childID), uint(classID), userID.(uint), isAdmin.(bool))
+	if err != nil {
+		c.JSON(http.StatusForbidden, models.ErrorResponse{Message: err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Child removed from class successfully"})
+}
+
 // GetClassTeachers returns all teachers in a class, sorted alphabetically
 func GetClassTeachers(c *gin.Context) {
 	classIDStr := c.Param("id")

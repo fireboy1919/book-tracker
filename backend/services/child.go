@@ -155,18 +155,47 @@ func GetChildrenWithBookCounts(userID uint, year int, month int) ([]models.Child
 	endDate := fmt.Sprintf("%d-%02d-01", endYear, endMonth)
 
 	for _, child := range children {
-		var count int64
+		// Count total books for backward compatibility
+		var totalCount int64
 		config.GetDB().Model(&models.Book{}).Where("child_id = ? AND date_read >= ? AND date_read < ?", 
-			child.ID, startDate, endDate).Count(&count)
+			child.ID, startDate, endDate).Count(&totalCount)
+
+		// Count books read by student (ReadByParent = false)
+		var studentBooksRead int64
+		config.GetDB().Model(&models.Book{}).Where("child_id = ? AND date_read >= ? AND date_read < ? AND read_by_parent = ?", 
+			child.ID, startDate, endDate, false).Count(&studentBooksRead)
+
+		// Count books read to student by parent (ReadByParent = true)
+		var readToBooksRead int64
+		config.GetDB().Model(&models.Book{}).Where("child_id = ? AND date_read >= ? AND date_read < ? AND read_by_parent = ?", 
+			child.ID, startDate, endDate, true).Count(&readToBooksRead)
+
+		// Get class goals if child is in a class
+		var studentGoal, readToGoal int
+		var goalsReached bool
+		if child.ClassID != nil {
+			var class models.Class
+			if err := config.GetDB().First(&class, *child.ClassID).Error; err == nil {
+				studentGoal = class.StudentBooksGoal
+				readToGoal = class.OtherBooksGoal
+				goalsReached = int(studentBooksRead) >= studentGoal && int(readToBooksRead) >= readToGoal
+			}
+		}
 		
 		childWithCount := models.ChildWithBookCountResponse{
-			ID:        child.ID,
-			FirstName: child.FirstName,
-			LastName:  child.LastName,
-			Grade:     child.Grade,
-			OwnerID:   child.OwnerID,
-			CreatedAt: child.CreatedAt,
-			BookCount: int(count),
+			ID:               child.ID,
+			FirstName:        child.FirstName,
+			LastName:         child.LastName,
+			Grade:            child.Grade,
+			OwnerID:          child.OwnerID,
+			ClassID:          child.ClassID,
+			CreatedAt:        child.CreatedAt,
+			BookCount:        int(totalCount),
+			StudentBooksRead: int(studentBooksRead),
+			ReadToBooksRead:  int(readToBooksRead),
+			StudentGoal:      studentGoal,
+			ReadToGoal:       readToGoal,
+			GoalsReached:     goalsReached,
 		}
 		childrenWithCounts = append(childrenWithCounts, childWithCount)
 	}

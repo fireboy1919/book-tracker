@@ -26,11 +26,14 @@ export default function Dashboard() {
 
   useEffect(() => {
     fetchChildren()
-  }, [])
+  }, [currentMonth])
 
   const fetchChildren = async () => {
     try {
-      const response = await api.get('/children')
+      // Fetch children with book counts for the current month
+      const year = currentMonth.getFullYear()
+      const month = currentMonth.getMonth() + 1 // JavaScript months are 0-based
+      const response = await api.get(`/children/with-counts?year=${year}&month=${month}`)
       setChildren(response.data || [])
     } catch (error) {
       console.error('Failed to fetch children:', error)
