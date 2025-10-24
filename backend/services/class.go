@@ -582,3 +582,43 @@ func (s *ClassService) GetTeacherClasses(userID uint) ([]models.ClassResponse, e
 
 	return response, nil
 }
+
+// SearchStudents searches for students by name for teachers to add to classes
+func (s *ClassService) SearchStudents(query string, userID uint, isAdmin bool) ([]models.ChildResponse, error) {
+	// Check if user is a teacher or admin
+	if !isAdmin {
+		var user models.User
+		if err := s.DB.First(&user, userID).Error; err != nil {
+			return nil, err
+		}
+		if !user.IsTeacher {
+			return nil, errors.New("only teachers and admins can search students")
+		}
+	}
+
+	// Search children by first name or last name
+	var children []models.Child
+	searchPattern := "%" + query + "%"
+	
+	if err := s.DB.Where("LOWER(first_name) LIKE LOWER(?) OR LOWER(last_name) LIKE LOWER(?)", searchPattern, searchPattern).
+		Order("last_name ASC, first_name ASC").
+		Limit(20). // Limit results for performance
+		Find(&children).Error; err != nil {
+		return nil, err
+	}
+
+	var response []models.ChildResponse
+	for _, child := range children {
+		response = append(response, models.ChildResponse{
+			ID:        child.ID,
+			FirstName: child.FirstName,
+			LastName:  child.LastName,
+			Grade:     child.Grade,
+			OwnerID:   child.OwnerID,
+			ClassID:   child.ClassID,
+			CreatedAt: child.CreatedAt,
+		})
+	}
+
+	return response, nil
+}

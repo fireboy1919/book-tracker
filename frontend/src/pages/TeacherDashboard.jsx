@@ -16,6 +16,9 @@ export default function TeacherDashboard() {
   const [showAssignModal, setShowAssignModal] = useState(false)
   const [assignModalType, setAssignModalType] = useState('') // 'teacher' or 'student'
   const [availableUsers, setAvailableUsers] = useState([])
+  const [studentSearchQuery, setStudentSearchQuery] = useState('')
+  const [searchResults, setSearchResults] = useState([])
+  const [searchLoading, setSearchLoading] = useState(false)
   const [invitationData, setInvitationData] = useState(null)
   const [isEditingClassName, setIsEditingClassName] = useState(false)
   const [editingClassName, setEditingClassName] = useState('')
@@ -90,18 +93,35 @@ export default function TeacherDashboard() {
         console.log('Available teachers:', availableTeachers)
         setAvailableUsers(availableTeachers)
       } else {
-        // For students, fetch children instead of users
-        const response = await api.get('/children')
-        // Filter children not already assigned to this class
-        const availableChildren = response.data.filter(child => 
-          !(classStudents || []).some(student => student.id === child.id)
-        )
-        console.log('Available children:', availableChildren)
-        setAvailableUsers(availableChildren)
+        // For students, we'll use search instead of loading all children
+        setAvailableUsers([])
       }
     } catch (error) {
       console.error(`Error fetching available ${userType}s:`, error)
       setError(`Failed to fetch available ${userType === 'teacher' ? 'teachers' : 'children'}`)
+    }
+  }
+
+  const searchStudents = async (query) => {
+    if (!query || query.trim().length < 2) {
+      setSearchResults([])
+      return
+    }
+
+    setSearchLoading(true)
+    try {
+      const response = await api.get(`/classes/search-students?q=${encodeURIComponent(query.trim())}`)
+      // Filter out students already in the class
+      const filteredResults = response.data.filter(student => 
+        !(classStudents || []).some(classStudent => classStudent.id === student.id)
+      )
+      setSearchResults(filteredResults)
+    } catch (error) {
+      console.error('Error searching students:', error)
+      setError('Failed to search students')
+      setSearchResults([])
+    } finally {
+      setSearchLoading(false)
     }
   }
 
@@ -112,6 +132,9 @@ export default function TeacherDashboard() {
     }
     setAssignModalType(type)
     setShowAssignModal(true)
+    // Clear search state
+    setStudentSearchQuery('')
+    setSearchResults([])
     fetchAvailableUsers(type)
   }
 
@@ -136,6 +159,8 @@ export default function TeacherDashboard() {
         console.log('Assign child response:', response)
       }
       setShowAssignModal(false)
+      setStudentSearchQuery('')
+      setSearchResults([])
       setError('')
       setSuccessMessage(`Successfully added ${assignModalType === 'teacher' ? 'teacher' : 'student'} to class!`)
       setTimeout(() => setSuccessMessage(''), 3000)
@@ -601,7 +626,11 @@ export default function TeacherDashboard() {
                   Add {assignModalType === 'teacher' ? 'Teacher' : 'Student'} to {selectedClass.name}
                 </h3>
                 <button
-                  onClick={() => setShowAssignModal(false)}
+                  onClick={() => {
+                    setShowAssignModal(false)
+                    setStudentSearchQuery('')
+                    setSearchResults([])
+                  }}
                   className="text-gray-400 hover:text-gray-600"
                 >
                   <span className="sr-only">Close</span>
@@ -612,37 +641,104 @@ export default function TeacherDashboard() {
               </div>
               
               <div className="mb-4">
-                <p className="text-sm text-gray-500 mb-3">
-                  Select a {assignModalType === 'teacher' ? 'teacher' : 'child'} to assign to this class:
-                </p>
-                
-                {(availableUsers?.length || 0) === 0 ? (
-                  <p className="text-sm text-gray-500">
-                    No available {assignModalType === 'teacher' ? 'teachers' : 'children'} found
-                  </p>
+                {assignModalType === 'student' ? (
+                  // Student search interface
+                  <div>
+                    <p className="text-sm text-gray-500 mb-3">
+                      Search for a student to add to this class:
+                    </p>
+                    <div className="mb-3">
+                      <input
+                        type="text"
+                        placeholder="Type student's first or last name..."
+                        value={studentSearchQuery}
+                        onChange={(e) => {
+                          setStudentSearchQuery(e.target.value)
+                          searchStudents(e.target.value)
+                        }}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                        autoFocus
+                      />
+                    </div>
+                    
+                    {searchLoading && (
+                      <div className="flex items-center justify-center py-4">
+                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-600"></div>
+                        <span className="ml-2 text-sm text-gray-500">Searching...</span>
+                      </div>
+                    )}
+                    
+                    {studentSearchQuery.length >= 2 && !searchLoading && (
+                      <div className="space-y-2 max-h-60 overflow-y-auto">
+                        {searchResults.length === 0 ? (
+                          <p className="text-sm text-gray-500 py-4 text-center">
+                            No students found matching "{studentSearchQuery}"
+                          </p>
+                        ) : (
+                          searchResults.map((student) => (
+                            <button
+                              key={student.id}
+                              onClick={() => assignUserToClass(student.id)}
+                              disabled={assigningUser}
+                              className={`w-full text-left p-3 border border-gray-200 rounded-lg transition-colors ${
+                                assigningUser 
+                                  ? 'opacity-50 cursor-not-allowed' 
+                                  : 'hover:border-indigo-300 hover:bg-indigo-50'
+                              }`}
+                            >
+                              <div className="flex items-center justify-between">
+                                <div className="font-medium text-gray-900">
+                                  {student.firstName} {student.lastName}
+                                </div>
+                                {assigningUser && (
+                                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-indigo-600"></div>
+                                )}
+                              </div>
+                              <div className="text-sm text-gray-500">Grade {student.grade}</div>
+                            </button>
+                          ))
+                        )}
+                      </div>
+                    )}
+                    
+                    {studentSearchQuery.length < 2 && studentSearchQuery.length > 0 && (
+                      <p className="text-sm text-gray-500 py-4 text-center">
+                        Type at least 2 characters to search
+                      </p>
+                    )}
+                  </div>
                 ) : (
-                  <div className="space-y-2 max-h-60 overflow-y-auto">
-                    {(availableUsers || []).map((user) => (
-                      <button
-                        key={user.id}
-                        onClick={() => assignUserToClass(user.id)}
-                        disabled={assigningUser}
-                        className={`w-full text-left p-3 border border-gray-200 rounded-lg transition-colors ${
-                          assigningUser 
-                            ? 'opacity-50 cursor-not-allowed' 
-                            : 'hover:border-indigo-300 hover:bg-indigo-50'
-                        }`}
-                      >
-                        <div className="flex items-center justify-between">
-                          <div className="font-medium text-gray-900">
-                            {user.firstName} {user.lastName}
-                          </div>
-                          {assigningUser && (
-                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-indigo-600"></div>
-                          )}
-                        </div>
-                        {assignModalType === 'teacher' ? (
-                          <>
+                  // Teacher selection interface (existing)
+                  <div>
+                    <p className="text-sm text-gray-500 mb-3">
+                      Select a teacher to assign to this class:
+                    </p>
+                    
+                    {(availableUsers?.length || 0) === 0 ? (
+                      <p className="text-sm text-gray-500">
+                        No available teachers found
+                      </p>
+                    ) : (
+                      <div className="space-y-2 max-h-60 overflow-y-auto">
+                        {(availableUsers || []).map((user) => (
+                          <button
+                            key={user.id}
+                            onClick={() => assignUserToClass(user.id)}
+                            disabled={assigningUser}
+                            className={`w-full text-left p-3 border border-gray-200 rounded-lg transition-colors ${
+                              assigningUser 
+                                ? 'opacity-50 cursor-not-allowed' 
+                                : 'hover:border-indigo-300 hover:bg-indigo-50'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="font-medium text-gray-900">
+                                {user.firstName} {user.lastName}
+                              </div>
+                              {assigningUser && (
+                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-indigo-600"></div>
+                              )}
+                            </div>
                             <div className="text-sm text-gray-500">{user.email}</div>
                             {user.isTeacher && (
                               <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800 mt-1">
@@ -654,19 +750,21 @@ export default function TeacherDashboard() {
                                 Admin
                               </span>
                             )}
-                          </>
-                        ) : (
-                          <div className="text-sm text-gray-500">Grade: {user.grade}</div>
-                        )}
-                      </button>
-                    ))}
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
               
               <div className="flex justify-end">
                 <button
-                  onClick={() => setShowAssignModal(false)}
+                  onClick={() => {
+                    setShowAssignModal(false)
+                    setStudentSearchQuery('')
+                    setSearchResults([])
+                  }}
                   className="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 transition-colors"
                 >
                   Cancel

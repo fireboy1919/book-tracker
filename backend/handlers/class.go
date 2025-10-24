@@ -407,3 +407,28 @@ func GetAvailableClasses(c *gin.Context) {
 
 	c.JSON(http.StatusOK, classes)
 }
+
+// SearchStudents searches for students by name for teachers to add to classes
+func SearchStudents(c *gin.Context) {
+	userID, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, models.ErrorResponse{Message: "User not authenticated"})
+		return
+	}
+
+	isAdmin, _ := c.Get("isAdmin")
+	query := c.Query("q")
+	if query == "" {
+		c.JSON(http.StatusBadRequest, models.ErrorResponse{Message: "Query parameter 'q' is required"})
+		return
+	}
+
+	classService := services.NewClassService(config.GetDB())
+	students, err := classService.SearchStudents(query, userID.(uint), isAdmin.(bool))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, models.ErrorResponse{Message: err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, students)
+}
