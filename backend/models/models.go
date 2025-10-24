@@ -176,6 +176,14 @@ type CreateUserRequest struct {
 	IsTeacher bool   `json:"isTeacher"`
 }
 
+type CreateUserByAdminRequest struct {
+	Email     string `json:"email" binding:"required,email"`
+	FirstName string `json:"firstName" binding:"required"`
+	LastName  string `json:"lastName" binding:"required"`
+	IsAdmin   bool   `json:"isAdmin"`
+	IsTeacher bool   `json:"isTeacher"`
+}
+
 type CreateUserWithInvitationRequest struct {
 	Email          string `json:"email" binding:"required,email"`
 	Password       string `json:"password" binding:"required,min=6"`

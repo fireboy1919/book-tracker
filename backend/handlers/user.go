@@ -248,7 +248,7 @@ func RemoveUserTeacher(c *gin.Context) {
 
 // CreateUser handles creating a new user (admin only)
 func CreateUser(c *gin.Context) {
-	var req models.CreateUserRequest
+	var req models.CreateUserByAdminRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, models.ErrorResponse{
 			Message: "Invalid request data: " + err.Error(),
@@ -256,7 +256,7 @@ func CreateUser(c *gin.Context) {
 		return
 	}
 
-	user, err := services.CreateUser(req)
+	user, err := services.CreateUserByAdmin(req)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, models.ErrorResponse{
 			Message: err.Error(),
@@ -264,13 +264,17 @@ func CreateUser(c *gin.Context) {
 		return
 	}
 
-	// Send verification email if user needs to verify
+	// Send invitation email to set up password
 	if !user.EmailVerified {
-		emailService := services.NewEmailService()
-		err = emailService.SendVerificationEmail(user.Email, user.FirstName, user.EmailVerificationToken)
-		if err != nil {
-			// Don't fail user creation if email fails, but add a warning header
-			c.Header("X-Email-Warning", "Verification email failed to send")
+		// Get current admin user as inviter
+		currentUser, _ := middleware.GetCurrentUser(c)
+		if currentUser != nil {
+			emailService := services.NewEmailService()
+			err = emailService.SendSystemInvitationEmail(user.Email, currentUser.FirstName+" "+currentUser.LastName, user.EmailVerificationToken)
+			if err != nil {
+				// Don't fail user creation if email fails, but add a warning header
+				c.Header("X-Email-Warning", "Invitation email failed to send")
+			}
 		}
 	}
 

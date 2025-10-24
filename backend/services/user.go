@@ -75,6 +75,44 @@ func CreateUser(req models.CreateUserRequest) (*models.User, error) {
 	return &user, nil
 }
 
+// CreateUserByAdmin creates a new user without a password (for admin creation)
+func CreateUserByAdmin(req models.CreateUserByAdminRequest) (*models.User, error) {
+	// Check if user already exists
+	var existingUser models.User
+	result := config.GetDB().Where("email = ?", req.Email).First(&existingUser)
+	if result.Error == nil {
+		return nil, errors.New("user with this email already exists")
+	}
+
+	// Generate verification token for setting up password later
+	token, err := utils.GenerateVerificationToken()
+	if err != nil {
+		return nil, err
+	}
+	
+	expiresAt := utils.GetTokenExpiration()
+
+	// Create user without password hash (they'll set it up when accepting invitation)
+	user := models.User{
+		Email:                  req.Email,
+		PasswordHash:           "", // No password initially
+		FirstName:              req.FirstName,
+		LastName:               req.LastName,
+		IsAdmin:                req.IsAdmin,
+		IsTeacher:              req.IsTeacher,
+		EmailVerified:          false, // Will verify when setting up password
+		EmailVerificationToken: token,
+		TokenExpiresAt:         &expiresAt,
+		AuthProvider:          "local",
+	}
+	
+	result = config.GetDB().Create(&user)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+	return &user, nil
+}
+
 // GetUserByID gets a user by ID
 func GetUserByID(id uint) (*models.User, error) {
 	var user models.User

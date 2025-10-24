@@ -6,7 +6,6 @@ export default function CreateUserModal({ isOpen, onClose, onCreateUser }) {
     firstName: '',
     lastName: '',
     email: '',
-    password: '',
     isAdmin: false,
     isTeacher: false
   })
@@ -31,7 +30,6 @@ export default function CreateUserModal({ isOpen, onClose, onCreateUser }) {
         firstName: '',
         lastName: '',
         email: '',
-        password: '',
         isAdmin: false,
         isTeacher: false
       })
@@ -50,7 +48,7 @@ export default function CreateUserModal({ isOpen, onClose, onCreateUser }) {
         <div className="mt-3">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-medium text-gray-900">
-              Create New User
+              Create New User (Invitation will be sent)
             </h3>
             <button
               onClick={onClose}
@@ -109,20 +107,6 @@ export default function CreateUserModal({ isOpen, onClose, onCreateUser }) {
               />
             </div>
             
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                Password
-              </label>
-              <input
-                type="password"
-                name="password"
-                id="password"
-                required
-                value={formData.password}
-                onChange={handleChange}
-                className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-              />
-            </div>
             
             <div className="space-y-2">
               <div className="flex items-center">
