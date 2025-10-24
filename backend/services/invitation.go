@@ -545,6 +545,44 @@ func (s *StudentInvitationService) parseCompactFormat(compactData string) (*mode
 	}, nil
 }
 
+// hashInvitationToken creates a SHA256 hash of the invitation token for tracking usage
+func (s *StudentInvitationService) hashInvitationToken(token string) string {
+	hash := sha256.Sum256([]byte(token))
+	return hex.EncodeToString(hash[:])
+}
+
+// IsInvitationUsedForAccountCreation checks if an invitation token was already used to create an account
+func (s *StudentInvitationService) IsInvitationUsedForAccountCreation(token string) (bool, error) {
+	tokenHash := s.hashInvitationToken(token)
+	
+	var usedInvitation models.UsedStudentInvitation
+	err := s.DB.Where("token_hash = ?", tokenHash).First(&usedInvitation).Error
+	
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return false, nil // Not used
+		}
+		return false, err // Database error
+	}
+	
+	return true, nil // Already used
+}
+
+// MarkInvitationAsUsed records that an invitation token was used to create an account
+func (s *StudentInvitationService) MarkInvitationAsUsed(token string, payload *models.StudentInvitationPayload, createdUserID uint) error {
+	tokenHash := s.hashInvitationToken(token)
+	
+	usedInvitation := models.UsedStudentInvitation{
+		TokenHash:     tokenHash,
+		ClassID:       payload.ClassID,
+		StudentName:   payload.StudentName,
+		CreatedUserID: createdUserID,
+		UsedAt:        time.Now(),
+	}
+	
+	return s.DB.Create(&usedInvitation).Error
+}
+
 // RedeemInvitation processes an invitation token and creates/assigns a child
 func (s *StudentInvitationService) RedeemInvitation(token string, parentUserID uint) (*models.ChildResponse, error) {
 	// Decrypt and validate the token

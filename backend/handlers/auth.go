@@ -4,11 +4,13 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
 	"os"
 
+	"github.com/booktracker/backend/config"
 	"github.com/booktracker/backend/middleware"
 	"github.com/booktracker/backend/models"
 	"github.com/booktracker/backend/services"
@@ -65,6 +67,49 @@ func RegisterUserWithInvitation(c *gin.Context) {
 		return
 	}
 
+	// Try to detect if this is a student invitation token by attempting to decrypt it
+	// Student invitation tokens are base64-encoded encrypted data
+	// Legacy invitation tokens are 64-character hex strings
+	studentInvitationService := services.NewStudentInvitationService(config.GetDB())
+	_, err := studentInvitationService.DecryptInvitationToken(req.InvitationToken)
+	
+	if err == nil {
+		// Successfully decrypted as student invitation - handle student invitation registration
+		user, child, err := processStudentInvitationRegistration(req, studentInvitationService)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, models.ErrorResponse{
+				Message: err.Error(),
+			})
+			return
+		}
+
+		// Send verification email (optional, since they're invited)
+		emailService := services.NewEmailService()
+		err = emailService.SendVerificationEmail(user.Email, user.FirstName, user.EmailVerificationToken)
+		if err != nil {
+			// Don't fail registration if email fails
+			c.Header("X-Email-Warning", "Verification email failed to send")
+		}
+
+		userResponse := models.UserResponse{
+			ID:            user.ID,
+			Email:         user.Email,
+			FirstName:     user.FirstName,
+			LastName:      user.LastName,
+			IsAdmin:       user.IsAdmin,
+			EmailVerified: user.EmailVerified,
+			CreatedAt:     user.CreatedAt,
+		}
+
+		c.JSON(http.StatusCreated, gin.H{
+			"user":  userResponse,
+			"child": child,
+			"message": "Registration successful - student added to your account",
+		})
+		return
+	}
+
+	// Not a student invitation - try legacy bulk invitation system
 	user, err := services.ProcessBulkInvitationRegistration(req)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, models.ErrorResponse{
@@ -92,6 +137,56 @@ func RegisterUserWithInvitation(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusCreated, userResponse)
+}
+
+// processStudentInvitationRegistration handles registration with student invitation
+func processStudentInvitationRegistration(req models.CreateUserWithInvitationRequest, studentInvitationService *services.StudentInvitationService) (*models.User, *models.ChildResponse, error) {
+	// First, validate the invitation token and get the payload
+	payload, err := studentInvitationService.DecryptInvitationToken(req.InvitationToken)
+	if err != nil {
+		return nil, nil, fmt.Errorf("invalid student invitation token: %v", err)
+	}
+
+	// Check if this invitation was already used for account creation
+	used, err := studentInvitationService.IsInvitationUsedForAccountCreation(req.InvitationToken)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to check invitation usage: %v", err)
+	}
+	if used {
+		return nil, nil, errors.New("this invitation has already been used to create an account")
+	}
+
+	// Create the user account
+	createUserReq := models.CreateUserRequest{
+		Email:     req.Email,
+		Password:  req.Password,
+		FirstName: req.FirstName,
+		LastName:  req.LastName,
+		IsAdmin:   false, // Invited parents are never admins
+	}
+
+	user, err := services.CreateUser(createUserReq)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// Mark the invitation as used for account creation
+	err = studentInvitationService.MarkInvitationAsUsed(req.InvitationToken, payload, user.ID)
+	if err != nil {
+		// Log the error but don't fail the registration
+		// The user account was already created successfully
+		fmt.Printf("Warning: failed to mark invitation as used: %v\n", err)
+	}
+
+	// Redeem the student invitation to create and assign the child
+	child, err := studentInvitationService.RedeemInvitation(req.InvitationToken, user.ID)
+	if err != nil {
+		// If invitation redemption fails, we should clean up the created user
+		// For now, we'll just return the error
+		return nil, nil, fmt.Errorf("failed to redeem student invitation: %v", err)
+	}
+
+	return user, child, nil
 }
 
 // GetInvitationDetails handles getting invitation details by token

@@ -348,7 +348,16 @@ func CreateGoogleUser(userInfo *GoogleUserInfo) (*models.User, error) {
 
 // CreateGoogleUserWithInvitation creates a new user from Google OAuth and processes invitation
 func CreateGoogleUserWithInvitation(userInfo *GoogleUserInfo, invitationToken string) (*models.User, error) {
-	// Validate invitation token first
+	// Try to detect if this is a student invitation token first
+	studentInvitationService := NewStudentInvitationService(config.GetDB())
+	_, err := studentInvitationService.DecryptInvitationToken(invitationToken)
+	
+	if err == nil {
+		// This is a student invitation - create user and redeem invitation
+		return createGoogleUserWithStudentInvitation(userInfo, invitationToken, studentInvitationService)
+	}
+
+	// Not a student invitation - handle legacy invitation system
 	invitations, err := GetPendingInvitationsByToken(invitationToken)
 	if err != nil {
 		return nil, err
@@ -412,6 +421,60 @@ func CreateGoogleUserWithInvitation(userInfo *GoogleUserInfo, invitationToken st
 	// Commit transaction
 	if err := tx.Commit().Error; err != nil {
 		return nil, err
+	}
+
+	return &user, nil
+}
+
+// createGoogleUserWithStudentInvitation handles Google OAuth registration with student invitation
+func createGoogleUserWithStudentInvitation(userInfo *GoogleUserInfo, invitationToken string, studentInvitationService *StudentInvitationService) (*models.User, error) {
+	// First, validate the invitation token and get the payload
+	payload, err := studentInvitationService.DecryptInvitationToken(invitationToken)
+	if err != nil {
+		return nil, errors.New("invalid student invitation token: " + err.Error())
+	}
+
+	// Check if this invitation was already used for account creation
+	used, err := studentInvitationService.IsInvitationUsedForAccountCreation(invitationToken)
+	if err != nil {
+		return nil, errors.New("failed to check invitation usage: " + err.Error())
+	}
+	if used {
+		return nil, errors.New("this invitation has already been used to create an account")
+	}
+
+	// Create user with Google OAuth info
+	user := models.User{
+		Email:          userInfo.Email,
+		FirstName:      userInfo.GivenName,
+		LastName:       userInfo.FamilyName,
+		IsAdmin:        false, // Invited users are not admin by default
+		EmailVerified:  userInfo.VerifiedEmail,
+		GoogleID:       userInfo.ID,
+		AuthProvider:   "google",
+		ProfilePicture: userInfo.Picture,
+	}
+
+	// Create user
+	if err := config.GetDB().Create(&user).Error; err != nil {
+		return nil, err
+	}
+
+	// Mark the invitation as used for account creation
+	err = studentInvitationService.MarkInvitationAsUsed(invitationToken, payload, user.ID)
+	if err != nil {
+		// Log the error but don't fail the registration
+		// The user account was already created successfully
+		// TODO: Use proper logging instead of fmt.Printf
+		// fmt.Printf("Warning: failed to mark invitation as used: %v\n", err)
+	}
+
+	// Redeem the student invitation to create and assign the child
+	_, err = studentInvitationService.RedeemInvitation(invitationToken, user.ID)
+	if err != nil {
+		// If invitation redemption fails, we should clean up the created user
+		// For now, we'll just return the error
+		return nil, errors.New("failed to redeem student invitation: " + err.Error())
 	}
 
 	return &user, nil

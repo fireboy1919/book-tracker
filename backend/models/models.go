@@ -122,6 +122,20 @@ type PendingInvitation struct {
 	InvitedBy User  `json:"invitedBy,omitempty" gorm:"foreignKey:InvitedByID"`
 }
 
+// UsedStudentInvitation tracks student invitations that have been used for account creation
+type UsedStudentInvitation struct {
+	ID            uint      `json:"id" gorm:"primaryKey"`
+	TokenHash     string    `json:"tokenHash" gorm:"uniqueIndex;not null"` // SHA256 hash of the invitation token
+	ClassID       uint      `json:"classId" gorm:"not null;index"`
+	StudentName   string    `json:"studentName" gorm:"not null"`
+	CreatedUserID uint      `json:"createdUserId" gorm:"not null;index"` // User created from this invitation
+	UsedAt        time.Time `json:"usedAt" gorm:"not null"`
+
+	// Relationships
+	Class       Class `json:"class,omitempty" gorm:"foreignKey:ClassID"`
+	CreatedUser User  `json:"createdUser,omitempty" gorm:"foreignKey:CreatedUserID"`
+}
+
 // Class represents a classroom with reading goals
 type Class struct {
 	ID                uint      `json:"id" gorm:"primaryKey"`
@@ -447,7 +461,7 @@ func AutoMigrate(db *gorm.DB) error {
 	log.Printf("=== Running GORM AutoMigrate ===")
 	
 	// Run GORM AutoMigrate with error handling for production
-	err := db.AutoMigrate(&User{}, &SharedBook{}, &Class{}, &ClassMembership{}, &Child{}, &Book{}, &Permission{}, &PendingInvitation{})
+	err := db.AutoMigrate(&User{}, &SharedBook{}, &Class{}, &ClassMembership{}, &Child{}, &Book{}, &Permission{}, &PendingInvitation{}, &UsedStudentInvitation{})
 	if err != nil {
 		log.Printf("AutoMigrate failed: %v", err)
 		// In production, don't fail completely - the tables might already exist

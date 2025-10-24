@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { PlusIcon, UsersIcon, BookOpenIcon, UserPlusIcon, TrashIcon, ClipboardDocumentIcon } from '@heroicons/react/24/outline'
+import { PlusIcon, UsersIcon, BookOpenIcon, UserPlusIcon, TrashIcon, ClipboardDocumentIcon, QuestionMarkCircleIcon } from '@heroicons/react/24/outline'
 import { CheckIcon } from '@heroicons/react/24/solid'
 import api from '../services/api'
 import CreateClassModal from '../components/CreateClassModal'
@@ -381,12 +381,36 @@ export default function TeacherDashboard() {
                   {invitationData && (
                     <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
                       <div className="space-y-3">
-                        <div>
-                          <h4 className="text-sm font-medium text-blue-900 mb-1">Class Invitation Key</h4>
-                          <p className="text-xs text-blue-700 mb-2">Use this key for Gmail mail merge to invite students</p>
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <h4 className="text-sm font-medium text-blue-900 mb-1">Class Invitation Key</h4>
+                            <p className="text-xs text-blue-700 mb-2">Use this key for Gmail mail merge to invite students</p>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <button
+                              onClick={copyInvitationKey}
+                              className={`p-2 rounded-full transition-colors shadow-sm ${
+                                copySuccess 
+                                  ? 'bg-green-600 text-white' 
+                                  : 'bg-blue-600 text-white hover:bg-blue-700'
+                              }`}
+                              title={copySuccess ? 'Copied!' : 'Copy to clipboard'}
+                            >
+                              <ClipboardDocumentIcon className="h-4 w-4" />
+                            </button>
+                            <a
+                              href="/help/mail-merge"
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="p-2 rounded-full bg-green-600 text-white hover:bg-green-700 transition-colors shadow-sm"
+                              title="Help Guide"
+                            >
+                              <QuestionMarkCircleIcon className="h-4 w-4" />
+                            </a>
+                          </div>
                         </div>
                         
-                        <div className="relative">
+                        <div>
                           <textarea
                             readOnly
                             value={invitationData.invitation_key}
@@ -395,39 +419,6 @@ export default function TeacherDashboard() {
                             style={{ wordBreak: 'break-all' }}
                             onClick={(e) => e.target.select()}
                           />
-                          <button
-                            onClick={copyInvitationKey}
-                            className={`absolute top-2 right-2 p-1 rounded transition-colors shadow-sm ${
-                              copySuccess 
-                                ? 'bg-green-600 text-white' 
-                                : 'bg-blue-600 text-white hover:bg-blue-700'
-                            }`}
-                            title={copySuccess ? 'Copied!' : 'Copy to clipboard'}
-                          >
-                            <ClipboardDocumentIcon className="h-4 w-4" />
-                          </button>
-                        </div>
-                        
-                        <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
-                          <button
-                            onClick={copyInvitationKey}
-                            className={`text-xs px-3 py-1 rounded transition-colors flex items-center justify-center space-x-1 ${
-                              copySuccess 
-                                ? 'bg-green-600 text-white' 
-                                : 'bg-blue-600 text-white hover:bg-blue-700'
-                            }`}
-                          >
-                            <ClipboardDocumentIcon className="h-3 w-3" />
-                            <span>{copySuccess ? 'Copied!' : 'Copy Key'}</span>
-                          </button>
-                          <a
-                            href="/help/mail-merge"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-xs px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 text-center"
-                          >
-                            Help Guide
-                          </a>
                         </div>
                       </div>
                     </div>
@@ -498,7 +489,7 @@ export default function TeacherDashboard() {
                                       </div>
                                     </div>
                                     <div className="ml-2">
-                                      <div className="text-sm font-medium text-gray-900">
+                                      <div className="text-sm font-medium text-gray-900 hover:text-indigo-600 transition-colors">
                                         {student.firstName} {student.lastName}
                                       </div>
                                     </div>
