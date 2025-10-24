@@ -389,11 +389,15 @@ export default function TeacherDashboard() {
                           <div className="flex items-center space-x-2">
                             <button
                               onClick={copyInvitationKey}
-                              className={`p-2 rounded transition-colors shadow-sm ${
+                              className={`inline-flex items-center justify-center p-2 rounded transition-colors shadow-sm border-0 ${
                                 copySuccess 
-                                  ? 'bg-green-600 text-white' 
+                                  ? 'bg-green-600 text-white hover:bg-green-700' 
                                   : 'bg-blue-600 text-white hover:bg-blue-700'
                               }`}
+                              style={{ 
+                                backgroundColor: copySuccess ? '#059669' : '#2563eb',
+                                color: '#ffffff'
+                              }}
                               title={copySuccess ? 'Copied!' : 'Copy to clipboard'}
                             >
                               <ClipboardDocumentIcon className="h-4 w-4" />
@@ -465,7 +469,7 @@ export default function TeacherDashboard() {
                                 Read-to
                               </th>
                               <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Status/Actions
+                                
                               </th>
                             </tr>
                           </thead>
@@ -495,10 +499,8 @@ export default function TeacherDashboard() {
                                 </td>
                                 <td className="px-3 py-2 whitespace-nowrap text-center">
                                   <div className="flex items-center justify-center space-x-2">
-                                    {student.goalsReached ? (
-                                      <CheckIcon className="h-5 w-5 text-green-500" title="Goals completed!" />
-                                    ) : (
-                                      <span className="text-gray-400">-</span>
+                                    {student.goalsReached && (
+                                      <span className="text-lg" title="Goals completed!">💯</span>
                                     )}
                                     <button
                                       onClick={(e) => {
@@ -507,7 +509,7 @@ export default function TeacherDashboard() {
                                           removeUserFromClass(student.id, 'student')
                                         }
                                       }}
-                                      className="text-red-500 hover:text-red-700 p-1 rounded-md hover:bg-red-50 transition-colors"
+                                      className="text-red-500 hover:text-red-700 p-1 rounded-md hover:bg-red-50 transition-colors cursor-pointer"
                                       title={`Remove ${student.firstName} ${student.lastName} from class`}
                                     >
                                       <TrashIcon className="h-4 w-4" />

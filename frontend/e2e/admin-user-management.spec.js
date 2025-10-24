@@ -7,44 +7,19 @@ test.describe('Admin User Management Features', () => {
   })
 
   test('admin can create new users', async ({ page }) => {
-    // Use unique email for this test to avoid conflicts
-    const timestamp = Date.now()
-    const adminEmail = `superadmin${timestamp}@test.com`
-    const newUserEmail = `testuser${timestamp}@test.com`
+    // Use the existing verified admin user (admin@test.com) that we know exists and is verified
     
-    // Register admin user (first user becomes admin automatically)
-    await page.goto('/register')
-    await page.fill('input[name="firstName"]', 'Super')
-    await page.fill('input[name="lastName"]', 'Admin')
-    await page.fill('input[name="email"]', adminEmail)
-    await page.fill('input[name="password"]', 'password123')
-    await page.fill('input[name="confirmPassword"]', 'password123')
-    await page.click('button[type="submit"]')
+    await page.goto('/login')
     
-    // Wait for registration success message to appear
-    await expect(page.locator('text=Registration Successful!')).toBeVisible({ timeout: 5000 })
-    
-    // Click "Go to Login" button
-    await page.click('text=Go to Login')
-    await expect(page).toHaveURL('/login')
-    
-    // Login as admin
-    await page.fill('input[name="email"]', adminEmail)
+    // Login as the existing verified admin user
+    await page.fill('input[name="email"]', 'admin@test.com')
     await page.fill('input[name="password"]', 'password123')
     await page.click('button[type="submit"]')
     
-    // Wait for login to complete - user should be redirected based on email verification status
+    // Wait for login to complete
     await page.waitForTimeout(3000)
     
-    // If email verification is required, we should see that screen
-    if (await page.locator('text=Email Verification Required').isVisible()) {
-      // User needs to verify email, but for admin testing we can mock this or verify
-      // For now, let's verify the user manually by going to a verification URL
-      console.log('Email verification required - this is expected behavior')
-      return
-    }
-    
-    // Should be redirected to dashboard
+    // Should be redirected to dashboard since user is verified and admin
     await expect(page).toHaveURL('/dashboard')
     await expect(page.locator('text=My Children')).toBeVisible({ timeout: 10000 })
     
@@ -58,7 +33,10 @@ test.describe('Admin User Management Features', () => {
     await expect(createUserButton).toBeVisible()
     await createUserButton.click()
     
-    // Fill out the user creation form
+    // Fill out the user creation form with unique email
+    const timestamp = Date.now()
+    const newUserEmail = `testuser${timestamp}@test.com`
+    
     await page.fill('input[name="firstName"]', 'Test')
     await page.fill('input[name="lastName"]', 'User')
     await page.fill('input[name="email"]', newUserEmail)
@@ -67,7 +45,7 @@ test.describe('Admin User Management Features', () => {
     // Submit the form
     await page.click('button[type="submit"]')
     
-    // Should see success message or the new user in the list
+    // Should see success message
     await expect(page.locator('text=User created successfully!')).toBeVisible({ timeout: 5000 })
     
     // Check that the new user appears in the user list
@@ -75,45 +53,25 @@ test.describe('Admin User Management Features', () => {
   })
 
   test('admin can resend verification emails', async ({ page }) => {
-    // Use unique emails for this test
-    const timestamp = Date.now() + 1 // Add 1 to avoid conflicts with first test
-    const adminEmail = `admin${timestamp}@test.com`
-    const testUserEmail = `testuser${timestamp}@test.com`
-    
-    // Register admin user first
-    await page.goto('/register')
-    await page.fill('input[name="firstName"]', 'Admin')
-    await page.fill('input[name="lastName"]', 'User')
-    await page.fill('input[name="email"]', adminEmail)
-    await page.fill('input[name="password"]', 'password123')
-    await page.fill('input[name="confirmPassword"]', 'password123')
-    await page.click('button[type="submit"]')
-    
-    // Wait for registration success message and go to login
-    await expect(page.locator('text=Registration Successful!')).toBeVisible({ timeout: 5000 })
-    await page.click('text=Go to Login')
-    await expect(page).toHaveURL('/login')
+    // Use the existing verified admin user 
+    await page.goto('/login')
     
     // Login as admin
-    await page.fill('input[name="email"]', adminEmail)
+    await page.fill('input[name="email"]', 'admin@test.com')
     await page.fill('input[name="password"]', 'password123')
     await page.click('button[type="submit"]')
     
     await page.waitForTimeout(3000)
-    
-    // If email verification is required, skip this test
-    if (await page.locator('text=Email Verification Required').isVisible()) {
-      console.log('Email verification required - skipping admin panel test')
-      return
-    }
-    
     await expect(page).toHaveURL('/dashboard')
     
-    // Create a second user to test resend functionality on
+    // Go to admin panel and create a user to test resend functionality
     await page.goto('/admin')
     await expect(page.locator('text=User Management')).toBeVisible()
     
-    // Create a new user
+    // Create a new user with unique email
+    const timestamp = Date.now()
+    const testUserEmail = `testuser${timestamp}@test.com`
+    
     await page.click('button:has-text("Create User")')
     await page.fill('input[name="firstName"]', 'Test')
     await page.fill('input[name="lastName"]', 'User')
