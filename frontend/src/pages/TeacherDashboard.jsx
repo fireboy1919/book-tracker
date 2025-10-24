@@ -3,6 +3,7 @@ import { PlusIcon, UsersIcon, BookOpenIcon, UserPlusIcon, TrashIcon, ClipboardDo
 import { CheckIcon } from '@heroicons/react/24/solid'
 import api from '../services/api'
 import CreateClassModal from '../components/CreateClassModal'
+import FullScreenChildView from '../components/FullScreenChildView'
 
 export default function TeacherDashboard() {
   const [classes, setClasses] = useState([])
@@ -21,6 +22,8 @@ export default function TeacherDashboard() {
   const [copySuccess, setCopySuccess] = useState(false)
   const [assigningUser, setAssigningUser] = useState(false)
   const [successMessage, setSuccessMessage] = useState('')
+  const [showFullScreenView, setShowFullScreenView] = useState(false)
+  const [selectedStudent, setSelectedStudent] = useState(null)
 
   useEffect(() => {
     fetchClasses()
@@ -216,6 +219,11 @@ export default function TeacherDashboard() {
     } catch (error) {
       setError('Failed to update class name')
     }
+  }
+
+  const handleViewStudent = (student) => {
+    setSelectedStudent(student)
+    setShowFullScreenView(true)
   }
 
   if (loading) {
@@ -452,55 +460,85 @@ export default function TeacherDashboard() {
                         </p>
                       </div>
                     ) : (
-                      <div className="space-y-2">
-                        {classStudents.map((student) => (
-                          <div key={student.id} className="flex items-center justify-between p-3 border border-gray-200 rounded-lg bg-white hover:bg-gray-50 transition-colors">
-                            <div className="flex items-center space-x-3 flex-1">
-                              <div className="flex-shrink-0">
-                                <div className="h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center">
-                                  <span className="text-xs font-medium text-indigo-700">
-                                    {student.firstName[0]}{student.lastName[0]}
-                                  </span>
-                                </div>
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <div className="text-sm font-medium text-gray-900 truncate">
-                                  {student.firstName} {student.lastName}
-                                </div>
-                              </div>
-                              <div className="flex items-center space-x-4 text-xs">
-                                <div className="text-center">
-                                  <div className="font-medium text-gray-900">
+                      <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+                        <table className="min-w-full divide-y divide-gray-200">
+                          <thead className="bg-gray-50">
+                            <tr>
+                              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Student
+                              </th>
+                              <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Read
+                              </th>
+                              <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Read-to
+                              </th>
+                              <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Status
+                              </th>
+                              <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Actions
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody className="bg-white divide-y divide-gray-200">
+                            {classStudents.map((student) => (
+                              <tr 
+                                key={student.id} 
+                                className="hover:bg-gray-50 cursor-pointer transition-colors"
+                                onClick={() => handleViewStudent(student)}
+                              >
+                                <td className="px-3 py-2 whitespace-nowrap">
+                                  <div className="flex items-center">
+                                    <div className="flex-shrink-0 h-6 w-6">
+                                      <div className="h-6 w-6 rounded-full bg-indigo-100 flex items-center justify-center">
+                                        <span className="text-xs font-medium text-indigo-700">
+                                          {student.firstName[0]}{student.lastName[0]}
+                                        </span>
+                                      </div>
+                                    </div>
+                                    <div className="ml-2">
+                                      <div className="text-sm font-medium text-gray-900">
+                                        {student.firstName} {student.lastName}
+                                      </div>
+                                    </div>
+                                  </div>
+                                </td>
+                                <td className="px-3 py-2 whitespace-nowrap text-center">
+                                  <div className="text-sm font-medium text-gray-900">
                                     {student.studentBooksRead}/{student.studentGoal}
                                   </div>
-                                  <div className="text-gray-500">Read</div>
-                                </div>
-                                <div className="text-center">
-                                  <div className="font-medium text-gray-900">
+                                </td>
+                                <td className="px-3 py-2 whitespace-nowrap text-center">
+                                  <div className="text-sm font-medium text-gray-900">
                                     {student.readToBooksRead}/{student.readToGoal}
                                   </div>
-                                  <div className="text-gray-500">Read-to</div>
-                                </div>
-                                {student.goalsReached && (
-                                  <div className="flex-shrink-0">
-                                    <CheckIcon className="h-5 w-5 text-green-500" title="Goals completed!" />
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                            <button
-                              onClick={() => {
-                                if (window.confirm(`Remove ${student.firstName} ${student.lastName} from this class?`)) {
-                                  removeUserFromClass(student.id, 'student')
-                                }
-                              }}
-                              className="text-red-500 hover:text-red-700 p-1 rounded-md hover:bg-red-50 transition-colors ml-2"
-                              title={`Remove ${student.firstName} ${student.lastName} from class`}
-                            >
-                              <TrashIcon className="h-4 w-4" />
-                            </button>
-                          </div>
-                        ))}
+                                </td>
+                                <td className="px-3 py-2 whitespace-nowrap text-center">
+                                  {student.goalsReached ? (
+                                    <CheckIcon className="h-5 w-5 text-green-500 mx-auto" title="Goals completed!" />
+                                  ) : (
+                                    <span className="text-gray-400">-</span>
+                                  )}
+                                </td>
+                                <td className="px-3 py-2 whitespace-nowrap text-center">
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation() // Prevent row click
+                                      if (window.confirm(`Remove ${student.firstName} ${student.lastName} from this class?`)) {
+                                        removeUserFromClass(student.id, 'student')
+                                      }
+                                    }}
+                                    className="text-red-500 hover:text-red-700 p-1 rounded-md hover:bg-red-50 transition-colors"
+                                    title={`Remove ${student.firstName} ${student.lastName} from class`}
+                                  >
+                                    <TrashIcon className="h-4 w-4" />
+                                  </button>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
                       </div>
                     )}
                   </div>
@@ -667,6 +705,18 @@ export default function TeacherDashboard() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Full Screen Child View */}
+      {showFullScreenView && selectedStudent && (
+        <FullScreenChildView
+          child={selectedStudent}
+          onClose={() => setShowFullScreenView(false)}
+          onAddBook={() => {
+            // Teachers shouldn't be able to add books
+            // This is just for viewing
+          }}
+        />
       )}
     </div>
   )

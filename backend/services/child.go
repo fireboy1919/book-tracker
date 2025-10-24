@@ -178,7 +178,12 @@ func GetChildrenWithBookCounts(userID uint, year int, month int) ([]models.Child
 			if err := config.GetDB().First(&class, *child.ClassID).Error; err == nil {
 				studentGoal = class.StudentBooksGoal
 				readToGoal = class.OtherBooksGoal
-				goalsReached = int(studentBooksRead) >= studentGoal && int(readToBooksRead) >= readToGoal
+				// ReadTo goal is a maximum - only books up to that limit count toward achievement
+				effectiveReadToBooks := int(readToBooksRead)
+				if effectiveReadToBooks > readToGoal {
+					effectiveReadToBooks = readToGoal
+				}
+				goalsReached = int(studentBooksRead) >= studentGoal && effectiveReadToBooks == readToGoal
 			}
 		}
 		
