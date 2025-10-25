@@ -521,6 +521,7 @@ func (s *StudentInvitationService) tryDecryptWithClassKeyCBC(ciphertext []byte, 
 	return payload, nil
 }
 
+
 // parseCompactFormat parses the pipe-delimited compact format: "classId|studentName|timestamp"
 func (s *StudentInvitationService) parseCompactFormat(compactData string) (*models.StudentInvitationPayload, error) {
 	parts := strings.Split(compactData, "|")
@@ -681,12 +682,19 @@ func (s *StudentInvitationService) GenerateTeacherInvitationData(teacherID uint,
 		return nil, err
 	}
 
+	// Create compound key: "classId|hexKey"
+	hexKey := hex.EncodeToString(key)
+	compoundData := fmt.Sprintf("%d|%s", classID, hexKey)
+	
+	// Base64 encode the compound key for easy copying
+	compoundKey := base64.StdEncoding.EncodeToString([]byte(compoundData))
+
 	return &TeacherInvitationData{
 		TeacherID:     teacherID,
 		ClassID:       classID,
 		ClassName:     class.Name,
-		InvitationKey: hex.EncodeToString(key), // Convert bytes to hex string
-		BaseURL:       "https://booktracker.app/invite/",
+		InvitationKey: compoundKey, // Now contains both class ID and encryption key
+		BaseURL:       "https://booktracker.rustyphillips.net/invite/",
 	}, nil
 }
 

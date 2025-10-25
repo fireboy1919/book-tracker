@@ -275,3 +275,4 @@ func RedeemPendingInvitation(c *gin.Context) {
 		"child":   child,
 	})
 }
+
