@@ -161,13 +161,13 @@ func initRouter() {
 				
 				// Student invitation routes
 				classes.GET("/:id/invitation-data", middleware.TeacherMiddleware(), handlers.GetTeacherInvitationData)
+				classes.POST("/:id/generate-invitation-token", middleware.TeacherMiddleware(), handlers.GenerateInvitationToken)
 				classes.GET("/:id/google-sheets", middleware.TeacherMiddleware(), handlers.CreatePersonalizedGoogleSheet)
 			}
 			
 			// Student invitation routes (some need to be public)
 			invitations := protected.Group("/invitations")
 			{
-				invitations.POST("/generate-token", handlers.GenerateInvitationToken)
 				invitations.GET("/pending", handlers.CheckPendingInvitation)
 				invitations.POST("/redeem-pending", handlers.RedeemPendingInvitation)
 			}

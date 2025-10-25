@@ -66,10 +66,19 @@ func GetTeacherInvitationData(c *gin.Context) {
 	c.JSON(http.StatusOK, data)
 }
 
-// GenerateInvitationToken creates an encrypted token for a specific student
+// GenerateInvitationToken creates an encrypted token for a specific student in a class
 func GenerateInvitationToken(c *gin.Context) {
+	// Get class ID from URL path
+	classIDStr := c.Param("id")
+	classID, err := strconv.ParseUint(classIDStr, 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, models.ErrorResponse{
+			Message: "Invalid class ID",
+		})
+		return
+	}
+
 	var req struct {
-		ClassID     uint   `json:"class_id" binding:"required"`
 		StudentName string `json:"student_name" binding:"required"`
 	}
 
@@ -80,15 +89,14 @@ func GenerateInvitationToken(c *gin.Context) {
 		return
 	}
 
-	// Create payload with compact format
+	// Create payload with compact format (no class ID needed - comes from URL)
 	payload := models.StudentInvitationPayload{
-		ClassID:     req.ClassID,
 		StudentName: req.StudentName,
 		Timestamp:   time.Now().Unix(),
 	}
 
 	invitationService := services.NewStudentInvitationService(config.GetDB())
-	token, err := invitationService.EncryptInvitationData(payload)
+	token, err := invitationService.EncryptInvitationDataForClass(payload, uint(classID))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
 			Message: "Failed to generate token: " + err.Error(),

@@ -325,7 +325,6 @@ type AssignChildToClassRequest struct {
 
 // Student invitation system requests
 type StudentInvitationPayload struct {
-	ClassID     uint   `json:"class_id"`
 	StudentName string `json:"student_name"`
 	Timestamp   int64  `json:"timestamp"`
 }

@@ -281,12 +281,13 @@ func (s *StudentInvitationService) GetClassEncryptionKey(classID uint) ([]byte, 
 }
 
 // EncryptInvitationData encrypts student invitation data into a compact string token
-func (s *StudentInvitationService) EncryptInvitationData(payload models.StudentInvitationPayload) (string, error) {
-	// Convert payload to compact pipe-delimited format: "classId|studentName|timestamp"
-	compactData := fmt.Sprintf("%d|%s|%d", payload.ClassID, payload.StudentName, payload.Timestamp)
+// EncryptInvitationDataForClass encrypts invitation data for a specific class
+func (s *StudentInvitationService) EncryptInvitationDataForClass(payload models.StudentInvitationPayload, classID uint) (string, error) {
+	// Convert payload to compact pipe-delimited format: "studentName|timestamp"
+	compactData := fmt.Sprintf("%s|%d", payload.StudentName, payload.Timestamp)
 
 	// Use class-specific encryption key
-	key, err := s.GetClassEncryptionKey(payload.ClassID)
+	key, err := s.GetClassEncryptionKey(classID)
 	if err != nil {
 		return "", err
 	}
@@ -525,23 +526,17 @@ func (s *StudentInvitationService) tryDecryptWithClassKeyCBC(ciphertext []byte, 
 // parseCompactFormat parses the pipe-delimited compact format: "classId|studentName|timestamp"
 func (s *StudentInvitationService) parseCompactFormat(compactData string) (*models.StudentInvitationPayload, error) {
 	parts := strings.Split(compactData, "|")
-	if len(parts) != 3 {
+	if len(parts) != 2 {
 		return nil, errors.New("invalid compact format")
 	}
 
-	classID, err := strconv.ParseUint(parts[0], 10, 32)
-	if err != nil {
-		return nil, errors.New("invalid class ID")
-	}
-
-	timestamp, err := strconv.ParseInt(parts[2], 10, 64)
+	timestamp, err := strconv.ParseInt(parts[1], 10, 64)
 	if err != nil {
 		return nil, errors.New("invalid timestamp")
 	}
 
 	return &models.StudentInvitationPayload{
-		ClassID:     uint(classID),
-		StudentName: parts[1],
+		StudentName: parts[0],
 		Timestamp:   timestamp,
 	}, nil
 }
