@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Sample Class Invitation Spreadsheet - Mrs. Johnson's 3rd Grade</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        h1 { color: #4a90e2; }
+        .spreadsheet { border-collapse: collapse; width: 100%; margin: 20px 0; }
+        .spreadsheet th, .spreadsheet td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        .spreadsheet th { background-color: #4a90e2; color: white; font-weight: bold; }
+        .spreadsheet tr:nth-child(even) { background-color: #f2f2f2; }
+        .token { font-family: monospace; font-size: 10px; word-break: break-all; }
+        .url { font-family: monospace; font-size: 10px; word-break: break-all; color: #0066cc; }
+        .setup-info { background-color: #e8f4fd; padding: 15px; border-left: 4px solid #4a90e2; margin: 20px 0; }
+        .instructions { background-color: #fff3cd; padding: 15px; border-left: 4px solid #ffc107; margin: 20px 0; }
+        code { background-color: #f8f9fa; padding: 2px 4px; border-radius: 3px; font-family: monospace; }
+    </style>
+</head>
+<body>
+    <h1>📚 BookTracker Student Invitations - Mrs. Johnson's 3rd Grade</h1>
+    
+    <div class="setup-info">
+        <h3>🔧 Setup Information</h3>
+        <p><strong>Class ID:</strong> 123</p>
+        <p><strong>Teacher:</strong> Mrs. Johnson</p>
+        <p><strong>Class:</strong> 3rd Grade Room 15</p>
+        <p><strong>School Year:</strong> 2024-2025</p>
+        <p><strong>Base URL:</strong> https://booktracker.app/invite/</p>
+    </div>
+
+    <div class="instructions">
+        <h3>📝 How to Use This Spreadsheet</h3>
+        <ol>
+            <li>Enter student names in Column A</li>
+            <li>Enter parent email addresses in Column B</li>
+            <li>Invitation tokens and URLs will generate automatically</li>
+            <li>Copy the URLs from Column D and send them to parents</li>
+            <li>The Test column shows if encryption is working correctly</li>
+        </ol>
+        <p><strong>Formulas Used:</strong></p>
+        <ul>
+            <li>Column C: <code>=IF(A2<>"", GENERATE_TOKEN(A2), "")</code></li>
+            <li>Column D: <code>=IF(A2<>"", GENERATE_URL(A2), "")</code></li>
+            <li>Column E: <code>=IF(A2<>"", VALIDATE_NAME(A2), "")</code></li>
+            <li>Column F: <code>=IF(A2<>"", TEST_CRYPTO(A2), "")</code></li>
+        </ul>
+    </div>
+
+    <h2>Student Invitation Spreadsheet</h2>
+    
+    <table class="spreadsheet">
+        <thead>
+            <tr>
+                <th>A: Student Name</th>
+                <th>B: Parent Email</th>
+                <th>C: Invitation Token</th>
+                <th>D: Invitation URL</th>
+                <th>E: Validation</th>
+                <th>F: Test</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Emma Rodriguez</td>
+                <td>emma.parent@gmail.com</td>
+                <td class="token">k_zSCm2wGeXHwXNWk5T7c5VKkcB1MVrbIIzQnHkb2bsuJ4VxRp8IPhhUzNdvYCKEKkqXkhk</td>
+                <td class="url">https://booktracker.app/invite/k_zSCm2wGeXHwXNWk5T7c5VKkcB1MVrbIIzQnHkb2bsuJ4VxRp8IPhhUzNdvYCKEKkqXkhk</td>
+                <td>Valid</td>
+                <td>✅ OK (72 chars)</td>
+            </tr>
+            <tr>
+                <td>Marcus Thompson</td>
+                <td>marcus.dad@yahoo.com</td>
+                <td class="token">m8XyZAp3qJnBvCdE5fGhI7kLmNoP9rStUvWx0YzA1B2cDeF4GhIjKlMn6OpQrS8tUvW</td>
+                <td class="url">https://booktracker.app/invite/m8XyZAp3qJnBvCdE5fGhI7kLmNoP9rStUvWx0YzA1B2cDeF4GhIjKlMn6OpQrS8tUvW</td>
+                <td>Valid</td>
+                <td>✅ OK (75 chars)</td>
+            </tr>
+            <tr>
+                <td>Sophia Chen</td>
+                <td>sophia.mom@outlook.com</td>
+                <td class="token">pQ2rS4tUvW6xYzAB8cDeFgH9iJkLmN0oPqRs5TuVwX7yZaB1CdEf3GhI4jKlM8nOpQ</td>
+                <td class="url">https://booktracker.app/invite/pQ2rS4tUvW6xYzAB8cDeFgH9iJkLmN0oPqRs5TuVwX7yZaB1CdEf3GhI4jKlM8nOpQ</td>
+                <td>Valid</td>
+                <td>✅ OK (74 chars)</td>
+            </tr>
+            <tr>
+                <td>Aiden Foster</td>
+                <td>afoster.family@gmail.com</td>
+                <td class="token">x7YzA9bC1dE3fG5hI8jK0lM2nO4pQ6rS9tUvW1xY3zA5bC7dE9fG2hI4jK6lM8nO</td>
+                <td class="url">https://booktracker.app/invite/x7YzA9bC1dE3fG5hI8jK0lM2nO4pQ6rS9tUvW1xY3zA5bC7dE9fG2hI4jK6lM8nO</td>
+                <td>Valid</td>
+                <td>✅ OK (72 chars)</td>
+            </tr>
+            <tr>
+                <td>Zoe Williams</td>
+                <td>zwilliams.home@icloud.com</td>
+                <td class="token">bC4dE6fG8hI0jK2lM4nO7pQ9rS1tU3vW5xY8zA0bC3dE5fG7hI9jK1lM4nO6pQ8r</td>
+                <td class="url">https://booktracker.app/invite/bC4dE6fG8hI0jK2lM4nO7pQ9rS1tU3vW5xY8zA0bC3dE5fG7hI9jK1lM4nO6pQ8r</td>
+                <td>Valid</td>
+                <td>✅ OK (72 chars)</td>
+            </tr>
+            <tr>
+                <td>Jayden Martinez</td>
+                <td>jmartinez.parents@gmail.com</td>
+                <td class="token">eF9gH1iJ3kL5mN7oP9qR2sT4uV6wX8yZ1aB3cD5eF7gH9iJ2kL4mN6oP8qR1sT3u</td>
+                <td class="url">https://booktracker.app/invite/eF9gH1iJ3kL5mN7oP9qR2sT4uV6wX8yZ1aB3cD5eF7gH9iJ2kL4mN6oP8qR1sT3u</td>
+                <td>Valid</td>
+                <td>✅ OK (72 chars)</td>
+            </tr>
+            <tr>
+                <td>Isabella Garcia</td>
+                <td>isabella.family@yahoo.com</td>
+                <td class="token">hI2jK4lM6nO8pQ0rS3tU5vW7xY9zA2bC4dE6fG8hI0jK3lM5nO7pQ9rS2tU4vW6x</td>
+                <td class="url">https://booktracker.app/invite/hI2jK4lM6nO8pQ0rS3tU5vW7xY9zA2bC4dE6fG8hI0jK3lM5nO7pQ9rS2tU4vW6x</td>
+                <td>Valid</td>
+                <td>✅ OK (72 chars)</td>
+            </tr>
+            <tr>
+                <td>Ethan Lee</td>
+                <td>elee.home@gmail.com</td>
+                <td class="token">kL5mN7oP9qR1sT3uV5wX7yZ0aB2cD4eF6gH8iJ1kL3mN5oP7qR9sT2uV4wX6yZ8a</td>
+                <td class="url">https://booktracker.app/invite/kL5mN7oP9qR1sT3uV5wX7yZ0aB2cD4eF6gH8iJ1kL3mN5oP7qR9sT2uV4wX6yZ8a</td>
+                <td>Valid</td>
+                <td>✅ OK (72 chars)</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="setup-info">
+        <h3>📊 Spreadsheet Statistics</h3>
+        <p><strong>Total Students:</strong> 8</p>
+        <p><strong>Tokens Generated:</strong> 8</p>
+        <p><strong>All Validations:</strong> ✅ Passed</p>
+        <p><strong>Token Length Range:</strong> 72-75 characters</p>
+        <p><strong>Security Status:</strong> ✅ Class-isolated encryption active</p>
+    </div>
+
+    <div class="instructions">
+        <h3>📧 Next Steps for Email Distribution</h3>
+        <p>Now that your tokens are generated, you can:</p>
+        <ul>
+            <li><strong>Copy individual URLs</strong> and paste them into personal emails</li>
+            <li><strong>Use mail merge</strong> to send bulk emails with the invitation URLs</li>
+            <li><strong>Export to CSV</strong> for use with external email systems</li>
+            <li><strong>Print labels</strong> with QR codes for the URLs</li>
+        </ul>
+        
+        <p><strong>Security Note:</strong> These tokens are unique to your class (ID: 123) and will expire in 30 days. Parents must use the exact URL to successfully join their child to your class.</p>
+    </div>
+</body>
+</html>

@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>BookTracker Parent Invitation Email Templates</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; line-height: 1.6; }
+        h1 { color: #4a90e2; }
+        h2 { color: #333; border-bottom: 2px solid #4a90e2; padding-bottom: 5px; }
+        .email-template { background-color: #f8f9fa; padding: 20px; border: 1px solid #ddd; margin: 20px 0; border-radius: 8px; }
+        .email-header { background-color: #4a90e2; color: white; padding: 10px; margin: -20px -20px 20px -20px; border-radius: 8px 8px 0 0; }
+        .merge-field { background-color: #fff3cd; padding: 2px 6px; border-radius: 3px; font-weight: bold; }
+        .invitation-url { background-color: #d4edda; padding: 10px; border-left: 4px solid #28a745; margin: 10px 0; font-family: monospace; word-break: break-all; }
+        .instructions { background-color: #e8f4fd; padding: 15px; border-left: 4px solid #4a90e2; margin: 20px 0; }
+        .warning { background-color: #f8d7da; padding: 15px; border-left: 4px solid #dc3545; margin: 20px 0; }
+        .copy-button { background-color: #4a90e2; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; margin: 5px; }
+        .copy-button:hover { background-color: #357abd; }
+        code { background-color: #f8f9fa; padding: 2px 4px; border-radius: 3px; font-family: monospace; }
+    </style>
+    <script>
+        function copyToClipboard(elementId) {
+            var text = document.getElementById(elementId).innerText;
+            navigator.clipboard.writeText(text).then(function() {
+                alert('Email template copied to clipboard!');
+            }).catch(function(err) {
+                console.error('Could not copy text: ', err);
+            });
+        }
+    </script>
+</head>
+<body>
+    <h1>📧 BookTracker Parent Invitation Email Templates</h1>
+    
+    <div class="instructions">
+        <h3>🚀 How to Use These Templates</h3>
+        <p>These email templates work with the Google Sheets invitation system. You can:</p>
+        <ul>
+            <li><strong>Copy and paste</strong> the templates below and manually replace the <span class="merge-field">merge fields</span></li>
+            <li><strong>Use Gmail Mail Merge</strong> or similar tools to automatically fill in student names and URLs</li>
+            <li><strong>Customize the templates</strong> to match your teaching style and school requirements</li>
+        </ul>
+        
+        <p><strong>Merge Fields Available:</strong></p>
+        <ul>
+            <li><code>{{STUDENT_NAME}}</code> - Student's full name from Column A</li>
+            <li><code>{{INVITATION_URL}}</code> - Complete invitation URL from Column D</li>
+            <li><code>{{TEACHER_NAME}}</code> - Your name (customize in template)</li>
+            <li><code>{{CLASS_NAME}}</code> - Your class name (customize in template)</li>
+            <li><code>{{SCHOOL_NAME}}</code> - Your school name (customize in template)</li>
+        </ul>
+    </div>
+
+    <!-- Template 1: Formal -->
+    <h2>Template 1: Formal School Communication</h2>
+    <div class="email-template">
+        <div class="email-header">
+            <h3>📚 Reading Program Invitation - Formal</h3>
+        </div>
+        
+        <div id="template1">
+Subject: BookTracker Reading Program - Join {{STUDENT_NAME}}'s Class
+
+Dear Parent/Guardian,
+
+I hope this email finds you well. I am excited to invite you to join our classroom reading program using BookTracker, a digital tool that helps us track and celebrate your child's reading progress throughout the school year.
+
+**Student:** {{STUDENT_NAME}}
+**Teacher:** Mrs. Johnson
+**Class:** 3rd Grade - Room 15
+**School:** Lincoln Elementary School
+
+To get started, please click the secure invitation link below:
+
+{{INVITATION_URL}}
+
+This link will allow you to:
+• Create your parent account
+• Connect to {{STUDENT_NAME}}'s reading profile  
+• View their reading progress and achievements
+• Support their reading goals from home
+
+**Important Notes:**
+- This invitation link is unique to {{STUDENT_NAME}} and expires in 30 days
+- You'll need to create a free account using this link
+- All reading data is private and secure
+
+If you have any questions about the BookTracker system or our reading program, please don't hesitate to contact me at [teacher-email] or call the school office at [phone].
+
+Thank you for supporting {{STUDENT_NAME}}'s reading journey!
+
+Best regards,
+Mrs. Johnson
+3rd Grade Teacher
+Lincoln Elementary School
+[teacher-email]
+[phone]
+        </div>
+        
+        <button class="copy-button" onclick="copyToClipboard('template1')">📋 Copy Template</button>
+    </div>
+
+    <!-- Template 2: Friendly -->
+    <h2>Template 2: Friendly & Casual</h2>
+    <div class="email-template">
+        <div class="email-header">
+            <h3>🌟 Reading Adventure Invitation - Friendly</h3>
+        </div>
+        
+        <div id="template2">
+Subject: 📖 Let's Track {{STUDENT_NAME}}'s Reading Adventure Together!
+
+Hi {{STUDENT_NAME}}'s Family! 👋
+
+I'm so excited to share our new reading tracking system with you! We're using BookTracker to celebrate all the amazing books {{STUDENT_NAME}} will be reading this year.
+
+🎯 **Why you'll love BookTracker:**
+- See exactly what books {{STUDENT_NAME}} is reading
+- Celebrate reading milestones together
+- Track progress toward our class reading goals
+- Get ideas for books to read at home
+
+**Ready to join the fun?** Click here:
+{{INVITATION_URL}}
+
+This special link is just for {{STUDENT_NAME}}'s family! It will help you create your account and connect to their reading profile in just a few minutes.
+
+💡 **What to expect:**
+1. Click the link above
+2. Create your free parent account  
+3. Start seeing {{STUDENT_NAME}}'s reading progress!
+
+The invitation link expires in 30 days, so don't wait too long! 😊
+
+Questions? Just reply to this email or catch me before/after school. I'm here to help make reading fun for everyone!
+
+Happy Reading! 📚✨
+Mrs. Johnson
+
+P.S. Ask {{STUDENT_NAME}} about our class reading challenge - they're going to love it!
+        </div>
+        
+        <button class="copy-button" onclick="copyToClipboard('template2')">📋 Copy Template</button>
+    </div>
+
+    <!-- Template 3: Bilingual -->
+    <h2>Template 3: Bilingual (English/Spanish)</h2>
+    <div class="email-template">
+        <div class="email-header">
+            <h3>🌍 Bilingual Invitation - English & Spanish</h3>
+        </div>
+        
+        <div id="template3">
+Subject: BookTracker Reading Program / Programa de Lectura BookTracker
+
+**ENGLISH**
+Dear {{STUDENT_NAME}}'s Family,
+
+You're invited to join our classroom reading program! Click the link below to create your account and track {{STUDENT_NAME}}'s reading progress:
+
+{{INVITATION_URL}}
+
+This secure link is unique to {{STUDENT_NAME}} and will help you:
+- View their reading achievements
+- Support their reading goals
+- Connect with our classroom reading activities
+
+Questions? Contact me at [teacher-email]
+
+**ESPAÑOL**
+Estimada familia de {{STUDENT_NAME}},
+
+¡Están invitados a unirse a nuestro programa de lectura! Hagan clic en el enlace a continuación para crear su cuenta y seguir el progreso de lectura de {{STUDENT_NAME}}:
+
+{{INVITATION_URL}}
+
+Este enlace seguro es único para {{STUDENT_NAME}} y les ayudará a:
+- Ver sus logros de lectura
+- Apoyar sus metas de lectura  
+- Conectarse con nuestras actividades de lectura en clase
+
+¿Preguntas? Contáctenme en [teacher-email]
+
+Best regards / Saludos cordiales,
+Mrs. Johnson
+3rd Grade / 3er Grado
+        </div>
+        
+        <button class="copy-button" onclick="copyToClipboard('template3')">📋 Copy Template</button>
+    </div>
+
+    <!-- Template 4: Mail Merge -->
+    <h2>Template 4: Mail Merge Ready</h2>
+    <div class="email-template">
+        <div class="email-header">
+            <h3>🔄 Mail Merge Template</h3>
+        </div>
+        
+        <div class="instructions">
+            <p><strong>For use with Gmail Mail Merge, Mailchimp, or other bulk email systems:</strong></p>
+            <p>This template uses standard merge field syntax that works with most mail merge tools. Simply export your Google Sheet columns and map them to these fields.</p>
+        </div>
+        
+        <div id="template4">
+Subject: BookTracker Invitation for <<STUDENT_NAME>>
+
+Dear <<STUDENT_NAME>>'s Family,
+
+Welcome to our reading program! I'm Mrs. Johnson, and I'm excited to help <<STUDENT_NAME>> develop a love for reading this year.
+
+**Your Personal Invitation Link:**
+<<INVITATION_URL>>
+
+**What This Means for <<STUDENT_NAME>>:**
+Our class will be using BookTracker to record all the books we read together. As <<STUDENT_NAME>>'s parent/guardian, you'll be able to see their progress and celebrate their achievements.
+
+**Getting Started is Easy:**
+1. Click your unique invitation link above
+2. Create your free parent account (takes 2 minutes)
+3. You'll automatically be connected to <<STUDENT_NAME>>'s reading profile
+
+**Need Help?**
+- Email: mrs.johnson@school.edu
+- Phone: (555) 123-4567
+- Office Hours: Monday-Friday 3:30-4:00 PM
+
+This invitation expires in 30 days. Please complete your registration soon!
+
+Looking forward to a great reading year with <<STUDENT_NAME>>!
+
+Mrs. Johnson
+3rd Grade Teacher
+Lincoln Elementary
+        </div>
+        
+        <button class="copy-button" onclick="copyToClipboard('template4')">📋 Copy Template</button>
+    </div>
+
+    <div class="warning">
+        <h3>⚠️ Important Security Reminders</h3>
+        <ul>
+            <li><strong>Never share invitation links</strong> between families - each link is unique</li>
+            <li><strong>Links expire in 30 days</strong> - remind parents to register promptly</li>
+            <li><strong>Class ID security</strong> - tokens only work for your specific class</li>
+            <li><strong>One account per family</strong> - parents should register once per invitation link</li>
+        </ul>
+    </div>
+
+    <div class="instructions">
+        <h3>📋 Mail Merge Setup Instructions</h3>
+        
+        <h4>Using Gmail Mail Merge:</h4>
+        <ol>
+            <li>Export your Google Sheet to CSV (File → Download → CSV)</li>
+            <li>Install a Gmail Mail Merge add-on (like "Yet Another Mail Merge")</li>
+            <li>Create a new Gmail draft with the merge template</li>
+            <li>Upload your CSV and map the columns:
+                <ul>
+                    <li>Column A (Student Name) → <<STUDENT_NAME>></li>
+                    <li>Column B (Parent Email) → Email Address</li>
+                    <li>Column D (Invitation URL) → <<INVITATION_URL>></li>
+                </ul>
+            </li>
+            <li>Send test emails first, then send to all</li>
+        </ol>
+
+        <h4>Using Mailchimp or Similar:</h4>
+        <ol>
+            <li>Upload your CSV to your email platform</li>
+            <li>Create a new email campaign</li>
+            <li>Use the merge template above</li>
+            <li>Map merge fields to your CSV columns</li>
+            <li>Test with a small group first</li>
+        </ol>
+
+        <h4>Manual Copy-Paste Method:</h4>
+        <ol>
+            <li>Copy a template above</li>
+            <li>Replace {{STUDENT_NAME}} with the actual student name</li>
+            <li>Replace {{INVITATION_URL}} with the URL from Column D</li>
+            <li>Send individual emails</li>
+        </ol>
+    </div>
+
+    <div class="instructions">
+        <h3>✅ Email Sending Checklist</h3>
+        <ul>
+            <li>☐ Verified all student names are spelled correctly</li>
+            <li>☐ Confirmed all parent email addresses are accurate</li>
+            <li>☐ Tested invitation URLs work correctly</li>
+            <li>☐ Customized teacher name, class, and school information</li>
+            <li>☐ Added your contact information</li>
+            <li>☐ Sent a test email to yourself first</li>
+            <li>☐ Scheduled emails for appropriate time (not too early/late)</li>
+            <li>☐ Set up follow-up reminders for non-responders</li>
+        </ul>
+    </div>
+</body>
+</html>

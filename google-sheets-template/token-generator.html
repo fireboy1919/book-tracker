@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Book Tracker - Token Generator</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: #333;
+        }
+        input, textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #007cba;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-right: 10px;
+        }
+        button:hover {
+            background-color: #005a87;
+        }
+        .results {
+            margin-top: 30px;
+            padding: 20px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+            border-left: 4px solid #007cba;
+        }
+        .error {
+            background-color: #f8d7da;
+            border-left-color: #dc3545;
+            color: #721c24;
+        }
+        .success {
+            background-color: #d4edda;
+            border-left-color: #28a745;
+            color: #155724;
+        }
+        .token-result {
+            margin: 10px 0;
+            padding: 10px;
+            background-color: white;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+        }
+        .copy-btn {
+            font-size: 12px;
+            padding: 4px 8px;
+            background-color: #6c757d;
+        }
+        .copy-btn:hover {
+            background-color: #545b62;
+        }
+        .instructions {
+            background-color: #e3f2fd;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+        .instructions h3 {
+            margin-top: 0;
+            color: #1976d2;
+        }
+        .student-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+            align-items: center;
+        }
+        .student-row input {
+            flex: 1;
+            margin-bottom: 0;
+        }
+        .remove-btn {
+            background-color: #dc3545;
+            padding: 8px 12px;
+            font-size: 12px;
+        }
+        .remove-btn:hover {
+            background-color: #c82333;
+        }
+        .add-student-btn {
+            background-color: #28a745;
+            font-size: 14px;
+            padding: 8px 16px;
+        }
+        .add-student-btn:hover {
+            background-color: #218838;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📚 Book Tracker - Student Invitation Token Generator</h1>
+        
+        <div class="instructions">
+            <h3>Instructions:</h3>
+            <ol>
+                <li>Get your Teacher ID, Class ID, and Invitation Key from the Book Tracker app</li>
+                <li>Fill in the configuration below</li>
+                <li>Add your students' names and grades</li>
+                <li>Click "Generate Tokens" to create invitation links</li>
+                <li>Copy the URLs and send them to parents via email</li>
+            </ol>
+        </div>
+
+        <form id="tokenForm">
+            <h2>Configuration</h2>
+            
+            <div class="form-group">
+                <label for="apiUrl">Book Tracker API URL:</label>
+                <input type="url" id="apiUrl" value="http://localhost:8080/api" placeholder="https://booktracker.app/api">
+            </div>
+            
+            <div class="form-group">
+                <label for="teacherId">Teacher ID:</label>
+                <input type="number" id="teacherId" required placeholder="Get this from Book Tracker app">
+            </div>
+            
+            <div class="form-group">
+                <label for="classId">Class ID:</label>
+                <input type="number" id="classId" required placeholder="Get this from Book Tracker app">
+            </div>
+            
+            <div class="form-group">
+                <label for="invitationKey">Invitation Key:</label>
+                <input type="text" id="invitationKey" required placeholder="Get this from Book Tracker app">
+            </div>
+
+            <h2>Students</h2>
+            <div id="studentsContainer">
+                <div class="student-row">
+                    <input type="text" placeholder="Student Name (e.g., John Smith)" class="student-name" required>
+                    <input type="text" placeholder="Grade (e.g., 3rd Grade)" class="student-grade" required>
+                    <button type="button" class="remove-btn" onclick="removeStudent(this)">Remove</button>
+                </div>
+            </div>
+            
+            <button type="button" class="add-student-btn" onclick="addStudent()">+ Add Student</button>
+            
+            <div style="margin-top: 30px;">
+                <button type="submit">Generate Tokens</button>
+                <button type="button" onclick="clearResults()">Clear Results</button>
+            </div>
+        </form>
+
+        <div id="results" class="results" style="display: none;">
+            <h3>Generated Invitation Links:</h3>
+            <div id="resultsContent"></div>
+        </div>
+    </div>
+
+    <script>
+        let studentCount = 1;
+
+        function addStudent() {
+            const container = document.getElementById('studentsContainer');
+            const newRow = document.createElement('div');
+            newRow.className = 'student-row';
+            newRow.innerHTML = `
+                <input type="text" placeholder="Student Name (e.g., John Smith)" class="student-name" required>
+                <input type="text" placeholder="Grade (e.g., 3rd Grade)" class="student-grade" required>
+                <button type="button" class="remove-btn" onclick="removeStudent(this)">Remove</button>
+            `;
+            container.appendChild(newRow);
+            studentCount++;
+        }
+
+        function removeStudent(button) {
+            if (document.querySelectorAll('.student-row').length > 1) {
+                button.parentElement.remove();
+                studentCount--;
+            } else {
+                alert('You must have at least one student.');
+            }
+        }
+
+        function clearResults() {
+            document.getElementById('results').style.display = 'none';
+        }
+
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                alert('Copied to clipboard!');
+            });
+        }
+
+        async function generateToken(apiUrl, teacherId, classId, invitationKey, studentName, grade) {
+            const payload = {
+                teacher_id: parseInt(teacherId),
+                class_id: parseInt(classId),
+                student_name: studentName,
+                grade: grade,
+                teacher_key: invitationKey
+            };
+
+            try {
+                const response = await fetch(`${apiUrl}/invitations/generate-token`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.message || `HTTP ${response.status}`);
+                }
+
+                const data = await response.json();
+                return data.token;
+            } catch (error) {
+                throw new Error(`Failed to generate token for ${studentName}: ${error.message}`);
+            }
+        }
+
+        document.getElementById('tokenForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const apiUrl = document.getElementById('apiUrl').value.trim();
+            const teacherId = document.getElementById('teacherId').value;
+            const classId = document.getElementById('classId').value;
+            const invitationKey = document.getElementById('invitationKey').value.trim();
+            
+            const studentRows = document.querySelectorAll('.student-row');
+            const students = [];
+            
+            for (let row of studentRows) {
+                const name = row.querySelector('.student-name').value.trim();
+                const grade = row.querySelector('.student-grade').value.trim();
+                if (name && grade) {
+                    students.push({ name, grade });
+                }
+            }
+
+            if (students.length === 0) {
+                alert('Please add at least one student with name and grade.');
+                return;
+            }
+
+            // Show loading
+            const resultsDiv = document.getElementById('results');
+            const resultsContent = document.getElementById('resultsContent');
+            resultsDiv.style.display = 'block';
+            resultsDiv.className = 'results';
+            resultsContent.innerHTML = '<p>Generating tokens... Please wait.</p>';
+
+            try {
+                let html = '';
+                let successCount = 0;
+                let errors = [];
+
+                for (let student of students) {
+                    try {
+                        const token = await generateToken(apiUrl, teacherId, classId, invitationKey, student.name, student.grade);
+                        const invitationUrl = `${apiUrl.replace('/api', '')}/invite/${token}`;
+                        
+                        html += `
+                            <div class="token-result success">
+                                <strong>${student.name}</strong> (${student.grade})<br>
+                                <small>Token: ${token}</small><br>
+                                <strong>URL:</strong> 
+                                <a href="${invitationUrl}" target="_blank">${invitationUrl}</a>
+                                <button class="copy-btn" onclick="copyToClipboard('${invitationUrl}')">Copy URL</button>
+                            </div>
+                        `;
+                        successCount++;
+                    } catch (error) {
+                        errors.push(`${student.name}: ${error.message}`);
+                        html += `
+                            <div class="token-result error">
+                                <strong>${student.name}</strong> (${student.grade})<br>
+                                <strong>Error:</strong> ${error.message}
+                            </div>
+                        `;
+                    }
+                }
+
+                if (errors.length === 0) {
+                    resultsDiv.className = 'results success';
+                    html = `<p><strong>✅ Successfully generated ${successCount} invitation tokens!</strong></p>` + html;
+                } else if (successCount > 0) {
+                    html = `<p><strong>⚠️ Generated ${successCount} tokens with ${errors.length} errors.</strong></p>` + html;
+                } else {
+                    resultsDiv.className = 'results error';
+                    html = `<p><strong>❌ Failed to generate any tokens.</strong></p>` + html;
+                }
+
+                resultsContent.innerHTML = html;
+
+            } catch (error) {
+                resultsDiv.className = 'results error';
+                resultsContent.innerHTML = `<p><strong>Error:</strong> ${error.message}</p>`;
+            }
+        });
+    </script>
+</body>
+</html>
