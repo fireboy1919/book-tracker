@@ -24,6 +24,25 @@ export default function StudentInvitation() {
     fetchInvitationDetails()
   }, [classId, token])
 
+  // Auto-redeem invitation if user is logged in and invitation details are loaded
+  useEffect(() => {
+    if (user && invitationDetails && !success && !redeeming && !error) {
+      // Check if this is a return from login (has redirect in URL or localStorage)
+      const urlParams = new URLSearchParams(window.location.search)
+      const hasRedirectParam = urlParams.get('from_login') === 'true'
+      const hasRedirectInStorage = localStorage.getItem('auto_redeem_invitation') === 'true'
+      
+      if (hasRedirectParam || hasRedirectInStorage) {
+        // Clean up
+        localStorage.removeItem('auto_redeem_invitation')
+        
+        // Auto-redeem the invitation
+        console.log('Auto-redeeming invitation after login')
+        handleRedeem()
+      }
+    }
+  }, [user, invitationDetails, success, redeeming, error])
+
   const fetchInvitationDetails = async () => {
     try {
       const response = await api.get(`/invite/${classId}/${token}`)
@@ -38,6 +57,7 @@ export default function StudentInvitation() {
   const handleRedeem = async () => {
     if (!user) {
       // Store invitation and redirect to login
+      localStorage.setItem('auto_redeem_invitation', 'true')
       const inviteUrl = `/invite/${classId}/${token}`
       navigate(`/login?redirect=${encodeURIComponent(inviteUrl)}`)
       return
@@ -185,16 +205,25 @@ export default function StudentInvitation() {
               <p className="text-sm text-gray-600">
                 Logged in as <span className="font-medium">{user.firstName} {user.lastName}</span> ({user.email})
               </p>
-              <button
-                onClick={handleRedeem}
-                disabled={redeeming}
-                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {redeeming ? 'Accepting Invitation...' : 'Accept Invitation'}
-              </button>
-              <p className="text-xs text-gray-500 text-center">
-                This will add {invitationDetails?.student_name} to your account
-              </p>
+              {redeeming ? (
+                <div className="text-center">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto"></div>
+                  <p className="mt-2 text-sm text-gray-600">Accepting invitation...</p>
+                </div>
+              ) : (
+                <>
+                  <button
+                    onClick={handleRedeem}
+                    disabled={redeeming}
+                    className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Accept Invitation
+                  </button>
+                  <p className="text-xs text-gray-500 text-center">
+                    This will add {invitationDetails?.student_name} to your account
+                  </p>
+                </>
+              )}
             </div>
           )}
         </div>
