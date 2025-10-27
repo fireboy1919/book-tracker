@@ -319,8 +319,14 @@ func (s *StudentInvitationService) EncryptInvitationDataForClass(payload models.
 
 // DecryptInvitationToken decrypts and validates an invitation token
 func (s *StudentInvitationService) DecryptInvitationToken(token string) (*models.StudentInvitationPayload, error) {
+	// Add padding to token if needed (Google Sheets removes padding)
+	paddedToken := token
+	for len(paddedToken)%4 != 0 {
+		paddedToken += "="
+	}
+	
 	// Decode the token
-	ciphertext, err := base64.URLEncoding.DecodeString(token)
+	ciphertext, err := base64.URLEncoding.DecodeString(paddedToken)
 	if err != nil {
 		return nil, errors.New("invalid token format")
 	}
@@ -364,8 +370,14 @@ func (s *StudentInvitationService) DecryptInvitationToken(token string) (*models
 
 // DecryptInvitationTokenForClass decrypts a token using a specific class key
 func (s *StudentInvitationService) DecryptInvitationTokenForClass(token string, classID uint) (*models.StudentInvitationPayload, error) {
+	// Add padding to token if needed (Google Sheets removes padding)
+	paddedToken := token
+	for len(paddedToken)%4 != 0 {
+		paddedToken += "="
+	}
+	
 	// Decode the token
-	ciphertext, err := base64.URLEncoding.DecodeString(token)
+	ciphertext, err := base64.URLEncoding.DecodeString(paddedToken)
 	if err != nil {
 		return nil, errors.New("invalid token format")
 	}

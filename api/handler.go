@@ -174,8 +174,8 @@ func initRouter() {
 		}
 
 		// Public student invitation routes (no auth required)
-		api.GET("/invite/:token", handlers.GetStudentInvitationDetails)
-		api.POST("/invite/:token/redeem", handlers.RedeemStudentInvitation)
+		api.GET("/invite/:classId/:token", handlers.GetStudentInvitationDetails)
+		api.POST("/invite/:classId/:token/redeem", handlers.RedeemStudentInvitation)
 	}
 }
 

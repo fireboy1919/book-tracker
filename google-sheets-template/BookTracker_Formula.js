@@ -38,39 +38,59 @@ function encryptData(studentName, invitationKey) {
     const timestamp = Math.floor(Date.now() / 1000);
     const payload = `${studentName}|${timestamp}`;
     
-    const keyBytes = hexToBytes(keyHex);
-    const iv = [];
-    for (let i = 0; i < 16; i++) {
-      iv.push(Math.floor(Math.random() * 256));
+    // Try using hex strings directly instead of byte arrays
+    const keyHexString = cCryptoGS.CryptoJS.enc.Hex.parse(keyHex);
+    const payloadUtf8 = cCryptoGS.CryptoJS.enc.Utf8.parse(payload);
+    
+    // Generate random IV as hex
+    let ivHex = '';
+    for (let i = 0; i < 32; i++) { // 32 hex chars = 16 bytes
+      ivHex += Math.floor(Math.random() * 16).toString(16);
     }
+    const ivWordArray = cCryptoGS.CryptoJS.enc.Hex.parse(ivHex);
     
-    const payloadBytes = Utilities.newBlob(payload).getBytes();
-    
+    // Use CBC mode (compatible with backend CBC decryption)
     const encrypted = cCryptoGS.CryptoJS.AES.encrypt(
-      cCryptoGS.CryptoJS.lib.WordArray.create(payloadBytes),
-      cCryptoGS.CryptoJS.lib.WordArray.create(keyBytes),
+      payloadUtf8,
+      keyHexString,
       {
-        iv: cCryptoGS.CryptoJS.lib.WordArray.create(iv),
+        iv: ivWordArray,
         mode: cCryptoGS.CryptoJS.mode.CBC,
         padding: cCryptoGS.CryptoJS.pad.Pkcs7
       }
     );
     
-    const combined = iv.concat(Array.from(encrypted.ciphertext.words.flatMap(word => [
-      (word >>> 24) & 0xff, (word >>> 16) & 0xff, (word >>> 8) & 0xff, word & 0xff
-    ])));
+    // Extract IV and ciphertext as hex
+    const ivBytes = hexToBytes(ivHex);
+    const ciphertextBytes = wordArrayToBytes(encrypted.ciphertext);
+    const combined = ivBytes.concat(ciphertextBytes);
     
     // Convert to base64 and make URL-safe
     let base64 = Utilities.base64Encode(combined);
-    // Ensure URL-safe encoding
     base64 = base64.replace(/\+/g, '-').replace(/\//g, '_');
-    // Remove padding for URL safety
     base64 = base64.replace(/=/g, '');
     return base64;
       
   } catch (error) {
     throw new Error(`Encryption failed: ${error.message}`);
   }
+}
+
+// Helper function to convert CryptoJS WordArray to byte array
+function wordArrayToBytes(wordArray) {
+  if (!wordArray || !wordArray.words) return [];
+  
+  const bytes = [];
+  for (let i = 0; i < wordArray.words.length; i++) {
+    const word = wordArray.words[i];
+    bytes.push((word >>> 24) & 0xff);
+    bytes.push((word >>> 16) & 0xff);
+    bytes.push((word >>> 8) & 0xff);
+    bytes.push(word & 0xff);
+  }
+  
+  // Trim to actual byte length
+  return bytes.slice(0, wordArray.sigBytes || bytes.length);
 }
 
 /**
