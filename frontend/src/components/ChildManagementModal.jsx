@@ -2,9 +2,10 @@ import { useState, useEffect } from 'react'
 import { XMarkIcon, TrashIcon, EyeIcon, PencilIcon } from '@heroicons/react/24/outline'
 import api from '../services/api'
 
-export default function ChildManagementModal({ child, onClose, onChildUpdated }) {
+export default function ChildManagementModal({ child, onClose, onChildUpdated, onChildDeleted }) {
   const [activeTab, setActiveTab] = useState('details')
   const [loading, setLoading] = useState(false)
+  const [deleting, setDeleting] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   
@@ -102,6 +103,31 @@ export default function ChildManagementModal({ child, onClose, onChildUpdated })
       <EyeIcon className="h-4 w-4 text-blue-600" />
   }
 
+  const handleDeleteChild = async () => {
+    const confirmMessage = `Are you sure you want to permanently delete ${child.firstName} ${child.lastName}? This will remove all their book records and cannot be undone.`
+    
+    if (!window.confirm(confirmMessage)) {
+      return
+    }
+
+    setDeleting(true)
+    setError('')
+
+    try {
+      await api.delete(`/children/${child.id}`)
+      
+      if (onChildDeleted) {
+        onChildDeleted(child.id)
+      }
+      onClose()
+    } catch (error) {
+      console.error('Failed to delete child:', error)
+      setError(error.response?.data?.message || 'Failed to delete child')
+    } finally {
+      setDeleting(false)
+    }
+  }
+
   return (
     <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
       <div className="relative top-10 mx-auto p-5 border w-full max-w-3xl shadow-lg rounded-md bg-white">
@@ -137,6 +163,16 @@ export default function ChildManagementModal({ child, onClose, onChildUpdated })
               }`}
             >
               Sharing & Permissions
+            </button>
+            <button
+              onClick={() => setActiveTab('delete')}
+              className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'delete'
+                  ? 'border-red-500 text-red-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              Delete Child
             </button>
           </nav>
         </div>
@@ -297,6 +333,63 @@ export default function ChildManagementModal({ child, onClose, onChildUpdated })
 
             {success && (
               <div className="text-green-600 text-sm">{success}</div>
+            )}
+          </div>
+        )}
+
+        {/* Delete Tab */}
+        {activeTab === 'delete' && (
+          <div className="space-y-6">
+            <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+              <div className="flex items-center mb-4">
+                <TrashIcon className="h-8 w-8 text-red-600 mr-3" />
+                <div>
+                  <h4 className="text-lg font-medium text-red-900">Delete Child</h4>
+                  <p className="text-sm text-red-700">This action cannot be undone</p>
+                </div>
+              </div>
+              
+              <div className="space-y-4">
+                <p className="text-gray-700">
+                  You are about to permanently delete <strong>{child.firstName} {child.lastName}</strong> and all their associated data, including:
+                </p>
+                
+                <ul className="list-disc list-inside text-gray-700 space-y-1 ml-4">
+                  <li>All book reading records</li>
+                  <li>Reading progress and statistics</li>
+                  <li>Sharing permissions</li>
+                  <li>Class assignments</li>
+                </ul>
+                
+                <div className="bg-yellow-50 border border-yellow-200 rounded p-3">
+                  <p className="text-yellow-800 text-sm">
+                    <strong>Warning:</strong> This action is permanent and cannot be reversed. Make sure you have exported any data you want to keep before proceeding.
+                  </p>
+                </div>
+                
+                <div className="flex justify-between pt-4">
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('details')}
+                    className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleDeleteChild}
+                    disabled={deleting}
+                    className="inline-flex items-center px-4 py-2 border border-transparent rounded-md text-sm font-medium text-white bg-red-600 hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <TrashIcon className="h-4 w-4 mr-2" />
+                    {deleting ? 'Deleting...' : 'Delete Permanently'}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {error && (
+              <div className="text-red-600 text-sm">{error}</div>
             )}
           </div>
         )}

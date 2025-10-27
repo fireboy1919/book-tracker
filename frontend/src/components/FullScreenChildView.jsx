@@ -4,7 +4,7 @@ import api from '../services/api'
 import EditBookModal from './EditBookModal'
 import EditChildModal from './EditChildModal'
 
-export default function FullScreenChildView({ child, onClose, onAddBook }) {
+export default function FullScreenChildView({ child, onClose, onAddBook, onChildDeleted }) {
   const [books, setBooks] = useState([])
   const [loading, setLoading] = useState(true)
   const [currentDate, setCurrentDate] = useState(new Date())
@@ -120,6 +120,13 @@ export default function FullScreenChildView({ child, onClose, onAddBook }) {
   const handleChildUpdated = (updatedChild) => {
     setChildData(updatedChild)
     setShowEditChildModal(false)
+  }
+
+  const handleChildDeleted = (childId) => {
+    if (onChildDeleted) {
+      onChildDeleted(childId)
+    }
+    onClose() // Close the full screen view since the child no longer exists
   }
 
   const handleDownloadPDF = async () => {
@@ -369,6 +376,7 @@ export default function FullScreenChildView({ child, onClose, onAddBook }) {
           child={childData}
           onClose={() => setShowEditChildModal(false)}
           onChildUpdated={handleChildUpdated}
+          onChildDeleted={handleChildDeleted}
         />
       )}
     </div>

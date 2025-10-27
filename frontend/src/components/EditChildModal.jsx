@@ -1,8 +1,8 @@
 import { useState } from 'react'
-import { XMarkIcon } from '@heroicons/react/24/outline'
+import { XMarkIcon, TrashIcon } from '@heroicons/react/24/outline'
 import api from '../services/api'
 
-export default function EditChildModal({ child, onClose, onChildUpdated }) {
+export default function EditChildModal({ child, onClose, onChildUpdated, onChildDeleted }) {
   const [formData, setFormData] = useState({
     firstName: child.firstName || '',
     lastName: child.lastName || '',
@@ -22,6 +22,7 @@ export default function EditChildModal({ child, onClose, onChildUpdated }) {
     '8th Grade'
   ]
   const [loading, setLoading] = useState(false)
+  const [deleting, setDeleting] = useState(false)
   const [error, setError] = useState('')
 
   const handleChange = (e) => {
@@ -57,6 +58,31 @@ export default function EditChildModal({ child, onClose, onChildUpdated }) {
       setError(error.response?.data?.message || 'Failed to update child information')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleDelete = async () => {
+    const confirmMessage = `Are you sure you want to delete ${child.firstName} ${child.lastName}? This will permanently remove all their book records. This action cannot be undone.`
+    
+    if (!window.confirm(confirmMessage)) {
+      return
+    }
+
+    setDeleting(true)
+    setError('')
+
+    try {
+      await api.delete(`/children/${child.id}`)
+      
+      if (onChildDeleted) {
+        onChildDeleted(child.id)
+      }
+      onClose()
+    } catch (error) {
+      console.error('Failed to delete child:', error)
+      setError(error.response?.data?.message || 'Failed to delete child')
+    } finally {
+      setDeleting(false)
     }
   }
 
@@ -129,16 +155,28 @@ export default function EditChildModal({ child, onClose, onChildUpdated }) {
           )}
 
           <div className="flex justify-between pt-4">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
-            >
-              Cancel
-            </button>
+            <div className="flex space-x-2">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleDelete}
+                disabled={deleting || loading}
+                className="inline-flex items-center px-3 py-2 border border-transparent rounded-md text-sm font-medium text-white bg-red-600 hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                title="Delete this child permanently"
+              >
+                <TrashIcon className="h-4 w-4 mr-1" />
+                {deleting ? 'Deleting...' : 'Delete'}
+              </button>
+            </div>
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || deleting}
               className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? 'Saving...' : 'Save Changes'}

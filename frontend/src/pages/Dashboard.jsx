@@ -210,6 +210,10 @@ export default function Dashboard() {
             fetchChildren()
             setRefreshTrigger(prev => prev + 1)
           }}
+          onChildDeleted={(childId) => {
+            setChildren(prevChildren => prevChildren.filter(child => child.id !== childId))
+            setShowChildManagement(false)
+          }}
         />
       )}
 
@@ -218,6 +222,10 @@ export default function Dashboard() {
           child={selectedChild}
           onClose={() => setShowFullScreenView(false)}
           onAddBook={handleAddBook}
+          onChildDeleted={(childId) => {
+            setChildren(prevChildren => prevChildren.filter(child => child.id !== childId))
+            setShowFullScreenView(false)
+          }}
         />
       )}
 
