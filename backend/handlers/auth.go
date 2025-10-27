@@ -427,6 +427,12 @@ func GoogleLogin(c *gin.Context) {
 	if invitationToken != "" {
 		c.SetCookie("invitation_token", invitationToken, 600, "/", "", false, true)
 	}
+	
+	// Check if there's a redirect URL
+	redirectUrl := c.Query("redirect_url")
+	if redirectUrl != "" {
+		c.SetCookie("redirect_url", redirectUrl, 600, "/", "", false, true)
+	}
 
 	authURL := oauthService.GetAuthURL(state)
 	c.Redirect(http.StatusTemporaryRedirect, authURL)
@@ -435,6 +441,30 @@ func GoogleLogin(c *gin.Context) {
 // GoogleCallback handles the OAuth callback from Google
 func GoogleCallback(c *gin.Context) {
 	oauthService := services.NewOAuthService()
+	
+	// Helper function to build redirect URL
+	buildRedirectURL := func(jwtToken string, userResponse models.UserResponse) string {
+		frontendURL := os.Getenv("FRONTEND_URL")
+		if frontendURL == "" {
+			frontendURL = "http://localhost:3000"
+		}
+		
+		userJSON, _ := json.Marshal(userResponse)
+		
+		// Check for redirect URL
+		redirectUrl, _ := c.Cookie("redirect_url")
+		if redirectUrl != "" {
+			// Clear the cookie
+			c.SetCookie("redirect_url", "", -1, "/", "", false, true)
+			// Add the redirect URL as a parameter
+			return fmt.Sprintf("%s/google-callback?token=%s&user=%s&redirect=%s", 
+				frontendURL, jwtToken, url.QueryEscape(string(userJSON)), url.QueryEscape(redirectUrl))
+		}
+		
+		// Default redirect
+		return fmt.Sprintf("%s/google-callback?token=%s&user=%s", 
+			frontendURL, jwtToken, url.QueryEscape(string(userJSON)))
+	}
 
 	// Verify state parameter
 	state := c.Query("state")
@@ -512,15 +542,7 @@ func GoogleCallback(c *gin.Context) {
 			}
 
 			// Redirect to frontend with token and user info
-			frontendURL := os.Getenv("FRONTEND_URL")
-			if frontendURL == "" {
-				frontendURL = "http://localhost:3000"
-			}
-			
-			userJSON, _ := json.Marshal(userResponse)
-			redirectURL := fmt.Sprintf("%s/google-callback?token=%s&user=%s", 
-				frontendURL, jwtToken, url.QueryEscape(string(userJSON)))
-			
+			redirectURL := buildRedirectURL(jwtToken, userResponse)
 			c.Redirect(http.StatusTemporaryRedirect, redirectURL)
 			return
 		}
@@ -557,15 +579,7 @@ func GoogleCallback(c *gin.Context) {
 		}
 
 		// Redirect to frontend with token and user info
-		frontendURL := os.Getenv("FRONTEND_URL")
-		if frontendURL == "" {
-			frontendURL = "http://localhost:3000"
-		}
-		
-		userJSON, _ := json.Marshal(userResponse)
-		redirectURL := fmt.Sprintf("%s/google-callback?token=%s&user=%s", 
-			frontendURL, jwtToken, url.QueryEscape(string(userJSON)))
-		
+		redirectURL := buildRedirectURL(jwtToken, userResponse)
 		c.Redirect(http.StatusTemporaryRedirect, redirectURL)
 		return
 	}
@@ -604,14 +618,6 @@ func GoogleCallback(c *gin.Context) {
 	}
 
 	// Redirect to frontend with token and user info
-	frontendURL := os.Getenv("FRONTEND_URL")
-	if frontendURL == "" {
-		frontendURL = "http://localhost:3000"
-	}
-	
-	userJSON, _ := json.Marshal(userResponse)
-	redirectURL := fmt.Sprintf("%s/google-callback?token=%s&user=%s", 
-		frontendURL, jwtToken, url.QueryEscape(string(userJSON)))
-	
+	redirectURL := buildRedirectURL(jwtToken, userResponse)
 	c.Redirect(http.StatusTemporaryRedirect, redirectURL)
 }

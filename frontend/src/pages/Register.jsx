@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import api from '../services/api'
 import { BookOpenIcon, CheckCircleIcon, EnvelopeIcon } from '@heroicons/react/24/outline'
@@ -20,6 +20,8 @@ export default function Register() {
   const [resendMessage, setResendMessage] = useState('')
   const { register } = useAuth()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const redirectUrl = searchParams.get('redirect')
 
   const handleChange = (e) => {
     const value = e.target.type === 'checkbox' ? e.target.checked : e.target.value
@@ -48,6 +50,11 @@ export default function Register() {
     })
     
     if (result.success) {
+      // Store redirect URL in localStorage for after email verification
+      if (redirectUrl) {
+        localStorage.setItem('pendingRedirectAfterVerification', redirectUrl)
+      }
+      
       setRegisteredUser(result.user)
       setShowSuccessMessage(true)
     } else {
@@ -119,7 +126,7 @@ export default function Register() {
                   {resendLoading ? 'Sending...' : 'Resend Verification Email'}
                 </button>
                 <Link
-                  to="/login"
+                  to={redirectUrl ? `/login?redirect=${encodeURIComponent(redirectUrl)}` : '/login'}
                   className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                 >
                   Go to Login
@@ -144,7 +151,7 @@ export default function Register() {
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
             Or{' '}
-            <Link to="/login" className="font-medium text-indigo-600 hover:text-indigo-500">
+            <Link to={redirectUrl ? `/login?redirect=${encodeURIComponent(redirectUrl)}` : '/login'} className="font-medium text-indigo-600 hover:text-indigo-500">
               sign in to existing account
             </Link>
           </p>

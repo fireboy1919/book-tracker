@@ -19,7 +19,15 @@ export default function Login() {
     const result = await login(email, password)
     
     if (result.success) {
-      navigate('/dashboard')
+      // Check for redirect parameter
+      const urlParams = new URLSearchParams(window.location.search)
+      const redirectUrl = urlParams.get('redirect')
+      
+      if (redirectUrl) {
+        navigate(redirectUrl)
+      } else {
+        navigate('/dashboard')
+      }
     } else {
       setError(result.error)
     }
@@ -28,15 +36,25 @@ export default function Login() {
   }
 
   const handleGoogleLogin = () => {
-    // Get invitation token from URL if present
+    // Get invitation token or redirect URL from URL if present
     const urlParams = new URLSearchParams(window.location.search)
     const invitationToken = urlParams.get('invitation_token')
+    const redirectUrl = urlParams.get('redirect')
     
     // Use the same base URL as the API
     const apiBaseUrl = import.meta.env.VITE_API_URL || ''
     let googleAuthUrl = `${apiBaseUrl}/api/auth/google`
+    
+    const queryParams = new URLSearchParams()
     if (invitationToken) {
-      googleAuthUrl += `?invitation_token=${invitationToken}`
+      queryParams.set('invitation_token', invitationToken)
+    }
+    if (redirectUrl) {
+      queryParams.set('redirect_url', redirectUrl)
+    }
+    
+    if (queryParams.toString()) {
+      googleAuthUrl += `?${queryParams.toString()}`
     }
     
     window.location.href = googleAuthUrl

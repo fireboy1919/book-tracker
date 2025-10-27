@@ -32,14 +32,29 @@ export default function VerifyEmail() {
         setMessage(response.data.message)
         setUser(response.data.user)
 
-        // Auto-redirect to login after 3 seconds
+        // Check for pending redirect after verification
+        const pendingRedirect = localStorage.getItem('pendingRedirectAfterVerification')
+        if (pendingRedirect) {
+          localStorage.removeItem('pendingRedirectAfterVerification')
+        }
+
+        // Auto-redirect after 3 seconds
         setTimeout(() => {
-          navigate('/login', { 
-            state: { 
-              message: 'Email verified successfully! You can now log in.',
-              type: 'success'
-            }
-          })
+          if (pendingRedirect) {
+            navigate(`/login?redirect=${encodeURIComponent(pendingRedirect)}`, { 
+              state: { 
+                message: 'Email verified successfully! You can now log in to complete your invitation.',
+                type: 'success'
+              }
+            })
+          } else {
+            navigate('/login', { 
+              state: { 
+                message: 'Email verified successfully! You can now log in.',
+                type: 'success'
+              }
+            })
+          }
         }, 3000)
 
       } catch (error) {
@@ -52,12 +67,24 @@ export default function VerifyEmail() {
   }, [location, navigate])
 
   const handleGoToLogin = () => {
-    navigate('/login', { 
-      state: { 
-        message: status === 'success' ? 'Email verified successfully! You can now log in.' : null,
-        type: 'success'
-      }
-    })
+    // Check for pending redirect after verification
+    const pendingRedirect = localStorage.getItem('pendingRedirectAfterVerification')
+    if (pendingRedirect) {
+      localStorage.removeItem('pendingRedirectAfterVerification')
+      navigate(`/login?redirect=${encodeURIComponent(pendingRedirect)}`, { 
+        state: { 
+          message: status === 'success' ? 'Email verified successfully! You can now log in to complete your invitation.' : null,
+          type: 'success'
+        }
+      })
+    } else {
+      navigate('/login', { 
+        state: { 
+          message: status === 'success' ? 'Email verified successfully! You can now log in.' : null,
+          type: 'success'
+        }
+      })
+    }
   }
 
   return (

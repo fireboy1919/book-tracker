@@ -40,8 +40,16 @@ export default function GoogleCallback() {
           // Update the user state to trigger re-render in AuthContext
           setUser(userData)
           
-          // Navigate to dashboard
-          navigate('/dashboard')
+          // Check for redirect parameter
+          const redirectUrl = searchParams.get('redirect')
+          
+          if (redirectUrl) {
+            // Navigate to the redirect URL
+            navigate(redirectUrl)
+          } else {
+            // Navigate to dashboard
+            navigate('/dashboard')
+          }
           
         } catch (error) {
           console.error('Failed to process Google login:', error)
