@@ -26,7 +26,7 @@ export default function StudentInvitation() {
 
   const fetchInvitationDetails = async () => {
     try {
-      const response = await api.get(`/api/invite/${classId}/${token}`)
+      const response = await api.get(`/invite/${classId}/${token}`)
       setInvitationDetails(response.data)
     } catch (error) {
       setError(error.response?.data?.message || 'Invalid or expired invitation link')
@@ -47,7 +47,7 @@ export default function StudentInvitation() {
     setError('')
 
     try {
-      const response = await api.post(`/api/invite/${classId}/${token}/redeem`)
+      const response = await api.post(`/invite/${classId}/${token}/redeem`)
       setSuccess(true)
       setInvitationDetails(prev => ({
         ...prev,
