@@ -36,7 +36,7 @@ function encryptData(studentName, invitationKey) {
   try {
     const { classId, keyHex } = parseCompoundKey(invitationKey);
     const timestamp = Math.floor(Date.now() / 1000);
-    const payload = `${classId}|${studentName}|${timestamp}`;
+    const payload = `${studentName}|${timestamp}`;
     
     const keyBytes = hexToBytes(keyHex);
     const iv = [];
@@ -60,8 +60,13 @@ function encryptData(studentName, invitationKey) {
       (word >>> 24) & 0xff, (word >>> 16) & 0xff, (word >>> 8) & 0xff, word & 0xff
     ])));
     
-    return Utilities.base64Encode(combined)
-      .replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+    // Convert to base64 and make URL-safe
+    let base64 = Utilities.base64Encode(combined);
+    // Ensure URL-safe encoding
+    base64 = base64.replace(/\+/g, '-').replace(/\//g, '_');
+    // Remove padding for URL safety
+    base64 = base64.replace(/=/g, '');
+    return base64;
       
   } catch (error) {
     throw new Error(`Encryption failed: ${error.message}`);
@@ -93,9 +98,19 @@ function GENERATE_TOKEN(studentName) {
 function GENERATE_URL(studentName) {
   if (!studentName || studentName.toString().trim() === '') return '';
   
-  const token = GENERATE_TOKEN(studentName);
-  if (token.startsWith('ERROR:')) return token;
-  return BASE_URL + token;
+  try {
+    const sheet = SpreadsheetApp.getActiveSheet();
+    const invitationKey = sheet.getRange('B1').getValue();
+    if (!invitationKey) return 'ERROR: No key in B1';
+    
+    const { classId } = parseCompoundKey(invitationKey.toString());
+    const token = encryptData(studentName.toString().trim(), invitationKey.toString());
+    if (token.startsWith && token.startsWith('ERROR:')) return token;
+    
+    return `${BASE_URL}${classId}/${token}`;
+  } catch (error) {
+    return `ERROR: ${error.message}`;
+  }
 }
 
 /**

@@ -172,8 +172,8 @@ func main() {
 		}
 
 		// Public student invitation routes (no auth required)
-		api.GET("/invite/:token", handlers.GetStudentInvitationDetails)
-		api.POST("/invite/:token/redeem", handlers.RedeemStudentInvitation)
+		api.GET("/invite/:classId/:token", handlers.GetStudentInvitationDetails)
+		api.POST("/invite/:classId/:token/redeem", handlers.RedeemStudentInvitation)
 
 		// Test routes setup (build tag controlled)
 		setupTestRoutes(api) // Enable for e2e testing

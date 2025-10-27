@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 	"time"
@@ -113,26 +114,37 @@ func GenerateInvitationToken(c *gin.Context) {
 // RedeemStudentInvitation processes a student invitation token
 func RedeemStudentInvitation(c *gin.Context) {
 	token := c.Param("token")
-	if token == "" {
+	classIDStr := c.Param("classId")
+	
+	if token == "" || classIDStr == "" {
 		c.JSON(http.StatusBadRequest, models.ErrorResponse{
-			Message: "Missing invitation token",
+			Message: "Missing invitation token or class ID",
+		})
+		return
+	}
+
+	classID, err := strconv.ParseUint(classIDStr, 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, models.ErrorResponse{
+			Message: "Invalid class ID",
 		})
 		return
 	}
 
 	userID, exists := middleware.GetCurrentUserID(c)
 	if !exists {
-		// Store the token in session/cookie for after login
-		c.SetCookie("pending_invitation", token, 3600, "/", "", false, true)
+		// Store the token and class ID in session/cookie for after login
+		c.SetCookie("pending_invitation", fmt.Sprintf("%d/%s", classID, token), 3600, "/", "", false, true)
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"message": "Please log in to redeem this invitation",
 			"token":   token,
+			"classId": classID,
 		})
 		return
 	}
 
 	invitationService := services.NewStudentInvitationService(config.GetDB())
-	child, err := invitationService.RedeemInvitation(token, userID)
+	child, err := invitationService.RedeemInvitationForClass(token, uint(classID), userID)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, models.ErrorResponse{
 			Message: "Failed to redeem invitation: " + err.Error(),
@@ -149,15 +161,25 @@ func RedeemStudentInvitation(c *gin.Context) {
 // GetStudentInvitationDetails shows invitation information before redemption
 func GetStudentInvitationDetails(c *gin.Context) {
 	token := c.Param("token")
-	if token == "" {
+	classIDStr := c.Param("classId")
+	
+	if token == "" || classIDStr == "" {
 		c.JSON(http.StatusBadRequest, models.ErrorResponse{
-			Message: "Missing invitation token",
+			Message: "Missing invitation token or class ID",
+		})
+		return
+	}
+
+	classID, err := strconv.ParseUint(classIDStr, 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, models.ErrorResponse{
+			Message: "Invalid class ID",
 		})
 		return
 	}
 
 	invitationService := services.NewStudentInvitationService(config.GetDB())
-	payload, err := invitationService.DecryptInvitationToken(token)
+	payload, err := invitationService.DecryptInvitationTokenForClass(token, uint(classID))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, models.ErrorResponse{
 			Message: "Invalid or expired invitation: " + err.Error(),
@@ -167,7 +189,7 @@ func GetStudentInvitationDetails(c *gin.Context) {
 
 	// Get class information
 	var class models.Class
-	if err := config.GetDB().First(&class, payload.ClassID).Error; err != nil {
+	if err := config.GetDB().First(&class, uint(classID)).Error; err != nil {
 		c.JSON(http.StatusNotFound, models.ErrorResponse{
 			Message: "Class not found",
 		})

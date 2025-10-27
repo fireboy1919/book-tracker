@@ -362,6 +362,114 @@ func (s *StudentInvitationService) DecryptInvitationToken(token string) (*models
 	return nil, errors.New("invalid or expired invitation token")
 }
 
+// DecryptInvitationTokenForClass decrypts a token using a specific class key
+func (s *StudentInvitationService) DecryptInvitationTokenForClass(token string, classID uint) (*models.StudentInvitationPayload, error) {
+	// Decode the token
+	ciphertext, err := base64.URLEncoding.DecodeString(token)
+	if err != nil {
+		return nil, errors.New("invalid token format")
+	}
+
+	// Try GCM first (Go backend generated)
+	if payload, err := s.tryDecryptWithClassKey(ciphertext, classID); err == nil {
+		// Validate timestamp (token expires after 30 days)
+		if time.Now().Unix()-payload.Timestamp > 30*24*3600 {
+			return nil, errors.New("invitation token has expired")
+		}
+		// Set the class ID in the payload since it comes from the URL
+		payload.ClassID = classID
+		return payload, nil
+	}
+	
+	// Try CBC fallback (CryptoJS generated from Google Sheets)
+	if payload, err := s.tryDecryptWithClassKeyCBC(ciphertext, classID); err == nil {
+		// Validate timestamp (token expires after 30 days)
+		if time.Now().Unix()-payload.Timestamp > 30*24*3600 {
+			return nil, errors.New("invitation token has expired")
+		}
+		// Set the class ID in the payload since it comes from the URL
+		payload.ClassID = classID
+		return payload, nil
+	}
+
+	return nil, errors.New("invalid or expired invitation token")
+}
+
+// RedeemInvitationForClass redeems an invitation for a specific class
+func (s *StudentInvitationService) RedeemInvitationForClass(token string, classID uint, userID uint) (*models.Child, error) {
+	// Decrypt and validate the token
+	payload, err := s.DecryptInvitationTokenForClass(token, classID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Check if this invitation was already used
+	tokenHash := s.hashToken(token)
+	var existingInvitation models.UsedStudentInvitation
+	if err := s.DB.Where("token_hash = ?", tokenHash).First(&existingInvitation).Error; err == nil {
+		return nil, errors.New("invitation token has already been used")
+	}
+
+	// Get the class to verify it exists
+	var class models.Class
+	if err := s.DB.First(&class, classID).Error; err != nil {
+		return nil, errors.New("class not found")
+	}
+
+	// Check if user already has a child with this name in this class
+	var existingChild models.Child
+	if err := s.DB.Where("owner_id = ? AND first_name = ? AND last_name = ? AND class_id = ?", 
+		userID, payload.StudentName, "", classID).First(&existingChild).Error; err == nil {
+		return nil, errors.New("you already have a student with this name in this class")
+	}
+
+	// Check if user already has a child with this name (update their class)
+	if err := s.DB.Where("owner_id = ? AND first_name = ?", userID, payload.StudentName).First(&existingChild).Error; err == nil {
+		// Update existing child's class
+		if existingChild.ClassID == nil || *existingChild.ClassID != classID {
+			existingChild.ClassID = &classID
+			if err := s.DB.Save(&existingChild).Error; err != nil {
+				return nil, err
+			}
+		}
+	} else {
+		// Create new child
+		existingChild = models.Child{
+			FirstName: payload.StudentName,
+			LastName:  "", // We only have the full name from the invitation
+			Grade:     "Unknown", // Will need to be updated by parent
+			OwnerID:   userID,
+			ClassID:   &classID,
+		}
+		
+		if err := s.DB.Create(&existingChild).Error; err != nil {
+			return nil, err
+		}
+	}
+
+	// Mark invitation as used
+	usedInvitation := models.UsedStudentInvitation{
+		TokenHash:     tokenHash,
+		ClassID:       classID,
+		StudentName:   payload.StudentName,
+		CreatedUserID: userID,
+		UsedAt:        time.Now(),
+	}
+	
+	if err := s.DB.Create(&usedInvitation).Error; err != nil {
+		return nil, err
+	}
+
+	return &existingChild, nil
+}
+
+// hashToken creates a SHA256 hash of the token for storage
+func (s *StudentInvitationService) hashToken(token string) string {
+	h := sha256.New()
+	h.Write([]byte(token))
+	return fmt.Sprintf("%x", h.Sum(nil))
+}
+
 // Helper function to decrypt with a specific class key (GCM mode)
 func (s *StudentInvitationService) tryDecryptWithClassKey(ciphertext []byte, classID uint) (*models.StudentInvitationPayload, error) {
 	// Get class-specific key
