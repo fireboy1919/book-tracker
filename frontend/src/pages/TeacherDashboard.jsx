@@ -4,6 +4,7 @@ import { CheckIcon } from '@heroicons/react/24/solid'
 import api from '../services/api'
 import CreateClassModal from '../components/CreateClassModal'
 import FullScreenChildView from '../components/FullScreenChildView'
+import AddBookModal from '../components/AddBookModal'
 
 export default function TeacherDashboard() {
   const [classes, setClasses] = useState([])
@@ -27,6 +28,8 @@ export default function TeacherDashboard() {
   const [successMessage, setSuccessMessage] = useState('')
   const [showFullScreenView, setShowFullScreenView] = useState(false)
   const [selectedStudent, setSelectedStudent] = useState(null)
+  const [showAddBook, setShowAddBook] = useState(false)
+  const [selectedChildForBook, setSelectedChildForBook] = useState(null)
 
   useEffect(() => {
     fetchClasses()
@@ -249,6 +252,20 @@ export default function TeacherDashboard() {
   const handleViewStudent = (student) => {
     setSelectedStudent(student)
     setShowFullScreenView(true)
+  }
+
+  const handleAddBook = (child) => {
+    setSelectedChildForBook(child)
+    setShowAddBook(true)
+  }
+
+  const handleBookAdded = () => {
+    setShowAddBook(false)
+    setSelectedChildForBook(null)
+    // Refresh class students to update book counts
+    if (selectedClass) {
+      fetchClassStudents(selectedClass.id)
+    }
   }
 
   if (loading) {
@@ -780,10 +797,16 @@ export default function TeacherDashboard() {
         <FullScreenChildView
           child={selectedStudent}
           onClose={() => setShowFullScreenView(false)}
-          onAddBook={() => {
-            // Teachers shouldn't be able to add books
-            // This is just for viewing
-          }}
+          onAddBook={handleAddBook}
+        />
+      )}
+
+      {/* Add Book Modal */}
+      {showAddBook && selectedChildForBook && (
+        <AddBookModal
+          child={selectedChildForBook}
+          onClose={() => setShowAddBook(false)}
+          onBookAdded={handleBookAdded}
         />
       )}
     </div>
