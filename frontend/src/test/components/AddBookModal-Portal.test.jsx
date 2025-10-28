@@ -73,7 +73,7 @@ describe('AddBookModal Portal Test', () => {
     expect(modalInBody).toBeTruthy()
 
     // Verify it has the correct z-index class
-    expect(modalInBody).toHaveClass('z-[100]')
+    expect(modalInBody).toHaveClass('z-100')
 
     // Verify it's a direct child of document.body (not nested)
     expect(modalInBody.parentElement).toBe(document.body)
@@ -90,7 +90,7 @@ describe('AddBookModal Portal Test', () => {
           </div>
           
           {/* Simulate other modals */}
-          <div className="fixed inset-0 z-[70] bg-blue-500" data-testid="other-modal">
+          <div className="fixed inset-0 z-70 bg-blue-500" data-testid="other-modal">
             Other Modal
           </div>
 
@@ -126,8 +126,8 @@ describe('AddBookModal Portal Test', () => {
 
     // Verify z-index hierarchy
     expect(backgroundModal).toHaveClass('z-50')
-    expect(otherModal).toHaveClass('z-[70]')
-    expect(addBookModal).toHaveClass('z-[100]')
+    expect(otherModal).toHaveClass('z-70')
+    expect(addBookModal).toHaveClass('z-100')
 
     // Verify AddBookModal is rendered as direct child of body (portal behavior)
     expect(addBookModal.parentElement).toBe(document.body)
@@ -171,7 +171,7 @@ describe('AddBookModal Portal Test', () => {
         <div>
           {/* Parent with transform creates stacking context */}
           <div className="transform translate-x-0 z-50" data-testid="stacking-context-parent">
-            <div className="fixed inset-0 z-[999] bg-red-500" data-testid="trapped-modal">
+            <div className="fixed inset-0 z-999 bg-red-500" data-testid="trapped-modal">
               This would be trapped by stacking context
             </div>
           </div>
