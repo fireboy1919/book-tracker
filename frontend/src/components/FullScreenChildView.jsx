@@ -225,6 +225,7 @@ export default function FullScreenChildView({ child, onClose, onAddBook, onChild
                 <button
                   onClick={handleAddBook}
                   className="inline-flex items-center px-3 py-1 border border-transparent rounded-md shadow-sm text-xs font-medium text-indigo-600 bg-indigo-100 hover:bg-indigo-200 transition-colors"
+                  data-testid="fullscreen-add-book-button"
                 >
                   <PlusIcon className="h-4 w-4 mr-1" />
                   Add
@@ -253,6 +254,7 @@ export default function FullScreenChildView({ child, onClose, onAddBook, onChild
                 <button
                   onClick={handleAddBook}
                   className="inline-flex items-center px-3 py-1 border border-transparent rounded-md shadow-sm text-xs font-medium text-indigo-600 bg-indigo-100 hover:bg-indigo-200 transition-colors"
+                  data-testid="fullscreen-add-book-button"
                 >
                   <PlusIcon className="h-4 w-4 mr-1" />
                   Add

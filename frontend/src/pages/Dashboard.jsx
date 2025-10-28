@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { PlusIcon, ChartBarIcon, ShareIcon, ChevronLeftIcon, ChevronRightIcon, PencilIcon } from '@heroicons/react/24/outline'
 import api from '../services/api'
 import { useAuth } from '../contexts/AuthContext'
@@ -187,12 +188,13 @@ export default function Dashboard() {
         />
       )}
 
-      {showAddBook && selectedChild && (
+      {showAddBook && selectedChild && createPortal(
         <AddBookModal
           child={selectedChild}
           onClose={() => setShowAddBook(false)}
           onBookAdded={handleBookAdded}
-        />
+        />,
+        document.body
       )}
 
       {showBulkShare && (

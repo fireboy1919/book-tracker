@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { PlusIcon, UsersIcon, BookOpenIcon, UserPlusIcon, TrashIcon, ClipboardDocumentIcon, QuestionMarkCircleIcon } from '@heroicons/react/24/outline'
 import { CheckIcon } from '@heroicons/react/24/solid'
 import api from '../services/api'
@@ -802,12 +803,13 @@ export default function TeacherDashboard() {
       )}
 
       {/* Add Book Modal */}
-      {showAddBook && selectedChildForBook && (
+      {showAddBook && selectedChildForBook && createPortal(
         <AddBookModal
           child={selectedChildForBook}
           onClose={() => setShowAddBook(false)}
           onBookAdded={handleBookAdded}
-        />
+        />,
+        document.body
       )}
     </div>
   )
