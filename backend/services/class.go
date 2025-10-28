@@ -370,13 +370,14 @@ func (s *ClassService) GetClassStudents(classID, userID uint, isAdmin bool) ([]m
 		var readToBooksRead int64
 		s.DB.Model(&models.Book{}).Where("child_id = ? AND read_by_parent = ?", child.ID, true).Count(&readToBooksRead)
 
-		// Check if student reading goal is met and read-to books don't exceed the limit
+		// Check if total reading goal is met
 		// ReadTo goal is a maximum - only books up to that limit count toward achievement
 		effectiveReadToBooks := int(readToBooksRead)
 		if effectiveReadToBooks > class.OtherBooksGoal {
 			effectiveReadToBooks = class.OtherBooksGoal
 		}
-		goalsReached := int(studentBooksRead) >= class.StudentBooksGoal && effectiveReadToBooks == class.OtherBooksGoal
+		totalBooksRead := int(studentBooksRead) + effectiveReadToBooks
+		goalsReached := totalBooksRead >= class.StudentBooksGoal
 
 		response = append(response, models.ClassStudentResponse{
 			ID:               child.ID,

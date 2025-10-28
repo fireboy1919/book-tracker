@@ -183,7 +183,8 @@ func GetChildrenWithBookCounts(userID uint, year int, month int) ([]models.Child
 				if effectiveReadToBooks > readToGoal {
 					effectiveReadToBooks = readToGoal
 				}
-				goalsReached = int(studentBooksRead) >= studentGoal && effectiveReadToBooks == readToGoal
+				totalBooksRead := int(studentBooksRead) + effectiveReadToBooks
+				goalsReached = totalBooksRead >= studentGoal
 			}
 		}
 		
