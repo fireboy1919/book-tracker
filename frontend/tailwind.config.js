@@ -4,6 +4,9 @@ export default {
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
   ],
+  safelist: [
+    'z-60', 'z-70', 'z-80', 'z-90', 'z-100', 'z-999'
+  ],
   theme: {
     extend: {
       zIndex: {
