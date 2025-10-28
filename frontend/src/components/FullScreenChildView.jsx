@@ -66,7 +66,7 @@ export default function FullScreenChildView({ child, onClose, onAddBook, onChild
     const filtered = books.filter(book => {
       const bookDate = new Date(book.dateRead)
       return bookDate.getFullYear() === currentYear && bookDate.getMonth() === currentMonth
-    })
+    }).sort((a, b) => new Date(b.dateRead) - new Date(a.dateRead))
 
     setFilteredBooks(filtered)
   }

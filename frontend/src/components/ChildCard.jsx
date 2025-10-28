@@ -138,18 +138,6 @@ export default function ChildCard({ child, onAddBook, onViewDetails, onEditChild
                     <div className="text-xs">
                       <span className="text-gray-600">Class: </span>
                       <span className="font-medium text-indigo-600">{currentClass.name}</span>
-                      {currentUser && (currentUser.isTeacher || currentUser.isAdmin) && (
-                        <button
-                          onClick={() => {
-                            if (window.confirm('Remove child from this class?')) {
-                              assignToClass('')
-                            }
-                          }}
-                          className="ml-2 text-red-500 hover:text-red-700 text-xs"
-                        >
-                          ✕
-                        </button>
-                      )}
                     </div>
                   ) : (
                     availableClasses.length > 0 && (
@@ -207,9 +195,9 @@ export default function ChildCard({ child, onAddBook, onViewDetails, onEditChild
               <div className="grid grid-cols-2 gap-4 text-center">
                 <div>
                   <div className="font-medium text-gray-900">
-                    {child.studentBooksRead || 0}/{child.studentGoal || 0}
+                    {(child.studentBooksRead || 0) + Math.min((child.readToBooksRead || 0), (child.readToGoal || 0))}/{child.studentGoal || 0}
                   </div>
-                  <div className="text-gray-600 text-xs">Read</div>
+                  <div className="text-gray-600 text-xs">Total</div>
                 </div>
                 <div>
                   <div className="font-medium text-gray-900">

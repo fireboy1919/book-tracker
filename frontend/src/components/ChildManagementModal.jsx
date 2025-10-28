@@ -142,39 +142,41 @@ export default function ChildManagementModal({ child, onClose, onChildUpdated, o
         </div>
 
         {/* Tab Navigation */}
-        <div className="border-b border-gray-200 mb-6">
-          <nav className="-mb-px flex space-x-8">
-            <button
-              onClick={() => setActiveTab('details')}
-              className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                activeTab === 'details'
-                  ? 'border-indigo-500 text-indigo-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              Child Details
-            </button>
-            <button
-              onClick={() => setActiveTab('sharing')}
-              className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                activeTab === 'sharing'
-                  ? 'border-indigo-500 text-indigo-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              Sharing & Permissions
-            </button>
-            <button
-              onClick={() => setActiveTab('delete')}
-              className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                activeTab === 'delete'
-                  ? 'border-red-500 text-red-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              Delete Child
-            </button>
-          </nav>
+        <div className="mb-6">
+          <div className="bg-gray-100 rounded-lg p-1">
+            <nav className="flex space-x-1">
+              <button
+                onClick={() => setActiveTab('details')}
+                className={`flex-1 py-3 px-4 text-sm font-medium rounded-md transition-all ${
+                  activeTab === 'details'
+                    ? 'bg-white text-indigo-600 shadow-sm border border-gray-200'
+                    : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                Child Details
+              </button>
+              <button
+                onClick={() => setActiveTab('sharing')}
+                className={`flex-1 py-3 px-4 text-sm font-medium rounded-md transition-all ${
+                  activeTab === 'sharing'
+                    ? 'bg-white text-indigo-600 shadow-sm border border-gray-200'
+                    : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                Sharing & Permissions
+              </button>
+              <button
+                onClick={() => setActiveTab('delete')}
+                className={`flex-1 py-3 px-4 text-sm font-medium rounded-md transition-all ${
+                  activeTab === 'delete'
+                    ? 'bg-white text-red-600 shadow-sm border border-red-200'
+                    : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                Delete Child
+              </button>
+            </nav>
+          </div>
         </div>
 
         {/* Child Details Tab */}
@@ -367,11 +369,11 @@ export default function ChildManagementModal({ child, onClose, onChildUpdated, o
                   </p>
                 </div>
                 
-                <div className="flex justify-between pt-4">
+                <div className="flex justify-between pt-6 mt-6 border-t border-red-200">
                   <button
                     type="button"
                     onClick={() => setActiveTab('details')}
-                    className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
+                    className="px-6 py-3 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 shadow-sm"
                   >
                     Cancel
                   </button>
@@ -379,9 +381,9 @@ export default function ChildManagementModal({ child, onClose, onChildUpdated, o
                     type="button"
                     onClick={handleDeleteChild}
                     disabled={deleting}
-                    className="inline-flex items-center px-4 py-2 border border-transparent rounded-md text-sm font-medium text-white bg-red-600 hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="inline-flex items-center px-6 py-3 border-2 border-red-600 rounded-md text-sm font-bold text-white bg-red-600 hover:text-white hover:bg-red-700 hover:border-red-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg transition-all duration-200"
                   >
-                    <TrashIcon className="h-4 w-4 mr-2" />
+                    <TrashIcon className="h-5 w-5 mr-2" />
                     {deleting ? 'Deleting...' : 'Delete Permanently'}
                   </button>
                 </div>

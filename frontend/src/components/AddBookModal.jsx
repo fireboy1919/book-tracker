@@ -421,7 +421,7 @@ export default function AddBookModal({ child, onClose, onBookAdded }) {
   const isFormValid = formData.title.trim() && formData.author.trim() && !isDuplicate
 
   return (
-    <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-[60]">
+    <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-[70]">
       <div className="relative top-10 mx-auto p-4 sm:p-5 border w-full max-w-lg shadow-lg rounded-md bg-white max-h-[90vh] overflow-y-auto">
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-lg font-medium">Add Book for {child.firstName} {child.lastName}</h3>

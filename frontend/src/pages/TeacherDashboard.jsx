@@ -480,7 +480,7 @@ export default function TeacherDashboard() {
                                 Student
                               </th>
                               <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Read
+                                Total
                               </th>
                               <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                                 Read-to
@@ -506,7 +506,7 @@ export default function TeacherDashboard() {
                                 </td>
                                 <td className="px-3 py-2 whitespace-nowrap text-center">
                                   <div className="text-sm font-medium text-gray-900">
-                                    {student.studentBooksRead}/{student.studentGoal}
+                                    {student.studentBooksRead + Math.min(student.readToBooksRead, student.readToGoal)}/{student.studentGoal}
                                   </div>
                                 </td>
                                 <td className="px-3 py-2 whitespace-nowrap text-center">
