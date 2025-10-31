@@ -24,6 +24,7 @@ export default function Dashboard() {
   const [selectedChild, setSelectedChild] = useState(null)
   const [refreshTrigger, setRefreshTrigger] = useState(0)
   const [currentMonth, setCurrentMonth] = useState(new Date())
+  const [fullScreenBookUpdateCallback, setFullScreenBookUpdateCallback] = useState(null)
 
   useEffect(() => {
     fetchChildren()
@@ -53,6 +54,10 @@ export default function Dashboard() {
     fetchChildren()
     setRefreshTrigger(prev => prev + 1) // Force ChildCard components to refresh
     setShowAddBook(false)
+    // If FullScreenChildView is open, also refresh its books
+    if (fullScreenBookUpdateCallback) {
+      fullScreenBookUpdateCallback()
+    }
   }
 
   const handleAddBook = (child) => {
@@ -170,6 +175,7 @@ export default function Dashboard() {
                   child={child}
                   currentMonth={currentMonth}
                   currentUser={currentUser}
+                  refreshTrigger={refreshTrigger}
                   onAddBook={() => handleAddBook(child)}
                   onViewDetails={() => handleViewChild(child)}
                   onEditChild={() => handleManageChild(child)}
@@ -224,6 +230,7 @@ export default function Dashboard() {
           child={selectedChild}
           onClose={() => setShowFullScreenView(false)}
           onAddBook={handleAddBook}
+          onSetBookUpdateCallback={setFullScreenBookUpdateCallback}
           onChildDeleted={(childId) => {
             setChildren(prevChildren => prevChildren.filter(child => child.id !== childId))
             setShowFullScreenView(false)

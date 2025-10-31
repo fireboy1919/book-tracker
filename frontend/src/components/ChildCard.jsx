@@ -3,7 +3,7 @@ import { BookOpenIcon, PlusIcon, EyeIcon, PencilIcon } from '@heroicons/react/24
 import { CheckIcon } from '@heroicons/react/24/solid'
 import api from '../services/api'
 
-export default function ChildCard({ child, onAddBook, onViewDetails, onEditChild, currentMonth, onChildUpdate, currentUser }) {
+export default function ChildCard({ child, onAddBook, onViewDetails, onEditChild, currentMonth, onChildUpdate, currentUser, refreshTrigger }) {
   const [books, setBooks] = useState([])
   const [loading, setLoading] = useState(true)
   const [currentMonthBooks, setCurrentMonthBooks] = useState([])
@@ -15,7 +15,7 @@ export default function ChildCard({ child, onAddBook, onViewDetails, onEditChild
     fetchBooks()
     fetchAvailableClasses()
     fetchCurrentClass()
-  }, [child.id])
+  }, [child.id, refreshTrigger])
 
   useEffect(() => {
     filterBooksByMonth()

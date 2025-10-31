@@ -279,6 +279,185 @@ func (suite *BookServiceTestSuite) TestGetBooksForUserWithMultipleChildren() {
 	assert.Contains(suite.T(), titles, "Book for Child 2")
 }
 
+func (suite *BookServiceTestSuite) TestGetBooksByChildAndMonth() {
+	// Create books with different read dates
+	booksData := []struct {
+		title    string
+		author   string
+		dateRead string
+	}{
+		{"January Book", "Author A", "2023-01-15"},
+		{"February Book 1", "Author B", "2023-02-10"},
+		{"February Book 2", "Author C", "2023-02-25"},
+		{"March Book", "Author D", "2023-03-05"},
+		{"December Book", "Author E", "2023-12-20"},
+	}
+
+	// Create all books
+	createdBooks := make([]*models.Book, len(booksData))
+	for i, bookData := range booksData {
+		req := models.CreateBookRequest{
+			Title:        bookData.title,
+			Author:       bookData.author,
+			DateRead:     bookData.dateRead,
+			ChildID:      suite.testChild.ID,
+			IsCustomBook: true,
+		}
+
+		book, err := CreateBook(req)
+		assert.NoError(suite.T(), err)
+		createdBooks[i] = book
+	}
+
+	// Test February 2023 - should return 2 books
+	februaryBooks, err := GetBooksByChildAndMonth(suite.testChild.ID, 2023, 2)
+	assert.NoError(suite.T(), err)
+	assert.Len(suite.T(), februaryBooks, 2)
+	
+	// Verify the books are sorted by date_read DESC (newest first)
+	assert.Equal(suite.T(), "February Book 2", februaryBooks[0].CustomTitle)
+	assert.Equal(suite.T(), "February Book 1", februaryBooks[1].CustomTitle)
+
+	// Test January 2023 - should return 1 book
+	januaryBooks, err := GetBooksByChildAndMonth(suite.testChild.ID, 2023, 1)
+	assert.NoError(suite.T(), err)
+	assert.Len(suite.T(), januaryBooks, 1)
+	assert.Equal(suite.T(), "January Book", januaryBooks[0].CustomTitle)
+
+	// Test March 2023 - should return 1 book
+	marchBooks, err := GetBooksByChildAndMonth(suite.testChild.ID, 2023, 3)
+	assert.NoError(suite.T(), err)
+	assert.Len(suite.T(), marchBooks, 1)
+	assert.Equal(suite.T(), "March Book", marchBooks[0].CustomTitle)
+
+	// Test April 2023 - should return 0 books
+	aprilBooks, err := GetBooksByChildAndMonth(suite.testChild.ID, 2023, 4)
+	assert.NoError(suite.T(), err)
+	assert.Len(suite.T(), aprilBooks, 0)
+
+	// Test December 2023 - should return 1 book
+	decemberBooks, err := GetBooksByChildAndMonth(suite.testChild.ID, 2023, 12)
+	assert.NoError(suite.T(), err)
+	assert.Len(suite.T(), decemberBooks, 1)
+	assert.Equal(suite.T(), "December Book", decemberBooks[0].CustomTitle)
+
+	// Test different year - should return 0 books
+	books2024, err := GetBooksByChildAndMonth(suite.testChild.ID, 2024, 2)
+	assert.NoError(suite.T(), err)
+	assert.Len(suite.T(), books2024, 0)
+
+	// Test with different child - should return 0 books
+	child2Req := models.CreateChildRequest{
+		FirstName: "Other",
+		LastName:  "Child",
+		Grade:     "4th",
+	}
+	child2, err := CreateChild(child2Req, suite.testUser.ID)
+	assert.NoError(suite.T(), err)
+
+	child2Books, err := GetBooksByChildAndMonth(child2.ID, 2023, 2)
+	assert.NoError(suite.T(), err)
+	assert.Len(suite.T(), child2Books, 0)
+}
+
+func (suite *BookServiceTestSuite) TestGetBookCountByChildAndMonth() {
+	// Create books with different read dates
+	booksData := []struct {
+		title    string
+		dateRead string
+	}{
+		{"Book 1", "2023-05-01"},
+		{"Book 2", "2023-05-15"},
+		{"Book 3", "2023-05-31"},
+		{"Book 4", "2023-06-01"},
+	}
+
+	// Create all books
+	for _, bookData := range booksData {
+		req := models.CreateBookRequest{
+			Title:        bookData.title,
+			Author:       "Test Author",
+			DateRead:     bookData.dateRead,
+			ChildID:      suite.testChild.ID,
+			IsCustomBook: true,
+		}
+
+		_, err := CreateBook(req)
+		assert.NoError(suite.T(), err)
+	}
+
+	// Test May 2023 - should return 3
+	mayCount, err := GetBookCountByChildAndMonth(suite.testChild.ID, 2023, 5)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), 3, mayCount)
+
+	// Test June 2023 - should return 1
+	juneCount, err := GetBookCountByChildAndMonth(suite.testChild.ID, 2023, 6)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), 1, juneCount)
+
+	// Test July 2023 - should return 0
+	julyCount, err := GetBookCountByChildAndMonth(suite.testChild.ID, 2023, 7)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), 0, julyCount)
+
+	// Test different year - should return 0
+	may2024Count, err := GetBookCountByChildAndMonth(suite.testChild.ID, 2024, 5)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), 0, may2024Count)
+}
+
+func (suite *BookServiceTestSuite) TestMonthYearBoundaries() {
+	// Test edge cases around month/year boundaries
+	booksData := []struct {
+		title    string
+		dateRead string
+	}{
+		{"End of February", "2023-02-28"},    // Last day of February
+		{"Start of March", "2023-03-01"},     // First day of March
+		{"End of Year", "2023-12-31"},        // Last day of year
+		{"Start of Next Year", "2024-01-01"}, // First day of next year
+	}
+
+	// Create all books
+	for _, bookData := range booksData {
+		req := models.CreateBookRequest{
+			Title:        bookData.title,
+			Author:       "Test Author",
+			DateRead:     bookData.dateRead,
+			ChildID:      suite.testChild.ID,
+			IsCustomBook: true,
+		}
+
+		_, err := CreateBook(req)
+		assert.NoError(suite.T(), err)
+	}
+
+	// Test February 2023 - should only include February book
+	febBooks, err := GetBooksByChildAndMonth(suite.testChild.ID, 2023, 2)
+	assert.NoError(suite.T(), err)
+	assert.Len(suite.T(), febBooks, 1)
+	assert.Equal(suite.T(), "End of February", febBooks[0].CustomTitle)
+
+	// Test March 2023 - should only include March book
+	marBooks, err := GetBooksByChildAndMonth(suite.testChild.ID, 2023, 3)
+	assert.NoError(suite.T(), err)
+	assert.Len(suite.T(), marBooks, 1)
+	assert.Equal(suite.T(), "Start of March", marBooks[0].CustomTitle)
+
+	// Test December 2023 - should only include December book
+	decBooks, err := GetBooksByChildAndMonth(suite.testChild.ID, 2023, 12)
+	assert.NoError(suite.T(), err)
+	assert.Len(suite.T(), decBooks, 1)
+	assert.Equal(suite.T(), "End of Year", decBooks[0].CustomTitle)
+
+	// Test January 2024 - should only include January book
+	janBooks, err := GetBooksByChildAndMonth(suite.testChild.ID, 2024, 1)
+	assert.NoError(suite.T(), err)
+	assert.Len(suite.T(), janBooks, 1)
+	assert.Equal(suite.T(), "Start of Next Year", janBooks[0].CustomTitle)
+}
+
 func TestBookServiceTestSuite(t *testing.T) {
 	suite.Run(t, new(BookServiceTestSuite))
 }

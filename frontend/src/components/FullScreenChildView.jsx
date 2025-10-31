@@ -4,11 +4,11 @@ import api from '../services/api'
 import EditBookModal from './EditBookModal'
 import EditChildModal from './EditChildModal'
 
-export default function FullScreenChildView({ child, onClose, onAddBook, onChildDeleted }) {
+export default function FullScreenChildView({ child, onClose, onAddBook, onSetBookUpdateCallback, onChildDeleted }) {
   const [books, setBooks] = useState([])
   const [loading, setLoading] = useState(true)
   const [currentDate, setCurrentDate] = useState(new Date())
-  const [filteredBooks, setFilteredBooks] = useState([])
+  const [totalBookCount, setTotalBookCount] = useState(0)
   const [showEditModal, setShowEditModal] = useState(false)
   const [selectedBook, setSelectedBook] = useState(null)
   const [canEdit, setCanEdit] = useState(false)
@@ -17,23 +17,44 @@ export default function FullScreenChildView({ child, onClose, onAddBook, onChild
   const [childData, setChildData] = useState(child)
 
   useEffect(() => {
-    fetchBooks()
+    fetchBooksForCurrentMonth()
+    fetchTotalBookCount()
     checkEditPermission()
-  }, [child.id])
+    // Set up the callback for when books are added
+    if (onSetBookUpdateCallback) {
+      onSetBookUpdateCallback(() => {
+        fetchBooksForCurrentMonth()
+        fetchTotalBookCount()
+      })
+    }
+  }, [child.id, onSetBookUpdateCallback])
 
   useEffect(() => {
-    filterBooksByMonth()
-  }, [books, currentDate])
+    fetchBooksForCurrentMonth()
+  }, [currentDate])
 
-  const fetchBooks = async () => {
+  const fetchBooksForCurrentMonth = async () => {
+    setLoading(true)
     try {
-      const response = await api.get(`/books/child/${child.id}`)
+      const year = currentDate.getFullYear()
+      const month = currentDate.getMonth() + 1 // JavaScript months are 0-based
+      const response = await api.get(`/books/child/${child.id}?year=${year}&month=${month}`)
       setBooks(response.data || [])
     } catch (error) {
-      console.error('Failed to fetch books:', error)
+      console.error('Failed to fetch books for month:', error)
       setBooks([])
     } finally {
       setLoading(false)
+    }
+  }
+
+  const fetchTotalBookCount = async () => {
+    try {
+      const response = await api.get(`/books/child/${child.id}`)
+      setTotalBookCount(response.data ? response.data.length : 0)
+    } catch (error) {
+      console.error('Failed to fetch total book count:', error)
+      setTotalBookCount(0)
     }
   }
 
@@ -59,17 +80,6 @@ export default function FullScreenChildView({ child, onClose, onAddBook, onChild
     }
   }
 
-  const filterBooksByMonth = () => {
-    const currentYear = currentDate.getFullYear()
-    const currentMonth = currentDate.getMonth()
-
-    const filtered = books.filter(book => {
-      const bookDate = new Date(book.dateRead)
-      return bookDate.getFullYear() === currentYear && bookDate.getMonth() === currentMonth
-    }).sort((a, b) => new Date(b.dateRead) - new Date(a.dateRead))
-
-    setFilteredBooks(filtered)
-  }
 
   const navigateMonth = (direction) => {
     const newDate = new Date(currentDate)
@@ -94,6 +104,7 @@ export default function FullScreenChildView({ child, onClose, onAddBook, onChild
     onAddBook(child)
   }
 
+
   const handleEditBook = (book) => {
     setSelectedBook(book)
     setShowEditModal(true)
@@ -104,7 +115,8 @@ export default function FullScreenChildView({ child, onClose, onAddBook, onChild
       try {
         await api.delete(`/books/${book.id}`)
         // Refresh the books list
-        fetchBooks()
+        fetchBooksForCurrentMonth()
+        fetchTotalBookCount()
       } catch (error) {
         console.error('Failed to delete book:', error)
         alert('Failed to delete book. Please try again.')
@@ -114,7 +126,8 @@ export default function FullScreenChildView({ child, onClose, onAddBook, onChild
 
   const handleBookUpdated = (updatedBook) => {
     // Refresh the books list
-    fetchBooks()
+    fetchBooksForCurrentMonth()
+    fetchTotalBookCount()
   }
 
   const handleChildUpdated = (updatedChild) => {
@@ -209,10 +222,10 @@ export default function FullScreenChildView({ child, onClose, onAddBook, onChild
               {formatMonthYear(currentDate)}
             </h4>
             <p className="text-sm text-gray-600">
-              {filteredBooks.length} book{filteredBooks.length !== 1 ? 's' : ''} read
+              {books.length} book{books.length !== 1 ? 's' : ''} read
             </p>
             <div className="mt-2 flex justify-center gap-2">
-              {filteredBooks.length > 0 && (
+              {books.length > 0 && (
                 <button
                   onClick={handleDownloadPDF}
                   className="inline-flex items-center px-3 py-1 border border-transparent rounded-md shadow-sm text-xs font-medium text-indigo-600 bg-indigo-100 hover:bg-indigo-200 transition-colors"
@@ -245,7 +258,7 @@ export default function FullScreenChildView({ child, onClose, onAddBook, onChild
 
         {/* Books List */}
         <div className="space-y-4">
-          {filteredBooks.length === 0 ? (
+          {books.length === 0 ? (
             <div className="text-center py-12">
               <div className="text-gray-400 text-lg mb-4">
                 No books recorded for {formatMonthYear(currentDate)}
@@ -263,7 +276,7 @@ export default function FullScreenChildView({ child, onClose, onAddBook, onChild
             </div>
           ) : (
             <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {filteredBooks.map((book, index) => (
+              {books.map((book, index) => (
                 <div key={book.id} className="bg-white border border-gray-200 rounded-lg p-3 sm:p-4 shadow-sm hover:shadow-md transition-shadow">
                   {/* Book Cover - Top positioned */}
                   <div className="flex justify-center mb-3">
@@ -346,14 +359,14 @@ export default function FullScreenChildView({ child, onClose, onAddBook, onChild
         </div>
 
         {/* Summary Footer */}
-        {filteredBooks.length > 0 && (
+        {books.length > 0 && (
           <div className="mt-8 pt-6 border-t border-gray-200">
             <div className="text-center">
               <p className="text-lg font-medium text-gray-900">
-                Total books read in {formatMonthYear(currentDate)}: {filteredBooks.length}
+                Total books read in {formatMonthYear(currentDate)}: {books.length}
               </p>
               <p className="text-sm text-gray-500 mt-1">
-                All time total: {books.length} books
+                All time total: {totalBookCount} books
               </p>
             </div>
           </div>
