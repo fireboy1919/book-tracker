@@ -231,6 +231,7 @@ export default function Dashboard() {
           onClose={() => setShowFullScreenView(false)}
           onAddBook={handleAddBook}
           onSetBookUpdateCallback={setFullScreenBookUpdateCallback}
+          currentMonth={currentMonth}
           onChildDeleted={(childId) => {
             setChildren(prevChildren => prevChildren.filter(child => child.id !== childId))
             setShowFullScreenView(false)

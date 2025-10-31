@@ -4,10 +4,10 @@ import api from '../services/api'
 import EditBookModal from './EditBookModal'
 import EditChildModal from './EditChildModal'
 
-export default function FullScreenChildView({ child, onClose, onAddBook, onSetBookUpdateCallback, onChildDeleted }) {
+export default function FullScreenChildView({ child, onClose, onAddBook, onSetBookUpdateCallback, onChildDeleted, currentMonth }) {
   const [books, setBooks] = useState([])
   const [loading, setLoading] = useState(true)
-  const [currentDate, setCurrentDate] = useState(new Date())
+  const [currentDate, setCurrentDate] = useState(currentMonth || new Date())
   const [totalBookCount, setTotalBookCount] = useState(0)
   const [showEditModal, setShowEditModal] = useState(false)
   const [selectedBook, setSelectedBook] = useState(null)
@@ -32,6 +32,13 @@ export default function FullScreenChildView({ child, onClose, onAddBook, onSetBo
   useEffect(() => {
     fetchBooksForCurrentMonth()
   }, [currentDate])
+
+  // Update currentDate when currentMonth prop changes
+  useEffect(() => {
+    if (currentMonth) {
+      setCurrentDate(new Date(currentMonth))
+    }
+  }, [currentMonth])
 
   const fetchBooksForCurrentMonth = async () => {
     setLoading(true)
