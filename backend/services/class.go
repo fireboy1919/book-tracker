@@ -2,6 +2,8 @@ package services
 
 import (
 	"errors"
+	"fmt"
+	"time"
 
 	"gorm.io/gorm"
 
@@ -360,15 +362,30 @@ func (s *ClassService) GetClassStudents(classID, userID uint, isAdmin bool) ([]m
 		return nil, err
 	}
 
+	// Create start and end dates for the current month
+	now := time.Now()
+	year := now.Year()
+	month := int(now.Month())
+	startDate := fmt.Sprintf("%d-%02d-01", year, month)
+	endYear := year
+	endMonth := month + 1
+	if endMonth > 12 {
+		endMonth = 1
+		endYear++
+	}
+	endDate := fmt.Sprintf("%d-%02d-01", endYear, endMonth)
+
 	var response []models.ClassStudentResponse
 	for _, child := range children {
-		// Count books read by student (ReadByParent = false)
+		// Count books read by student (ReadByParent = false) for current month only
 		var studentBooksRead int64
-		s.DB.Model(&models.Book{}).Where("child_id = ? AND read_by_parent = ?", child.ID, false).Count(&studentBooksRead)
+		s.DB.Model(&models.Book{}).Where("child_id = ? AND read_by_parent = ? AND date_read >= ? AND date_read < ?", 
+			child.ID, false, startDate, endDate).Count(&studentBooksRead)
 
-		// Count books read to student by parent (ReadByParent = true)
+		// Count books read to student by parent (ReadByParent = true) for current month only
 		var readToBooksRead int64
-		s.DB.Model(&models.Book{}).Where("child_id = ? AND read_by_parent = ?", child.ID, true).Count(&readToBooksRead)
+		s.DB.Model(&models.Book{}).Where("child_id = ? AND read_by_parent = ? AND date_read >= ? AND date_read < ?", 
+			child.ID, true, startDate, endDate).Count(&readToBooksRead)
 
 		// Check if total reading goal is met
 		// ReadTo goal is a maximum - only books up to that limit count toward achievement

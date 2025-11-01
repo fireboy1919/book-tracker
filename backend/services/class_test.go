@@ -299,36 +299,24 @@ func (suite *ClassServiceTestSuite) TestGetClassStudents_Success() {
 	}
 	config.DB.Create(&teacherMembership)
 
-	// Add students
-	student1 := models.User{
-		Email:         "student1@example.com",
-		FirstName:     "Alice",
-		LastName:      "Smith",
-		EmailVerified: true,
+	// Add children (students) to the class
+	child1 := models.Child{
+		FirstName: "Alice",
+		LastName:  "Smith",
+		Grade:     "3",
+		OwnerID:   suite.testUser.ID,
+		ClassID:   &testClass.ID,
 	}
-	config.DB.Create(&student1)
+	config.DB.Create(&child1)
 
-	student2 := models.User{
-		Email:         "student2@example.com",
-		FirstName:     "Bob",
-		LastName:      "Johnson",
-		EmailVerified: true,
+	child2 := models.Child{
+		FirstName: "Bob",
+		LastName:  "Johnson",
+		Grade:     "3",
+		OwnerID:   suite.testUser.ID,
+		ClassID:   &testClass.ID,
 	}
-	config.DB.Create(&student2)
-
-	studentMembership1 := models.ClassMembership{
-		ClassID: testClass.ID,
-		UserID:  student1.ID,
-		Role:    "STUDENT",
-	}
-	config.DB.Create(&studentMembership1)
-
-	studentMembership2 := models.ClassMembership{
-		ClassID: testClass.ID,
-		UserID:  student2.ID,
-		Role:    "STUDENT",
-	}
-	config.DB.Create(&studentMembership2)
+	config.DB.Create(&child2)
 
 	students, err := suite.classService.GetClassStudents(testClass.ID, suite.testTeacher.ID, false)
 
