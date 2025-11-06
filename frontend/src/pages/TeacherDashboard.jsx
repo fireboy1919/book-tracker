@@ -1,13 +1,14 @@
 import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
+import { useNavigate } from 'react-router-dom'
 import { PlusIcon, UsersIcon, BookOpenIcon, UserPlusIcon, TrashIcon, ClipboardDocumentIcon, QuestionMarkCircleIcon } from '@heroicons/react/24/outline'
 import { CheckIcon } from '@heroicons/react/24/solid'
 import api from '../services/api'
 import CreateClassModal from '../components/CreateClassModal'
-import FullScreenChildView from '../components/FullScreenChildView'
 import AddBookModal from '../components/AddBookModal'
 
 export default function TeacherDashboard() {
+  const navigate = useNavigate()
   const [classes, setClasses] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -27,8 +28,6 @@ export default function TeacherDashboard() {
   const [copySuccess, setCopySuccess] = useState(false)
   const [assigningUser, setAssigningUser] = useState(false)
   const [successMessage, setSuccessMessage] = useState('')
-  const [showFullScreenView, setShowFullScreenView] = useState(false)
-  const [selectedStudent, setSelectedStudent] = useState(null)
   const [showAddBook, setShowAddBook] = useState(false)
   const [selectedChildForBook, setSelectedChildForBook] = useState(null)
 
@@ -251,8 +250,7 @@ export default function TeacherDashboard() {
   }
 
   const handleViewStudent = (student) => {
-    setSelectedStudent(student)
-    setShowFullScreenView(true)
+    navigate(`/dashboard/child/${student.id}`)
   }
 
   const handleAddBook = (child) => {
@@ -794,13 +792,6 @@ export default function TeacherDashboard() {
       )}
 
       {/* Full Screen Child View */}
-      {showFullScreenView && selectedStudent && (
-        <FullScreenChildView
-          child={selectedStudent}
-          onClose={() => setShowFullScreenView(false)}
-          onAddBook={handleAddBook}
-        />
-      )}
 
       {/* Add Book Modal */}
       {showAddBook && selectedChildForBook && createPortal(

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
+import { useSearchParams, useNavigate } from 'react-router-dom'
 import { PlusIcon, ChartBarIcon, ShareIcon, ChevronLeftIcon, ChevronRightIcon, PencilIcon } from '@heroicons/react/24/outline'
 import api from '../services/api'
 import { useAuth } from '../contexts/AuthContext'
@@ -8,27 +9,45 @@ import AddChildModal from '../components/AddChildModal'
 import AddBookModal from '../components/AddBookModal'
 import BulkShareModal from '../components/BulkShareModal'
 import ChildManagementModal from '../components/ChildManagementModal'
-import FullScreenChildView from '../components/FullScreenChildView'
 import ReportModal from '../components/ReportModal'
 
 export default function Dashboard() {
   const { user: currentUser } = useAuth()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const navigate = useNavigate()
   const [children, setChildren] = useState([])
   const [loading, setLoading] = useState(true)
   const [showAddChild, setShowAddChild] = useState(false)
   const [showAddBook, setShowAddBook] = useState(false)
   const [showBulkShare, setShowBulkShare] = useState(false)
   const [showChildManagement, setShowChildManagement] = useState(false)
-  const [showFullScreenView, setShowFullScreenView] = useState(false)
   const [showReport, setShowReport] = useState(false)
   const [selectedChild, setSelectedChild] = useState(null)
   const [refreshTrigger, setRefreshTrigger] = useState(0)
-  const [currentMonth, setCurrentMonth] = useState(new Date())
-  const [fullScreenBookUpdateCallback, setFullScreenBookUpdateCallback] = useState(null)
+
+  // Get current month from URL params or default to current date
+  const getCurrentMonth = () => {
+    const monthParam = searchParams.get('month')
+    const yearParam = searchParams.get('year')
+    
+    if (monthParam && yearParam) {
+      const month = parseInt(monthParam, 10) - 1 // JavaScript months are 0-based
+      const year = parseInt(yearParam, 10)
+      if (!isNaN(month) && !isNaN(year) && month >= 0 && month <= 11) {
+        return new Date(year, month, 1)
+      }
+    }
+    
+    // Default to current month
+    const now = new Date()
+    return new Date(now.getFullYear(), now.getMonth(), 1)
+  }
+
+  const currentMonth = getCurrentMonth()
 
   useEffect(() => {
     fetchChildren()
-  }, [currentMonth])
+  }, [searchParams])
 
   const fetchChildren = async () => {
     try {
@@ -50,14 +69,11 @@ export default function Dashboard() {
     setShowAddChild(false)
   }
 
-  const handleBookAdded = () => {
-    fetchChildren()
-    setRefreshTrigger(prev => prev + 1) // Force ChildCard components to refresh
+  const handleBookAdded = async () => {
     setShowAddBook(false)
-    // If FullScreenChildView is open, also refresh its books
-    if (fullScreenBookUpdateCallback) {
-      fullScreenBookUpdateCallback()
-    }
+    // Refresh data after book has been successfully added
+    await fetchChildren()
+    setRefreshTrigger(prev => prev + 1) // Force ChildCard components to refresh
   }
 
   const handleAddBook = (child) => {
@@ -71,14 +87,29 @@ export default function Dashboard() {
   }
 
   const handleViewChild = (child) => {
-    setSelectedChild(child)
-    setShowFullScreenView(true)
+    // Navigate to child detail page with current month context
+    const monthParam = searchParams.get('month')
+    const yearParam = searchParams.get('year')
+    
+    const params = new URLSearchParams()
+    if (monthParam && yearParam) {
+      params.set('month', monthParam)
+      params.set('year', yearParam)
+    }
+    
+    const queryString = params.toString()
+    navigate(`/dashboard/child/${child.id}${queryString ? `?${queryString}` : ''}`)
   }
 
   const navigateMonth = (direction) => {
     const newDate = new Date(currentMonth)
     newDate.setMonth(currentMonth.getMonth() + direction)
-    setCurrentMonth(newDate)
+    
+    // Update URL parameters
+    const newSearchParams = new URLSearchParams(searchParams)
+    newSearchParams.set('year', newDate.getFullYear().toString())
+    newSearchParams.set('month', (newDate.getMonth() + 1).toString()) // Convert back to 1-based
+    setSearchParams(newSearchParams)
   }
 
   const formatMonthYear = (date) => {
@@ -225,19 +256,6 @@ export default function Dashboard() {
         />
       )}
 
-      {showFullScreenView && selectedChild && (
-        <FullScreenChildView
-          child={selectedChild}
-          onClose={() => setShowFullScreenView(false)}
-          onAddBook={handleAddBook}
-          onSetBookUpdateCallback={setFullScreenBookUpdateCallback}
-          currentMonth={currentMonth}
-          onChildDeleted={(childId) => {
-            setChildren(prevChildren => prevChildren.filter(child => child.id !== childId))
-            setShowFullScreenView(false)
-          }}
-        />
-      )}
 
       {showReport && (
         <ReportModal onClose={() => setShowReport(false)} currentMonth={currentMonth} />

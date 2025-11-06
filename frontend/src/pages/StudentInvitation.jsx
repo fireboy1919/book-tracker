@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react'
-import { useParams, useNavigate, Link } from 'react-router-dom'
+import { useParams, useNavigate, Link, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import api from '../services/api'
 
 export default function StudentInvitation() {
   const { classId, token } = useParams()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const { user, loading: authLoading } = useAuth()
   
   const [loading, setLoading] = useState(true)
@@ -28,8 +29,7 @@ export default function StudentInvitation() {
   useEffect(() => {
     if (user && invitationDetails && !success && !redeeming && !error) {
       // Check if this is a return from login (has redirect in URL or localStorage)
-      const urlParams = new URLSearchParams(window.location.search)
-      const hasRedirectParam = urlParams.get('from_login') === 'true'
+      const hasRedirectParam = searchParams.get('from_login') === 'true'
       const hasRedirectInStorage = localStorage.getItem('auto_redeem_invitation') === 'true'
       
       if (hasRedirectParam || hasRedirectInStorage) {

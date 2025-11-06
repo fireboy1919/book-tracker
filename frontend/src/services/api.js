@@ -15,12 +15,8 @@ api.interceptors.response.use(
       delete api.defaults.headers.common['Authorization']
       
       // Dispatch a custom event to notify components about logout
+      // The auth context will handle the navigation via React Router
       window.dispatchEvent(new CustomEvent('auth:logout'))
-      
-      // Only redirect if we're not already on the login page
-      if (window.location.pathname !== '/login') {
-        window.location.href = '/login'
-      }
     }
     return Promise.reject(error)
   }

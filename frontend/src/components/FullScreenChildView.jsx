@@ -22,9 +22,11 @@ export default function FullScreenChildView({ child, onClose, onAddBook, onSetBo
     checkEditPermission()
     // Set up the callback for when books are added
     if (onSetBookUpdateCallback) {
-      onSetBookUpdateCallback(() => {
-        fetchBooksForCurrentMonth()
-        fetchTotalBookCount()
+      onSetBookUpdateCallback(async () => {
+        await Promise.all([
+          fetchBooksForCurrentMonth(),
+          fetchTotalBookCount()
+        ])
       })
     }
   }, [child.id, onSetBookUpdateCallback])

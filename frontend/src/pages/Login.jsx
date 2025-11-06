@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { BookOpenIcon } from '@heroicons/react/24/outline'
 
@@ -10,6 +10,7 @@ export default function Login() {
   const [loading, setLoading] = useState(false)
   const { login } = useAuth()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -20,8 +21,7 @@ export default function Login() {
     
     if (result.success) {
       // Check for redirect parameter
-      const urlParams = new URLSearchParams(window.location.search)
-      const redirectUrl = urlParams.get('redirect')
+      const redirectUrl = searchParams.get('redirect')
       
       if (redirectUrl) {
         navigate(redirectUrl)
@@ -37,9 +37,8 @@ export default function Login() {
 
   const handleGoogleLogin = () => {
     // Get invitation token or redirect URL from URL if present
-    const urlParams = new URLSearchParams(window.location.search)
-    const invitationToken = urlParams.get('invitation_token')
-    const redirectUrl = urlParams.get('redirect')
+    const invitationToken = searchParams.get('invitation_token')
+    const redirectUrl = searchParams.get('redirect')
     
     // Use the same base URL as the API
     const apiBaseUrl = import.meta.env.VITE_API_URL || ''

@@ -10,6 +10,7 @@ import EmailVerificationRequired from './pages/EmailVerificationRequired'
 import ForgotPassword from './pages/ForgotPassword'
 import ResetPassword from './pages/ResetPassword'
 import Dashboard from './pages/Dashboard'
+import ChildDetailPage from './pages/ChildDetailPage'
 import AdminPanel from './pages/AdminPanel'
 import TeacherDashboard from './pages/TeacherDashboard'
 import MailMergeHelp from './pages/MailMergeHelp'
@@ -76,6 +77,16 @@ function App() {
               <ProtectedRoute>
                 <Layout>
                   <Dashboard />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/child/:childId"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <ChildDetailPage />
                 </Layout>
               </ProtectedRoute>
             }
