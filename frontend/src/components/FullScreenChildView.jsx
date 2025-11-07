@@ -29,7 +29,7 @@ export default function FullScreenChildView({ child, onClose, onAddBook, onSetBo
         ])
       })
     }
-  }, [child.id, onSetBookUpdateCallback])
+  }, [child.id, child.ownerId, onSetBookUpdateCallback])
 
   useEffect(() => {
     fetchBooksForCurrentMonth()
@@ -69,16 +69,10 @@ export default function FullScreenChildView({ child, onClose, onAddBook, onSetBo
 
   const checkEditPermission = async () => {
     try {
-      // Try to create a book request - this will check EDIT permission
-      // We're not actually creating, just checking if we have permission
       const currentUser = JSON.parse(localStorage.getItem('user'))
-      if (currentUser && child.ownerId === currentUser.id) {
-        // User owns this child, so they have EDIT permission
+      if (currentUser && child?.ownerId === currentUser.id) {
         setCanEdit(true)
       } else {
-        // For non-owners, we'll try a test request to see if we have EDIT permission
-        // We can use a HEAD request or check permissions via another endpoint
-        // For now, assume VIEW only for non-owners (can be enhanced later)
         setCanEdit(false)
       }
     } catch (error) {
