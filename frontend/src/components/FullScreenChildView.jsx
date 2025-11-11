@@ -19,7 +19,6 @@ export default function FullScreenChildView({ child, onClose, onAddBook, onSetBo
   useEffect(() => {
     fetchBooksForCurrentMonth()
     fetchTotalBookCount()
-    checkEditPermission()
     // Set up the callback for when books are added
     if (onSetBookUpdateCallback) {
       onSetBookUpdateCallback(async () => {
@@ -29,7 +28,12 @@ export default function FullScreenChildView({ child, onClose, onAddBook, onSetBo
         ])
       })
     }
-  }, [child.id, child.ownerId, onSetBookUpdateCallback])
+  }, [child.id, onSetBookUpdateCallback])
+
+  // Separate useEffect for permission checking that runs when child data is available
+  useEffect(() => {
+    checkEditPermission()
+  }, [child.id, child.ownerId])
 
   useEffect(() => {
     fetchBooksForCurrentMonth()

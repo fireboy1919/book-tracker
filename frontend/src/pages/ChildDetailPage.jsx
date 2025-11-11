@@ -49,9 +49,15 @@ export default function ChildDetailPage() {
       fetchChild()
       fetchBooksForCurrentMonth()
       fetchTotalBookCount()
-      checkEditPermission()
     }
   }, [childId, searchParams])
+
+  // Separate useEffect for permission checking that runs when child data is available
+  useEffect(() => {
+    if (child) {
+      checkEditPermission()
+    }
+  }, [child])
 
   const fetchChild = async () => {
     try {
