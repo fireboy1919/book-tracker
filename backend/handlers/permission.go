@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"log"
 	"net/http"
 	"strconv"
 
@@ -20,14 +21,17 @@ func GetPermissionsByChild(c *gin.Context) {
 		return
 	}
 
-	childIDParam := c.Param("childId")
+	childIDParam := c.Param("id")
+	log.Printf("DEBUG: childIDParam = '%s'", childIDParam)
 	childID, err := strconv.ParseUint(childIDParam, 10, 32)
 	if err != nil {
+		log.Printf("DEBUG: ParseUint error: %v", err)
 		c.JSON(http.StatusBadRequest, models.ErrorResponse{
 			Message: "Invalid child ID",
 		})
 		return
 	}
+	log.Printf("DEBUG: childID parsed successfully = %d", childID)
 
 	// Check if user has EDIT permission for this child (only owners and editors can see permissions)
 	hasPermission, err := services.CheckChildPermission(userID, uint(childID), "EDIT")

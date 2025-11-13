@@ -55,9 +55,8 @@ export default function BackendStatus() {
     }
   }, [retryCount])
 
-  if (status === 'online') {
-    return null // Don't show anything when backend is working
-  }
+  // Temporarily disable backend status checking for testing
+  return null
 
   return (
     <div className="fixed top-0 left-0 right-0 z-50 bg-yellow-50 border-b border-yellow-200">

@@ -98,15 +98,17 @@ export default function ChildDetailPage() {
 
   const checkEditPermission = async () => {
     try {
-      const currentUser = JSON.parse(localStorage.getItem('user'))
-      if (currentUser && child?.ownerId === currentUser.id) {
-        setCanEdit(true)
+      // Check if user has EDIT permission by calling the permissions endpoint
+      // This endpoint requires EDIT permission, so if it succeeds, user can edit
+      await api.get(`/children/${childId}/permissions`)
+      setCanEdit(true)
+    } catch (error) {
+      console.error('Failed to check edit permissions:', error)
+      if (error.response?.status === 403) {
+        setCanEdit(false)
       } else {
         setCanEdit(false)
       }
-    } catch (error) {
-      console.error('Failed to check permissions:', error)
-      setCanEdit(false)
     } finally {
       setCheckingPermissions(false)
     }
